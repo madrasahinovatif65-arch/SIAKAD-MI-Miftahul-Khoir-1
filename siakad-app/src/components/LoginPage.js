@@ -10,6 +10,7 @@ export default function LoginPage({ onLoginSuccess }) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [showPin, setShowPin] = useState(false);
 
   useEffect(() => {
     // Inject HTML5 QR Code script if not present
@@ -94,44 +95,44 @@ export default function LoginPage({ onLoginSuccess }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-teal-50 to-emerald-100 dark:from-slate-900 dark:via-[#0a1f1c] dark:to-slate-900 relative overflow-hidden transition-colors duration-500">
       {/* Animated Background Orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute w-96 h-96 bg-blue-500/10 rounded-full blur-3xl -top-48 -left-48 animate-pulse" />
-        <div className="absolute w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl -bottom-40 -right-40 animate-pulse delay-1000" />
-        <div className="absolute w-64 h-64 bg-cyan-500/8 rounded-full blur-3xl top-1/2 left-1/3 animate-pulse delay-500" />
+        <div className="absolute w-96 h-96 bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full blur-3xl -top-48 -left-48 animate-pulse" />
+        <div className="absolute w-80 h-80 bg-teal-500/10 dark:bg-white/5 rounded-full blur-3xl -bottom-40 -right-40 animate-pulse delay-1000" />
+        <div className="absolute w-64 h-64 bg-emerald-500/10 dark:bg-teal-500/5 rounded-full blur-3xl top-1/2 left-1/3 animate-pulse delay-500" />
       </div>
 
       <div className="relative z-10 w-full max-w-md px-6">
         {/* Glass Card */}
-        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl shadow-2xl p-8 space-y-8">
+        <div className="backdrop-blur-xl bg-white/70 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-3xl shadow-2xl p-8 space-y-8">
           
           {/* Logo / Brand */}
           <div className="text-center space-y-3">
-            <div className="mx-auto w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 transform hover:scale-105 transition-transform overflow-hidden p-2">
-              <img src="/logo.png" alt="Logo SIAKAD" className="w-full h-full object-contain" />
+            <div className="mx-auto w-24 h-24 flex items-center justify-center drop-shadow-[0_0_15px_rgba(52,211,148,0.5)] transform hover:scale-105 transition-transform">
+              <img src="/logo.png" alt="Logo Inovatif+" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">
-              SIAKAD
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+              Inovatif+
             </h1>
-            <p className="text-sm text-blue-200/60">
-              MI Miftahul Khoir — Sistem Informasi Akademik
+            <p className="text-sm text-emerald-700/90 dark:text-teal-200/60">
+              Madrasah Inovatif - MI Miftahul Khoir 1 Karangrejo
             </p>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-300 text-sm text-center animate-shake">
+            <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl px-4 py-3 text-red-600 dark:text-red-300 text-sm text-center animate-shake">
               {error}
             </div>
           )}
 
           {/* Scanner UI */}
           <div className={`space-y-4 ${showScanner ? 'block' : 'hidden'}`}>
-            <div id="qr-reader" className="w-full overflow-hidden rounded-xl border-2 border-white/20 bg-black/50"></div>
+            <div id="qr-reader" className="w-full overflow-hidden rounded-xl border-2 border-slate-300 dark:border-white/20 bg-black/50"></div>
             <button 
               onClick={handleCancelScan}
-              className="w-full py-2.5 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-colors">
+              className="w-full py-2.5 bg-white dark:bg-white/10 hover:bg-white dark:bg-white/20 text-slate-900 dark:text-white font-medium rounded-xl transition-colors">
               Batal Scan
             </button>
           </div>
@@ -140,7 +141,7 @@ export default function LoginPage({ onLoginSuccess }) {
           <div className={showScanner ? 'hidden' : 'block'}>
             <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-xs font-medium text-blue-200/70 uppercase tracking-wider">
+              <label className="text-xs font-medium text-emerald-700 dark:text-teal-200/70 uppercase tracking-wider">
                 ID User / NISN
               </label>
               <input
@@ -149,29 +150,49 @@ export default function LoginPage({ onLoginSuccess }) {
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Masukkan ID User"
                 required
-                className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-blue-400/50 focus:bg-white/8 focus:ring-2 focus:ring-blue-400/20 transition-all"
+                className="w-full px-4 py-3.5 bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-white/30 focus:outline-none focus:border-teal-500 dark:focus:border-teal-400/50 focus:bg-white/80 dark:focus:bg-white/8 focus:ring-2 focus:ring-teal-500/30 dark:focus:ring-teal-400/20 transition-all"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-medium text-blue-200/70 uppercase tracking-wider">
+              <label className="text-xs font-medium text-emerald-700 dark:text-teal-200/70 uppercase tracking-wider">
                 PIN
               </label>
-              <input
-                type="password"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                placeholder="Masukkan PIN 6 digit"
-                maxLength={6}
-                required
-                className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-blue-400/50 focus:bg-white/8 focus:ring-2 focus:ring-blue-400/20 transition-all"
-              />
+              <div className="relative">
+                <input
+                  type={showPin ? 'text' : 'password'}
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+                  placeholder="Masukkan PIN 6 digit"
+                  maxLength={6}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  required
+                  className="w-full px-4 py-3.5 bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-white/30 focus:outline-none focus:border-teal-500 dark:focus:border-teal-400/50 focus:bg-white/80 dark:focus:bg-white/8 focus:ring-2 focus:ring-teal-500/30 dark:focus:ring-teal-400/20 transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPin(!showPin)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-teal-200/50 hover:text-teal-200/80 transition-colors"
+                >
+                  {showPin ? (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full py-3.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-slate-900 dark:text-white font-semibold rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -187,16 +208,16 @@ export default function LoginPage({ onLoginSuccess }) {
             </button>
             </form>
               <div className="relative flex items-center py-4">
-                <div className="flex-grow border-t border-white/10"></div>
-                <span className="flex-shrink-0 mx-4 text-white/30 text-xs font-medium uppercase tracking-wider">ATAU</span>
-                <div className="flex-grow border-t border-white/10"></div>
+                <div className="flex-grow border-t border-slate-300 dark:border-white/10"></div>
+                <span className="flex-shrink-0 mx-4 text-slate-600 dark:text-white/30 text-xs font-medium uppercase tracking-wider">ATAU</span>
+                <div className="flex-grow border-t border-slate-300 dark:border-white/10"></div>
               </div>
 
               <button
                 type="button"
                 onClick={handleScan}
                 disabled={isLoading}
-                className="w-full py-3.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50"
+                className="w-full py-3.5 bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-white/10 hover:bg-white dark:bg-white/10 text-slate-900 dark:text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
@@ -207,8 +228,8 @@ export default function LoginPage({ onLoginSuccess }) {
             </div>
 
           {/* Footer */}
-          <p className="text-center text-xs text-white/20">
-            Versi 2.0 · Powered by Supabase
+          <p className="text-center text-xs text-slate-400 dark:text-white/20">
+            Versi 2.0 · Powered by Minova
           </p>
         </div>
       </div>

@@ -145,11 +145,19 @@ export default function PresensiPage() {
 
   const statusOptions = ['Hadir', 'Sakit', 'Izin', 'Alfa', 'Dispen'];
   const statusColors = {
-    Hadir: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-    Sakit: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-    Izin: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-    Alfa: 'bg-red-500/20 text-red-300 border-red-500/30',
-    Dispen: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+    Hadir: 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
+    Sakit: 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
+    Izin: 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20',
+    Alfa: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20',
+    Dispen: 'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20',
+  };
+  const activeStatusColors = {
+    Semua: 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 border-transparent shadow-md',
+    Hadir: 'bg-emerald-500 text-white border-transparent shadow-md shadow-emerald-500/20',
+    Sakit: 'bg-amber-500 text-white border-transparent shadow-md shadow-amber-500/20',
+    Izin: 'bg-blue-500 text-white border-transparent shadow-md shadow-blue-500/20',
+    Alfa: 'bg-rose-500 text-white border-transparent shadow-md shadow-rose-500/20',
+    Dispen: 'bg-purple-500 text-white border-transparent shadow-md shadow-purple-500/20',
   };
 
   const summary = statusOptions.reduce((acc, s) => {
@@ -164,64 +172,68 @@ export default function PresensiPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white">Presensi Murid</h2>
-        <p className="text-white/40 text-sm mt-1">Catat kehadiran harian murid</p>
-      </div>
-
-      {/* Filter Tanggal & Rombel */}
-      <div className="flex flex-wrap gap-3">
-        <input
-          type="date"
-          value={tanggal}
-          onChange={e => setTanggal(e.target.value)}
-          className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-blue-400/50"
-        />
-        <select
-          value={rombel}
-          onChange={e => setRombel(e.target.value)}
-          className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-blue-400/50"
-        >
-          {rombelOptions.map(r => (
-            <option key={r} value={r} className="bg-slate-900">{r}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* Filter Search & Status */}
-      {!isHoliday && muridList.length > 0 && (
-        <div className="flex flex-wrap gap-3 items-center">
-          <input
-            type="text"
-            placeholder="Cari nama / NISN..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 min-w-[200px] px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-blue-400/50"
-          />
-          <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
-            {['Semua', ...statusOptions].map(s => (
-              <button
-                key={s}
-                onClick={() => setFilterStatus(s)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                  filterStatus === s 
-                    ? (s === 'Semua' ? 'bg-blue-600 text-white' : statusColors[s].replace('bg-opacity-20', 'bg-opacity-100').replace('text-', 'text-white bg-').split(' ')[0] + ' text-white border-transparent')
-                    : 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/10'
-                }`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">Presensi Murid</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Catat kehadiran harian murid secara efisien</p>
         </div>
-      )}
+      </div>
+
+      <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-4 sm:p-6 shadow-sm">
+        {/* Filter Tanggal & Rombel */}
+        <div className="flex flex-wrap gap-4 mb-4">
+          <input
+            type="date"
+            value={tanggal}
+            onChange={e => setTanggal(e.target.value)}
+            className="px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm"
+          />
+          <select
+            value={rombel}
+            onChange={e => setRombel(e.target.value)}
+            className="px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm"
+          >
+            {rombelOptions.map(r => (
+              <option key={r} value={r} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{r}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Filter Search & Status */}
+        {!isHoliday && muridList.length > 0 && (
+          <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between pt-4 border-t border-slate-200 dark:border-white/10">
+            <input
+              type="text"
+              placeholder="Cari nama / NISN..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full sm:max-w-xs px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm"
+            />
+            <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
+              {['Semua', ...statusOptions].map(s => (
+                <button
+                  key={s}
+                  onClick={() => setFilterStatus(s)}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
+                    filterStatus === s 
+                      ? activeStatusColors[s]
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Summary Bar */}
       {muridList.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {statusOptions.map(s => (
-            <span key={s} className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${statusColors[s]}`}>
+            <span key={s} className={`px-3 py-1.5 rounded-lg text-xs font-semibold border shadow-sm ${statusColors[s]}`}>
               {s}: {summary[s]}
             </span>
           ))}
@@ -230,8 +242,8 @@ export default function PresensiPage() {
 
       {/* Message */}
       {message && (
-        <div className={`px-4 py-3 rounded-xl text-sm ${
-          message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' : 'bg-red-500/10 border border-red-500/30 text-red-300'
+        <div className={`px-4 py-3 rounded-xl text-sm font-medium shadow-sm animate-in fade-in slide-in-from-top-2 ${
+          message.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-300' : 'bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-300'
         }`}>
           {message.text}
         </div>
@@ -251,62 +263,63 @@ export default function PresensiPage() {
           <p className="text-amber-300/70 text-sm mt-1">Presensi ditutup pada hari libur.</p>
         </div>
       ) : muridList.length === 0 ? (
-        <div className="text-center py-12 text-white/30">Tidak ada murid di rombel ini</div>
+        <div className="text-center py-12 text-slate-600 dark:text-white/30">Tidak ada murid di rombel ini</div>
       ) : filteredMurid.length === 0 ? (
-        <div className="text-center py-12 text-white/30">Tidak ada murid yang cocok dengan pencarian/filter</div>
+        <div className="text-center py-12 text-slate-600 dark:text-white/30">Tidak ada murid yang cocok dengan pencarian/filter</div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-white/5">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-3xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-900/40 backdrop-blur-md shadow-sm">
+          <table className="w-full text-sm text-left">
             <thead>
-              <tr className="bg-white/5">
-                <th className="px-4 py-3 text-left text-white/50 font-medium">No</th>
-                <th className="px-4 py-3 text-left text-white/50 font-medium">NISN</th>
-                <th className="px-4 py-3 text-left text-white/50 font-medium">Nama</th>
-                <th className="px-4 py-3 text-left text-white/50 font-medium">NFC</th>
-                <th className="px-4 py-3 text-left text-white/50 font-medium">Status</th>
-                <th className="px-4 py-3 text-left text-white/50 font-medium">Catatan</th>
+              <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
+                <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">No</th>
+                <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">NISN</th>
+                <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">Nama</th>
+                <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">NFC</th>
+                <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider text-center">Status</th>
+                <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">Catatan</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
               {filteredMurid.map((m, idx) => (
-                <tr key={m.nisn} className="hover:bg-white/3 transition-colors">
-                  <td className="px-4 py-3 text-white/40">{idx + 1}</td>
-                  <td className="px-4 py-3 text-white/60 font-mono text-xs">{m.nisn}</td>
-                  <td className="px-4 py-3 text-white font-medium">{m.nama_murid}</td>
-                  <td className="px-4 py-3">
+                <tr key={m.nisn} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group">
+                  <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{idx + 1}</td>
+                  <td className="px-5 py-3 text-slate-400 dark:text-slate-500 font-mono text-xs">{m.nisn}</td>
+                  <td className="px-5 py-3 text-slate-800 dark:text-white font-medium">{m.nama_murid}</td>
+                  <td className="px-5 py-3">
                     {nfcData[m.nisn] ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold shadow-sm">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
                         {nfcData[m.nisn].jam_datang || 'Tap'}
                       </span>
                     ) : (
-                      <span className="text-white/20 text-xs">-</span>
+                      <span className="text-slate-300 dark:text-slate-600 text-xs">-</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1">
+                  <td className="px-5 py-3">
+                    <div className="flex flex-wrap gap-1.5 justify-center">
                       {statusOptions.map(s => (
                         <button
                           key={s}
                           onClick={() => handleStatusChange(m.nisn, s)}
-                          className={`px-2 py-1 rounded-md text-xs font-medium border transition-all ${
+                          className={`w-8 h-8 rounded-lg text-xs font-bold border transition-all flex items-center justify-center ${
                             absensi[m.nisn]?.status === s
-                              ? statusColors[s]
-                              : 'border-white/5 text-white/20 hover:border-white/20 hover:text-white/40'
+                              ? activeStatusColors[s]
+                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-400 dark:text-slate-500 hover:border-emerald-300 dark:hover:border-emerald-500/50 hover:text-emerald-500 shadow-sm'
                           }`}
+                          title={s}
                         >
                           {s.charAt(0)}
                         </button>
                       ))}
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-3">
                     <input
                       type="text"
                       value={absensi[m.nisn]?.catatan || ''}
                       onChange={e => handleCatatanChange(m.nisn, e.target.value)}
-                      placeholder="-"
-                      className="w-full bg-transparent border-b border-white/10 text-white/70 text-xs py-1 focus:outline-none focus:border-blue-400/50"
+                      placeholder="Tambahkan catatan..."
+                      className="w-full bg-transparent border-b border-transparent hover:border-slate-300 dark:hover:border-white/20 focus:border-emerald-500 dark:focus:border-emerald-500 text-slate-700 dark:text-white/80 text-xs py-1.5 px-1 focus:outline-none transition-colors"
                     />
                   </td>
                 </tr>
@@ -318,13 +331,25 @@ export default function PresensiPage() {
 
       {/* Save Button */}
       {!isHoliday && muridList.length > 0 && (
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50"
-        >
-          {saving ? 'Menyimpan...' : 'Simpan Presensi'}
-        </button>
+        <div className="sticky bottom-4 z-20 flex justify-end">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full sm:w-auto px-8 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl shadow-lg shadow-emerald-600/25 hover:shadow-emerald-500/40 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none disabled:shadow-none flex items-center justify-center gap-2"
+          >
+            {saving ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Menyimpan...
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" /></svg>
+                Simpan Presensi
+              </>
+            )}
+          </button>
+        </div>
       )}
     </div>
   );

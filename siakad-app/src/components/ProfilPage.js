@@ -41,83 +41,117 @@ export default function ProfilPage() {
   if (!user) return null;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div>
-        <h2 className="text-2xl font-bold text-white">Profil Saya</h2>
-        <p className="text-white/40 text-sm mt-1">Informasi akun dan keamanan</p>
+        <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">Profil Saya</h2>
+        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Kelola informasi akun dan keamanan Anda</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 sm:gap-8">
         {/* Kartu Profil */}
-        <div className="bg-white/5 border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center space-y-4 shadow-xl">
-          <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-4xl shadow-lg shadow-blue-500/20 ring-4 ring-white/10 overflow-hidden">
-            {user.foto ? (
-              <img src={user.foto} alt="Foto Profil" className="w-full h-full object-cover" />
-            ) : (
-              user.nama?.charAt(0)?.toUpperCase() || '?'
-            )}
+        <div className="md:col-span-2 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-6 sm:p-8 flex flex-col items-center justify-start space-y-6 shadow-sm">
+          <div className="relative">
+            <div className="w-32 h-32 bg-emerald-50 dark:bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-5xl shadow-inner border-[4px] border-white dark:border-slate-800 overflow-hidden relative z-10">
+              {user.foto ? (
+                <img src={user.foto} alt="Foto Profil" className="w-full h-full object-cover" />
+              ) : (
+                user.nama?.charAt(0)?.toUpperCase() || '?'
+              )}
+            </div>
+            <div className="absolute inset-0 bg-emerald-500 blur-2xl opacity-20 dark:opacity-30 rounded-full -z-10 transform scale-125" />
           </div>
-          <div className="text-center">
-            <h3 className="text-xl font-bold text-white">{user.nama}</h3>
-            <p className="text-blue-400 font-medium">{user.role}</p>
+          
+          <div className="text-center w-full space-y-1">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white truncate">{user.nama}</h3>
+            <p className="inline-flex items-center justify-center px-3 py-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-lg border border-emerald-200 dark:border-emerald-500/20">{user.role}</p>
           </div>
-          <div className="w-full pt-4 border-t border-white/10 space-y-3">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-white/40">ID / NISN</span>
-              <span className="text-white font-medium">{user.id_user}</span>
+          
+          <div className="w-full pt-6 border-t border-slate-100 dark:border-white/5 space-y-4">
+            <div className="flex flex-col space-y-1 text-sm">
+              <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">ID / NISN</span>
+              <span className="text-slate-800 dark:text-white font-medium bg-slate-50 dark:bg-slate-950 px-3 py-2 rounded-lg border border-slate-200 dark:border-white/5">{user.id_user}</span>
             </div>
             {user.rombel && user.rombel !== '-' && (
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-white/40">Rombel</span>
-                <span className="text-white font-medium">{user.rombel}</span>
+              <div className="flex flex-col space-y-1 text-sm">
+                <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">Rombel</span>
+                <span className="text-slate-800 dark:text-white font-medium bg-slate-50 dark:bg-slate-950 px-3 py-2 rounded-lg border border-slate-200 dark:border-white/5">{user.rombel}</span>
               </div>
             )}
             {user.mapel && user.mapel !== '-' && (
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-white/40">Mata Pelajaran</span>
-                <span className="text-white font-medium">{user.mapel}</span>
+              <div className="flex flex-col space-y-1 text-sm">
+                <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">Mata Pelajaran</span>
+                <span className="text-slate-800 dark:text-white font-medium bg-slate-50 dark:bg-slate-950 px-3 py-2 rounded-lg border border-slate-200 dark:border-white/5">{user.mapel}</span>
               </div>
             )}
           </div>
         </div>
 
         {/* Form Ganti PIN */}
-        <form onSubmit={handleSubmit} className="bg-white/5 border border-white/5 rounded-2xl p-6 space-y-5 shadow-xl">
-          <div>
-            <h3 className="text-lg font-bold text-white mb-4">Ganti PIN Keamanan</h3>
-            
-            <div className="space-y-4">
-              {[
-                { label: 'PIN Lama', value: oldPin, onChange: setOldPin },
-                { label: 'PIN Baru (6 digit)', value: newPin, onChange: setNewPin },
-                { label: 'Konfirmasi PIN Baru', value: confirmPin, onChange: setConfirmPin },
-              ].map((field, idx) => (
-                <div key={idx} className="space-y-2">
-                  <label className="text-xs text-white/50 uppercase tracking-wider font-medium">{field.label}</label>
-                  <input
-                    type="password"
-                    value={field.value}
-                    onChange={e => field.onChange(e.target.value)}
-                    maxLength={6}
-                    required
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-blue-400/50 transition-colors"
-                  />
+        <div className="md:col-span-3">
+          <form onSubmit={handleSubmit} className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
+            <div>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl border border-blue-200 dark:border-blue-500/20">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                  </svg>
                 </div>
-              ))}
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white tracking-tight">Ganti PIN Keamanan</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Pastikan PIN baru mudah diingat tapi sulit ditebak.</p>
+                </div>
+              </div>
+              
+              <div className="space-y-5">
+                {[
+                  { label: 'PIN Lama', value: oldPin, onChange: setOldPin, placeholder: 'Masukkan 6 digit PIN saat ini' },
+                  { label: 'PIN Baru', value: newPin, onChange: setNewPin, placeholder: 'Masukkan 6 digit PIN baru' },
+                  { label: 'Konfirmasi PIN Baru', value: confirmPin, onChange: setConfirmPin, placeholder: 'Ketik ulang PIN baru' },
+                ].map((field, idx) => (
+                  <div key={idx} className="space-y-2">
+                    <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">{field.label}</label>
+                    <input
+                      type="password"
+                      value={field.value}
+                      onChange={e => field.onChange(e.target.value)}
+                      maxLength={6}
+                      placeholder={field.placeholder}
+                      required
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-sm tracking-[0.25em]"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {message && (
-            <div className={`px-4 py-3 rounded-xl text-sm ${
-              message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' : 'bg-red-500/10 border border-red-500/30 text-red-300'
-            }`}>{message.text}</div>
-          )}
+            {message && (
+              <div className={`px-4 py-3.5 rounded-2xl text-sm font-medium shadow-sm animate-in fade-in slide-in-from-top-2 flex items-center gap-2 ${
+                message.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-300' : 'bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-300'
+              }`}>
+                {message.type === 'success' ? (
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                ) : (
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                )}
+                {message.text}
+              </div>
+            )}
 
-          <button type="submit" disabled={saving}
-            className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50">
-            {saving ? 'Menyimpan...' : 'Ubah PIN'}
-          </button>
-        </form>
+            <div className="pt-2">
+              <button type="submit" disabled={saving}
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl shadow-lg shadow-blue-600/25 hover:shadow-blue-500/40 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none disabled:shadow-none flex items-center justify-center gap-2">
+                {saving ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Menyimpan...
+                  </>
+                ) : (
+                  'Perbarui Keamanan'
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

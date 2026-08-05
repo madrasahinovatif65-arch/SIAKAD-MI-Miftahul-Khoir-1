@@ -1,25 +1,25 @@
 {
-  "name": "SIAKAD MI Miftahul Khoir",
-  "short_name": "SIAKAD",
-  "description": "Sistem Informasi Akademik MI Miftahul Khoir 1 Karangrejo",
+  "name": "Inovatif+",
+  "short_name": "Inovatif+",
+  "description": "Madrasah Inovatif MI Miftahul Khoir 1 Karangrejo",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0f172a",
-  "theme_color": "#1e3a5f",
+  "background_color": "#064e3b",
+  "theme_color": "#064e3b",
   "categories": ["education"],
   "icons": [
     {
       "src": "/icons/icon-192-v2.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512-v2.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }

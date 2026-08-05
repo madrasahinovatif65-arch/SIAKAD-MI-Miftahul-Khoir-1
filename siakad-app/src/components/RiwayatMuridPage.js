@@ -60,8 +60,8 @@ export default function RiwayatMuridPage() {
   const statusColors = {
     'Hadir': 'bg-emerald-500/20 text-emerald-300',
     'Sakit': 'bg-amber-500/20 text-amber-300',
-    'Izin': 'bg-blue-500/20 text-blue-300',
-    'Alfa': 'bg-red-500/20 text-red-300',
+    'Izin': 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300',
+    'Alfa': 'bg-red-500/20 text-red-600 dark:text-red-300',
     'Dispen': 'bg-purple-500/20 text-purple-300',
   };
 
@@ -74,31 +74,31 @@ export default function RiwayatMuridPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white">Riwayat Absen Saya</h2>
-          <p className="text-white/40 text-sm mt-1">{user.nama} · {user.rombel}</p>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Riwayat Absen Saya</h2>
+          <p className="text-slate-600 dark:text-white/40 text-sm mt-1">{user.nama} · {user.rombel}</p>
         </div>
         <input type="month" value={bulan} onChange={e => setBulan(e.target.value)}
-          className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-blue-400/50" />
+          className="px-4 py-2.5 bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500/50" />
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-gradient-to-br from-emerald-600/20 to-emerald-800/20 border border-white/5 rounded-2xl p-5">
-          <p className="text-white/50 text-xs">Kehadiran</p>
-          <p className="text-3xl font-bold text-white mt-1">{persentase}%</p>
-          <p className="text-white/30 text-xs mt-1">{summary.Hadir}/{total} hari</p>
+        <div className="bg-gradient-to-br from-emerald-600/20 to-emerald-800/20 border border-slate-300 dark:border-white/5 rounded-2xl p-5">
+          <p className="text-slate-600 dark:text-white/50 text-xs">Kehadiran</p>
+          <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{persentase}%</p>
+          <p className="text-slate-600 dark:text-white/30 text-xs mt-1">{summary.Hadir}/{total} hari</p>
         </div>
-        <div className="bg-gradient-to-br from-amber-600/20 to-amber-800/20 border border-white/5 rounded-2xl p-5">
-          <p className="text-white/50 text-xs">Sakit</p>
-          <p className="text-3xl font-bold text-white mt-1">{summary.Sakit}</p>
+        <div className="bg-gradient-to-br from-amber-600/20 to-amber-800/20 border border-slate-300 dark:border-white/5 rounded-2xl p-5">
+          <p className="text-slate-600 dark:text-white/50 text-xs">Sakit</p>
+          <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{summary.Sakit}</p>
         </div>
-        <div className="bg-gradient-to-br from-blue-600/20 to-blue-800/20 border border-white/5 rounded-2xl p-5">
-          <p className="text-white/50 text-xs">Izin</p>
-          <p className="text-3xl font-bold text-white mt-1">{summary.Izin}</p>
+        <div className="bg-gradient-to-br from-blue-600/20 to-blue-800/20 border border-slate-300 dark:border-white/5 rounded-2xl p-5">
+          <p className="text-slate-600 dark:text-white/50 text-xs">Izin</p>
+          <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{summary.Izin}</p>
         </div>
-        <div className="bg-gradient-to-br from-red-600/20 to-red-800/20 border border-white/5 rounded-2xl p-5">
-          <p className="text-white/50 text-xs">Alfa</p>
-          <p className="text-3xl font-bold text-white mt-1">{summary.Alfa}</p>
+        <div className="bg-gradient-to-br from-red-600/20 to-red-800/20 border border-slate-300 dark:border-white/5 rounded-2xl p-5">
+          <p className="text-slate-600 dark:text-white/50 text-xs">Alfa</p>
+          <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{summary.Alfa}</p>
         </div>
       </div>
 
@@ -111,8 +111,8 @@ export default function RiwayatMuridPage() {
               onClick={() => setFilterStatus(s)}
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                 filterStatus === s 
-                  ? (s === 'Semua' ? 'bg-blue-600 text-white' : statusColors[s].replace('bg-opacity-20', 'bg-opacity-100').replace('text-', 'text-white bg-').split(' ')[0] + ' text-white')
-                  : 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/10'
+                  ? (s === 'Semua' ? 'bg-emerald-600 text-slate-900 dark:text-white' : statusColors[s].replace('bg-opacity-20', 'bg-opacity-100').replace('text-', 'text-slate-900 dark:text-white bg-').split(' ')[0] + ' text-slate-900 dark:text-white')
+                  : 'bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-white/10 text-slate-600 dark:text-white/60 hover:bg-white dark:bg-white/10'
               }`}
             >
               {s}
@@ -127,16 +127,16 @@ export default function RiwayatMuridPage() {
           <div className="w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
         </div>
       ) : data.length === 0 ? (
-        <div className="text-center py-12 text-white/30 text-sm">Tidak ada data untuk bulan ini</div>
+        <div className="text-center py-12 text-slate-600 dark:text-white/30 text-sm">Tidak ada data untuk bulan ini</div>
       ) : (
         <div className="space-y-2">
           {data
             .filter(d => filterStatus === 'Semua' || d.status === filterStatus)
             .map((row, idx) => (
-            <div key={idx} className="bg-white/5 border border-white/5 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div key={idx} className="bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-white/5 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-4">
-                <span className="text-white/60 font-mono text-xs w-24 shrink-0">{row.tanggal}</span>
-                <span className={`px-2 py-1 rounded-md text-xs font-medium ${statusColors[row.status] || 'text-white/30'}`}>
+                <span className="text-slate-600 dark:text-white/60 font-mono text-xs w-24 shrink-0">{row.tanggal}</span>
+                <span className={`px-2 py-1 rounded-md text-xs font-medium ${statusColors[row.status] || 'text-slate-600 dark:text-white/30'}`}>
                   {row.status}
                 </span>
               </div>
@@ -147,14 +147,14 @@ export default function RiwayatMuridPage() {
                     NFC
                   </span>
                 ) : (
-                  <span className="text-white/20 text-xs">Manual</span>
+                  <span className="text-slate-400 dark:text-white/20 text-xs">Manual</span>
                 )}
-                <span className="text-white/40 text-xs max-w-[150px] sm:max-w-40 truncate" title={row.catatan || '-'}>{row.catatan || '-'}</span>
+                <span className="text-slate-600 dark:text-white/40 text-xs max-w-[150px] sm:max-w-40 truncate" title={row.catatan || '-'}>{row.catatan || '-'}</span>
               </div>
             </div>
           ))}
           {data.filter(d => filterStatus === 'Semua' || d.status === filterStatus).length === 0 && (
-            <div className="text-center py-8 text-white/30 text-sm">Tidak ada absensi dengan status {filterStatus}</div>
+            <div className="text-center py-8 text-slate-600 dark:text-white/30 text-sm">Tidak ada absensi dengan status {filterStatus}</div>
           )}
         </div>
       )}

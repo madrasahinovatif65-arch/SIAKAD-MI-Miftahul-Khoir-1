@@ -131,17 +131,17 @@ export default function AbsenGPSPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-white">Absen GPS</h2>
-        <p className="text-white/40 text-sm mt-1">Absensi guru berbasis lokasi GPS</p>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Absen GPS</h2>
+        <p className="text-slate-600 dark:text-white/40 text-sm mt-1">Absensi guru berbasis lokasi GPS</p>
       </div>
 
       {/* Main Card */}
-      <div className="bg-white/5 border border-white/5 rounded-2xl p-8 text-center space-y-6">
+      <div className="bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-white/5 rounded-2xl p-8 text-center space-y-6">
         <div className="text-6xl">{getStatusIcon()}</div>
 
         <div>
-          <p className="text-white font-semibold text-lg">{user.nama}</p>
-          <p className="text-white/40 text-sm">{user.role} {user.rombel !== '-' ? `· ${user.rombel}` : ''}</p>
+          <p className="text-slate-900 dark:text-white font-semibold text-lg">{user.nama}</p>
+          <p className="text-slate-600 dark:text-white/40 text-sm">{user.role} {user.rombel !== '-' ? `· ${user.rombel}` : ''}</p>
         </div>
 
         {message && (
@@ -149,8 +149,8 @@ export default function AbsenGPSPage() {
             status === 'done' || status === 'already' || status === 'nfc'
               ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
               : status === 'error'
-              ? 'bg-red-500/10 border border-red-500/30 text-red-300'
-              : 'bg-blue-500/10 border border-blue-500/30 text-blue-300'
+              ? 'bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-300'
+              : 'bg-emerald-100 dark:bg-emerald-500/10 border border-blue-500/30 text-emerald-700 dark:text-emerald-300'
           }`}>
             {message}
           </div>
@@ -164,9 +164,9 @@ export default function AbsenGPSPage() {
               { label: 'Akurasi', value: `${Math.round(location.accuracy)}m` },
               { label: 'Jarak', value: `${Math.round(location.distance)}m` },
             ].map(item => (
-              <div key={item.label} className="bg-white/5 rounded-xl p-3">
-                <p className="text-white/40 text-xs">{item.label}</p>
-                <p className="text-white font-mono text-sm mt-1">{item.value}</p>
+              <div key={item.label} className="bg-white dark:bg-white/5 shadow-sm dark:shadow-none rounded-xl p-3">
+                <p className="text-slate-600 dark:text-white/40 text-xs">{item.label}</p>
+                <p className="text-slate-900 dark:text-white font-mono text-sm mt-1">{item.value}</p>
               </div>
             ))}
           </div>
@@ -175,10 +175,10 @@ export default function AbsenGPSPage() {
         <button
           onClick={handleAbsen}
           disabled={status === 'locating' || status === 'sending' || status === 'already' || status === 'nfc'}
-          className={`px-12 py-4 text-white font-semibold rounded-2xl shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed ${
+          className={`px-12 py-4 text-slate-900 dark:text-white font-semibold rounded-2xl shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed ${
             status === 'nfc' || status === 'already'
               ? 'bg-gray-600'
-              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-blue-500/25'
+              : 'bg-gradient-to-r from-blue-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-blue-500/25'
           }`}
         >
           {status === 'locating' ? 'Mengambil Lokasi...' :
@@ -191,9 +191,9 @@ export default function AbsenGPSPage() {
       </div>
 
       {/* Info */}
-      <div className="bg-white/5 border border-white/5 rounded-2xl p-5">
-        <h3 className="text-white font-semibold text-sm mb-2">ℹ️ Sistem Hybrid NFC + GPS</h3>
-        <ul className="text-white/40 text-xs space-y-1">
+      <div className="bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-white/5 rounded-2xl p-5">
+        <h3 className="text-slate-900 dark:text-white font-semibold text-sm mb-2">ℹ️ Sistem Hybrid NFC + GPS</h3>
+        <ul className="text-slate-600 dark:text-white/40 text-xs space-y-1">
           <li>• Jika sudah melakukan tap NFC, tombol GPS otomatis nonaktif hari itu.</li>
           <li>• Jika belum tap NFC, Anda bisa absen melalui GPS.</li>
           <li>• Absen GPS memerlukan verifikasi admin.</li>

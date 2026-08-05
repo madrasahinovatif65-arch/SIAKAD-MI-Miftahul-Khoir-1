@@ -14,8 +14,8 @@ export default function VerifikasiPage() {
   const statusColors = {
     'Hadir': 'bg-emerald-500/20 text-emerald-300',
     'Sakit': 'bg-amber-500/20 text-amber-300',
-    'Izin': 'bg-blue-500/20 text-blue-300',
-    'Alfa': 'bg-red-500/20 text-red-300',
+    'Izin': 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300',
+    'Alfa': 'bg-red-500/20 text-red-600 dark:text-red-300',
     'Dinas Luar': 'bg-purple-500/20 text-purple-300',
     'Menunggu Verifikasi': 'bg-yellow-500/20 text-yellow-300',
     'Di Luar Radius': 'bg-orange-500/20 text-orange-300',
@@ -157,22 +157,22 @@ export default function VerifikasiPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white">Verifikasi Kehadiran Guru</h2>
-          <p className="text-white/40 text-sm mt-1">Kelola dan verifikasi absensi guru</p>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Verifikasi Kehadiran Guru</h2>
+          <p className="text-slate-600 dark:text-white/40 text-sm mt-1">Kelola dan verifikasi absensi guru</p>
         </div>
         <input type="date" value={tanggal} onChange={e => setTanggal(e.target.value)}
-          className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-blue-400/50" />
+          className="px-4 py-2.5 bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500/50" />
       </div>
 
       {message && (
         <div className={`px-4 py-3 rounded-xl text-sm ${
-          message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' : 'bg-red-500/10 border border-red-500/30 text-red-300'
+          message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' : 'bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-300'
         }`}>{message.text}</div>
       )}
 
       {/* Batch Verify */}
       <button onClick={handleVerifyAll} disabled={saving === 'all'}
-        className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-sm rounded-xl shadow-lg transition-all disabled:opacity-50">
+        className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-900 dark:text-white font-medium text-sm rounded-xl shadow-lg transition-all disabled:opacity-50">
         {saving === 'all' ? 'Memproses...' : '✓ Verifikasi Semua'}
       </button>
 
@@ -182,33 +182,33 @@ export default function VerifikasiPage() {
           <div className="w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-white/5">
+        <div className="overflow-x-auto rounded-2xl border border-slate-300 dark:border-white/5">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-white/5">
-                <th className="px-4 py-3 text-left text-white/50 font-medium">Nama</th>
-                <th className="px-4 py-3 text-left text-white/50 font-medium">Role</th>
-                <th className="px-4 py-3 text-left text-white/50 font-medium">Metode</th>
-                <th className="px-4 py-3 text-left text-white/50 font-medium">Waktu</th>
-                <th className="px-4 py-3 text-left text-white/50 font-medium">Status</th>
-                <th className="px-4 py-3 text-left text-white/50 font-medium">Aksi</th>
+              <tr className="bg-white dark:bg-white/5 shadow-sm dark:shadow-none">
+                <th className="px-4 py-3 text-left text-slate-600 dark:text-white/50 font-medium">Nama</th>
+                <th className="px-4 py-3 text-left text-slate-600 dark:text-white/50 font-medium">Role</th>
+                <th className="px-4 py-3 text-left text-slate-600 dark:text-white/50 font-medium">Metode</th>
+                <th className="px-4 py-3 text-left text-slate-600 dark:text-white/50 font-medium">Waktu</th>
+                <th className="px-4 py-3 text-left text-slate-600 dark:text-white/50 font-medium">Status</th>
+                <th className="px-4 py-3 text-left text-slate-600 dark:text-white/50 font-medium">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {data.map(guru => (
                 <tr key={guru.id_user} className="hover:bg-white/3 transition-colors">
-                  <td className="px-4 py-3 text-white font-medium">{guru.nama}</td>
-                  <td className="px-4 py-3 text-white/50 text-xs">{guru.role}</td>
+                  <td className="px-4 py-3 text-slate-900 dark:text-white font-medium">{guru.nama}</td>
+                  <td className="px-4 py-3 text-slate-600 dark:text-white/50 text-xs">{guru.role}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded-md text-xs font-medium ${
                       guru.metode === 'NFC' ? 'bg-emerald-500/10 text-emerald-400' :
-                      guru.metode === 'GPS' ? 'bg-blue-500/10 text-blue-400' :
-                      'text-white/20'
+                      guru.metode === 'GPS' ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
+                      'text-slate-400 dark:text-white/20'
                     }`}>{guru.metode}</span>
                   </td>
-                  <td className="px-4 py-3 text-white/60 font-mono text-xs">{guru.waktu}</td>
+                  <td className="px-4 py-3 text-slate-600 dark:text-white/60 font-mono text-xs">{guru.waktu}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-md text-xs font-medium ${statusColors[guru.currentStatus] || 'text-white/30'}`}>
+                    <span className={`px-2 py-1 rounded-md text-xs font-medium ${statusColors[guru.currentStatus] || 'text-slate-600 dark:text-white/30'}`}>
                       {guru.currentStatus}
                     </span>
                   </td>
@@ -220,7 +220,7 @@ export default function VerifikasiPage() {
                           className={`px-2 py-1 rounded-md text-xs border transition-all ${
                             guru.currentStatus === s && guru.isVerified
                               ? statusColors[s] + ' border-transparent'
-                              : 'border-white/10 text-white/30 hover:text-white/60 hover:border-white/20'
+                              : 'border-slate-300 dark:border-white/10 text-slate-600 dark:text-white/30 hover:text-slate-600 dark:text-white/60 hover:border-slate-300 dark:border-white/20'
                           }`}>
                           {s}
                         </button>

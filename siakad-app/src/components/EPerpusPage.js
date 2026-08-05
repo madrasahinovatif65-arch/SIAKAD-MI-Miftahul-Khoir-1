@@ -7,18 +7,18 @@ export default function EPerpusPage() {
   return (
     <div className="h-full flex flex-col space-y-4">
       <div>
-        <h2 className="text-2xl font-bold text-white">E-Perpus</h2>
-        <p className="text-white/40 text-sm mt-1">Perpustakaan Digital Madrasah</p>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">E-Perpus</h2>
+        <p className="text-slate-600 dark:text-white/40 text-sm mt-1">Perpustakaan Digital Madrasah</p>
       </div>
 
-      <div className="flex-1 bg-white/5 border border-white/5 rounded-2xl overflow-hidden shadow-xl flex flex-col">
-        <div className="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center">
-          <p className="text-white/70 text-sm">Menampilkan E-Perpus dari: <span className="font-mono text-blue-400">{EPERPUS_URL}</span></p>
+      <div className="flex-1 bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-white/5 rounded-2xl overflow-hidden shadow-xl flex flex-col">
+        <div className="p-4 bg-white/50 dark:bg-white/5 border-b border-slate-300 dark:border-white/5 flex justify-between items-center">
+          <p className="text-slate-700 dark:text-white/70 text-sm">Menampilkan E-Perpus dari: <span className="font-mono text-emerald-600 dark:text-emerald-400">{EPERPUS_URL}</span></p>
           <a
             href={EPERPUS_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600/40 rounded-lg text-sm font-medium transition-colors"
           >
             Buka di Tab Baru
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">

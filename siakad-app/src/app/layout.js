@@ -1,5 +1,7 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
+import EyeCareMode from "@/components/EyeCareMode";
+import { AuthProvider } from "@/context/AuthContext";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -7,14 +9,14 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "SIAKAD MI Miftahul Khoir",
-  description: "Sistem Informasi Akademik MI Miftahul Khoir - Powered by Supabase",
+  title: "Inovatif+",
+  description: "Madrasah Inovatif MI Miftahul Khoir 1 Karangrejo",
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.ico",
     apple: "/icons/icon-192-v2.png",
   },
-  themeColor: "#1e3a5f",
+  themeColor: "#064e3b",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -25,8 +27,12 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="id" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full bg-slate-950 text-white font-[family-name:var(--font-inter)]">
-        {children}
+      <body className="min-h-full bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-white font-[family-name:var(--font-inter)]">
+        <AuthProvider>
+          <EyeCareMode>
+            {children}
+          </EyeCareMode>
+        </AuthProvider>
         <script
           dangerouslySetInnerHTML={{
             __html: `
