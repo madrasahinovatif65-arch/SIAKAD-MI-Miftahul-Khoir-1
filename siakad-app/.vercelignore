@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+.next/
+out/
+
+# Environment
+.env.local
+.env*.local
+
+# Debug
+npm-debug.log*
+
+# Misc
+.DS_Store
+*.pem
+seed.js
+supabase-schema.sql
+supabase-rls-dev.sql
+backend_nfc_murid.py
