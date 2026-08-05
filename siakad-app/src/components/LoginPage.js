@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage({ onLoginSuccess }) {
@@ -22,18 +22,29 @@ export default function LoginPage({ onLoginSuccess }) {
     }
   }, []);
 
-  useEffect(() => {
-    let scanner = null;
+  const scannerRef = useRef(null);
+
+  const handleScan = () => {
+    if (!window.Html5Qrcode) {
+      setError("Library scanner sedang dimuat, coba klik beberapa detik lagi.");
+      return;
+    }
+    setShowScanner(true);
     
-    if (showScanner && window.Html5QrcodeScanner) {
-      scanner = new window.Html5QrcodeScanner(
-        "qr-reader",
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        /* verbose= */ false
-      );
-      
-      scanner.render(async (decodedText) => {
-        scanner.clear();
+    // Inisialisasi secara sinkron dengan klik untuk memastikan izin kamera diminta
+    const html5QrCode = new window.Html5Qrcode("qr-reader");
+    scannerRef.current = html5QrCode;
+
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      async (decodedText) => {
+        if (scannerRef.current) {
+          scannerRef.current.stop().catch(e => console.error(e)).finally(() => {
+            scannerRef.current.clear();
+            scannerRef.current = null;
+          });
+        }
         setShowScanner(false);
         setIsLoading(true);
         setError('');
@@ -47,24 +58,24 @@ export default function LoginPage({ onLoginSuccess }) {
         } else {
           setError(result.message);
         }
-      }, (err) => {
+      },
+      (err) => {
         // ignore scan errors
+      }
+    ).catch(err => {
+      setError("Kamera gagal diakses. Pastikan izin kamera diberikan.");
+      setShowScanner(false);
+    });
+  };
+
+  const handleCancelScan = () => {
+    if (scannerRef.current) {
+      scannerRef.current.stop().catch(e => console.error(e)).finally(() => {
+        scannerRef.current.clear();
+        scannerRef.current = null;
       });
     }
-
-    return () => {
-      if (scanner) {
-        scanner.clear().catch(e => console.error("Failed to clear scanner", e));
-      }
-    };
-  }, [showScanner, loginQR, onLoginSuccess]);
-
-  const handleScan = () => {
-    if (!window.Html5QrcodeScanner) {
-      setError("Library scanner sedang dimuat, coba klik beberapa detik lagi.");
-      return;
-    }
-    setShowScanner(true);
+    setShowScanner(false);
   };
 
   const handleSubmit = async (e) => {
@@ -115,19 +126,19 @@ export default function LoginPage({ onLoginSuccess }) {
             </div>
           )}
 
-          {showScanner ? (
-            <div className="space-y-4">
-              <div id="qr-reader" className="w-full overflow-hidden rounded-xl border-2 border-white/20 bg-black/50"></div>
-              <button 
-                onClick={() => setShowScanner(false)}
-                className="w-full py-2.5 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-colors">
-                Batal Scan
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Scanner UI */}
+          <div className={`space-y-4 ${showScanner ? 'block' : 'hidden'}`}>
+            <div id="qr-reader" className="w-full overflow-hidden rounded-xl border-2 border-white/20 bg-black/50"></div>
+            <button 
+              onClick={handleCancelScan}
+              className="w-full py-2.5 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-colors">
+              Batal Scan
+            </button>
+          </div>
+
+          {/* Login Form UI */}
+          <div className={showScanner ? 'hidden' : 'block'}>
+            <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <label className="text-xs font-medium text-blue-200/70 uppercase tracking-wider">
                 ID User / NISN
@@ -193,8 +204,7 @@ export default function LoginPage({ onLoginSuccess }) {
                 </svg>
                 Scan QR Code Kartu
               </button>
-            </>
-          )}
+            </div>
 
           {/* Footer */}
           <p className="text-center text-xs text-white/20">
