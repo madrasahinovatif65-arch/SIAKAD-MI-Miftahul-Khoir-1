@@ -1,9 +1,9 @@
-const CACHE_NAME = 'siakad-v2';
+const CACHE_NAME = 'siakad-v3';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
+  '/icons/icon-192-v2.png',
+  '/icons/icon-512-v2.png',
 ];
 
 // Install: cache core assets

@@ -114,8 +114,8 @@ function InlineSidebar({ isOpen, onClose, currentPage, onNavigate }) {
       <aside className={`fixed top-0 left-0 h-full w-72 z-50 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-r border-white/5 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-auto ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 border-b border-white/5">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/20">
-              {user.nama?.charAt(0)?.toUpperCase() || '?'}
+            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-lg shadow-blue-500/20">
+              <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white font-semibold truncate text-sm">{user.nama}</p>
@@ -191,7 +191,10 @@ function AppShell() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
               </svg>
             </button>
-            <h1 className="text-sm font-semibold text-white/80">{PAGES[currentPage]?.label || 'SIAKAD'}</h1>
+            <div className="flex items-center gap-2">
+              <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain bg-white rounded-md p-1" />
+              <h1 className="text-sm font-semibold text-white/80">{PAGES[currentPage]?.label || 'SIAKAD'}</h1>
+            </div>
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">
               {user.nama?.charAt(0)?.toUpperCase() || '?'}
             </div>

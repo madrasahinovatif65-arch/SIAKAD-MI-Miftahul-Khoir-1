@@ -22,39 +22,49 @@ export default function LoginPage({ onLoginSuccess }) {
     }
   }, []);
 
-  const handleScan = () => {
-    setShowScanner(true);
-    setTimeout(() => {
-      if (window.Html5QrcodeScanner) {
-        const scanner = new window.Html5QrcodeScanner(
-          "qr-reader",
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          /* verbose= */ false
-        );
-        scanner.render(async (decodedText) => {
-          scanner.clear();
-          setShowScanner(false);
-          setIsLoading(true);
-          setError('');
-          
-          // Use decodedText as username (assuming ID or NISN)
-          setUsername(decodedText);
-          const result = await loginQR(decodedText);
-          setIsLoading(false);
-
-          if (result.success) {
-            onLoginSuccess?.(result.data);
-          } else {
-            setError(result.message);
-          }
-        }, (errorMessage) => {
-          // ignore scan errors, it throws them every frame until a code is found
-        });
-      } else {
-        setError("QR Code scanner failed to load. Please try again.");
+  useEffect(() => {
+    let scanner = null;
+    
+    if (showScanner && window.Html5QrcodeScanner) {
+      scanner = new window.Html5QrcodeScanner(
+        "qr-reader",
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        /* verbose= */ false
+      );
+      
+      scanner.render(async (decodedText) => {
+        scanner.clear();
         setShowScanner(false);
+        setIsLoading(true);
+        setError('');
+        
+        setUsername(decodedText);
+        const result = await loginQR(decodedText);
+        setIsLoading(false);
+
+        if (result.success) {
+          onLoginSuccess?.(result.data);
+        } else {
+          setError(result.message);
+        }
+      }, (err) => {
+        // ignore scan errors
+      });
+    }
+
+    return () => {
+      if (scanner) {
+        scanner.clear().catch(e => console.error("Failed to clear scanner", e));
       }
-    }, 500);
+    };
+  }, [showScanner, loginQR, onLoginSuccess]);
+
+  const handleScan = () => {
+    if (!window.Html5QrcodeScanner) {
+      setError("Library scanner sedang dimuat, coba klik beberapa detik lagi.");
+      return;
+    }
+    setShowScanner(true);
   };
 
   const handleSubmit = async (e) => {
@@ -87,10 +97,8 @@ export default function LoginPage({ onLoginSuccess }) {
           
           {/* Logo / Brand */}
           <div className="text-center space-y-3">
-            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 transform hover:scale-105 transition-transform">
-              <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342" />
-              </svg>
+            <div className="mx-auto w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 transform hover:scale-105 transition-transform overflow-hidden p-2">
+              <img src="/logo.png" alt="Logo SIAKAD" className="w-full h-full object-contain" />
             </div>
             <h1 className="text-2xl font-bold text-white tracking-tight">
               SIAKAD
