@@ -95,14 +95,14 @@ export function AuthProvider({ children }) {
         return { success: false, message: 'Kredensial tidak valid' };
       }
 
-      // fetchUserData akan dipanggil oleh onAuthStateChange
+      await fetchUserData(authData.user.id);
       return { success: true };
     } catch (err) {
       return { success: false, message: 'Terjadi kesalahan: ' + err.message };
     }
   }, []);
 
-  // Login via QR: Meminta server bypass token (karena kita tidak tahu PIN-nya)
+  // Login via QR: Meminta server bypass token
   const loginQR = useCallback(async (username) => {
     try {
       const response = await fetch('/api/auth/qr', {
@@ -118,12 +118,21 @@ export function AuthProvider({ children }) {
       }
 
       // Set session yang diterima dari server
-      const { error } = await supabase.auth.setSession(data.session);
+      const { error, data: sessionData } = await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token
+      });
+
       if (error) {
-         return { success: false, message: 'Gagal mengatur sesi Auth' };
+         return { success: false, message: 'Gagal mengatur sesi Auth: ' + error.message };
       }
 
-      // fetchUserData akan dipanggil otomatis oleh onAuthStateChange
+      if (sessionData?.user?.id) {
+        await fetchUserData(sessionData.user.id);
+      } else {
+        await fetchUserData(data.session.user.id);
+      }
+      
       return { success: true };
     } catch (err) {
       return { success: false, message: 'Terjadi kesalahan jaringan: ' + err.message };

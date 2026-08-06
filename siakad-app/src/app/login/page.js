@@ -17,5 +17,5 @@ export default function LoginRoute() {
 
   if (user) return null;
 
-  return <LoginPage />;
+  return <LoginPage onLoginSuccess={() => router.replace('/dashboard')} />;
 }
