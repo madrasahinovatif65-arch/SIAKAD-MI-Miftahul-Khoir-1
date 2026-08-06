@@ -1,43 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-
-const NAV_CONFIG = {
-  Admin: [
-    { label: 'Beranda', href: '/dashboard', icon: 'M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z' },
-    { label: 'Verifikasi', href: '/dashboard/verifikasi', icon: 'M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z' },
-    { label: 'Jurnal', href: '/dashboard/jurnal', icon: 'M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25' },
-    { label: 'Riwayat', href: '/dashboard/riwayat-guru', icon: 'M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z' },
-    { label: 'Libur', href: '/dashboard/libur', icon: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5' },
-    { label: 'Rekap', href: '/dashboard/rekap', icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z' },
-    { label: 'E-Perpus', href: '/dashboard/eperpus', icon: 'M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25' },
-  ],
-  'Wali Kelas': [
-    { label: 'Beranda', href: '/dashboard', icon: 'M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z' },
-    { label: 'Presensi', href: '/dashboard/presensi', icon: 'M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m8.9-4.414c.376.023.75.05 1.124.08 1.131.094 1.976 1.057 1.976 2.192V16.5A2.25 2.25 0 0 1 18 18.75h-2.25m-7.5-10.5H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V18.75m-7.5-10.5h6.375c.621 0 1.125.504 1.125 1.125v9.375m-8.25-3 1.5 1.5 3-3.75' },
-    { label: 'Jurnal', href: '/dashboard/jurnal', icon: 'M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25' },
-    { label: 'Rekap', href: '/dashboard/rekap', icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z' },
-    { label: 'Absen GPS', href: '/dashboard/absen-gps', icon: 'M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z' },
-    { label: 'Riwayat', href: '/dashboard/riwayat-guru', icon: 'M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z' },
-    { label: 'E-Perpus', href: '/dashboard/eperpus', icon: 'M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25' },
-  ],
-  'Guru Mapel': [
-    { label: 'Beranda', href: '/dashboard', icon: 'M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z' },
-    { label: 'Jurnal', href: '/dashboard/jurnal', icon: 'M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25' },
-    { label: 'Absen GPS', href: '/dashboard/absen-gps', icon: 'M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z' },
-    { label: 'Riwayat', href: '/dashboard/riwayat-guru', icon: 'M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z' },
-    { label: 'E-Perpus', href: '/dashboard/eperpus', icon: 'M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25' },
-  ],
-  Murid: [
-    { label: 'Beranda', href: '/dashboard', icon: 'M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z' },
-    { label: 'Riwayat', href: '/dashboard/riwayat-murid', icon: 'M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z' },
-    { label: 'E-Perpus', href: '/dashboard/eperpus', icon: 'M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25' },
-    { label: 'Profil', href: '/dashboard/profil', icon: 'M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z' },
-  ],
-};
 
 function NavIcon({ d, className = "" }) {
   return (
@@ -48,115 +13,64 @@ function NavIcon({ d, className = "" }) {
 }
 
 export default function BottomNav() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const pathname = usePathname();
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   if (!user) return null;
 
-  const allItems = NAV_CONFIG[user.role] || [];
-  // Jika menu ada <= 4, tampilkan semua (ditambah profil kalau blm ada). Jika > 4, tampilkan 3 utama + "Menu"
-  const isMurid = user.role === 'Murid';
-  
-  let primaryItems = [];
-  let secondaryItems = [];
-
-  if (isMurid) {
-    primaryItems = allItems;
-  } else {
-    primaryItems = allItems.slice(0, 3);
-    secondaryItems = allItems.slice(3);
-    // Tambahkan profil ke secondary items jika belum ada
-    if (!secondaryItems.find(i => i.href === '/dashboard/profil')) {
-      secondaryItems.push({
-        label: 'Profil',
-        href: '/dashboard/profil',
-        icon: 'M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z'
-      });
-    }
-  }
+  // Profil (Akun)
+  const isProfilActive = pathname === '/dashboard/profil';
+  // Beranda
+  const isBerandaActive = pathname === '/dashboard';
+  // Notifikasi
+  const isNotifActive = pathname === '/dashboard/notifikasi';
 
   return (
-    <>
-      {/* Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 w-full z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-slate-200 dark:border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] pb-safe">
-        <div className="flex items-center justify-around px-2 py-2">
-          {primaryItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link 
-                key={item.href} 
-                href={item.href}
-                className={`flex flex-col items-center justify-center w-16 h-14 rounded-2xl transition-all duration-200 active:scale-95 ${
-                  isActive 
-                    ? 'text-emerald-600 dark:text-emerald-400 font-bold' 
-                    : 'text-slate-500 dark:text-slate-400 hover:text-emerald-500 font-medium'
-                }`}
-              >
-                <div className={`relative flex items-center justify-center w-10 h-10 mb-1 rounded-full transition-all ${isActive ? 'bg-emerald-100 dark:bg-emerald-500/20' : ''}`}>
-                  <NavIcon d={item.icon} className={isActive ? 'w-6 h-6' : 'w-6 h-6'} />
-                  {isActive && <span className="absolute -bottom-1 w-1 h-1 bg-emerald-500 rounded-full" />}
-                </div>
-                <span className="text-[10px] tracking-wide">{item.label}</span>
-              </Link>
-            );
-          })}
-          
-          {!isMurid && (
-            <button 
-              onClick={() => setDrawerOpen(true)}
-              className={`flex flex-col items-center justify-center w-16 h-14 rounded-2xl transition-all duration-200 active:scale-95 ${
-                drawerOpen 
-                  ? 'text-emerald-600 dark:text-emerald-400 font-bold' 
-                  : 'text-slate-500 dark:text-slate-400 hover:text-emerald-500 font-medium'
-              }`}
-            >
-              <div className={`relative flex items-center justify-center w-10 h-10 mb-1 rounded-full transition-all ${drawerOpen ? 'bg-emerald-100 dark:bg-emerald-500/20' : ''}`}>
-                <NavIcon d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" className="w-6 h-6" />
-              </div>
-              <span className="text-[10px] tracking-wide">Lainnya</span>
-            </button>
-          )}
-        </div>
-      </nav>
-
-      {/* Drawer Overlay for Extra Menu Items */}
-      {!isMurid && drawerOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
-          <div 
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" 
-            onClick={() => setDrawerOpen(false)} 
-          />
-          <div className="relative bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl p-6 pb-[calc(env(safe-area-inset-bottom)+24px)] animate-in slide-in-from-bottom-full duration-300">
-            <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-6" />
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Menu Lainnya</h3>
-            <div className="grid grid-cols-4 gap-4">
-              {secondaryItems.map(item => (
-                <Link 
-                  key={item.href} 
-                  href={item.href}
-                  onClick={() => setDrawerOpen(false)}
-                  className="flex flex-col items-center gap-2"
-                >
-                  <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 shadow-sm border border-slate-100 dark:border-white/5 active:bg-emerald-50 active:scale-95 transition-all">
-                    <NavIcon d={item.icon} />
-                  </div>
-                  <span className="text-[10px] font-medium text-slate-600 dark:text-slate-400 text-center leading-tight">{item.label}</span>
-                </Link>
-              ))}
-              <button 
-                onClick={() => { logout(); setDrawerOpen(false); }}
-                className="flex flex-col items-center gap-2"
-              >
-                <div className="w-14 h-14 rounded-2xl bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-400 shadow-sm border border-rose-100 dark:border-rose-500/10 active:bg-rose-100 active:scale-95 transition-all">
-                  <NavIcon d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-                </div>
-                <span className="text-[10px] font-medium text-rose-600 dark:text-rose-400 text-center leading-tight">Keluar</span>
-              </button>
-            </div>
+    <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-50">
+      <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border border-white/40 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-black/50 rounded-full px-6 py-3 flex items-center justify-between relative">
+        
+        {/* Akun */}
+        <Link 
+          href="/dashboard/profil"
+          className={`flex flex-col items-center gap-1 transition-all duration-300 active:scale-95 ${
+            isProfilActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400 hover:text-emerald-500'
+          }`}
+        >
+          <div className="relative">
+            <NavIcon d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" className={isProfilActive ? 'w-6 h-6 stroke-[2.5px]' : 'w-6 h-6'} />
+            {isProfilActive && <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />}
           </div>
+          <span className="text-[10px] font-semibold tracking-wide">Akun</span>
+        </Link>
+
+        {/* Beranda (Tengah, Highlighted, Mengambang) */}
+        <div className="relative -top-6">
+          <Link 
+            href="/dashboard"
+            className="flex flex-col items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 dark:from-emerald-600 dark:to-teal-700 shadow-lg shadow-emerald-500/30 text-white hover:scale-105 active:scale-95 transition-all duration-300 border-4 border-slate-50 dark:border-slate-950"
+          >
+            <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z" />
+              <path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625a1.875 1.875 0 01-1.875-1.875v-6.198a2.29 2.29 0 00.091-.086L12 5.43z" />
+            </svg>
+          </Link>
         </div>
-      )}
-    </>
+
+        {/* Notifikasi */}
+        <Link 
+          href="/dashboard/notifikasi"
+          className={`flex flex-col items-center gap-1 transition-all duration-300 active:scale-95 ${
+            isNotifActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400 hover:text-emerald-500'
+          }`}
+        >
+          <div className="relative">
+            <NavIcon d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" className={isNotifActive ? 'w-6 h-6 stroke-[2.5px]' : 'w-6 h-6'} />
+            {/* Indikator unread dummy */}
+            <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white dark:border-slate-900" />
+          </div>
+          <span className="text-[10px] font-semibold tracking-wide">Notifikasi</span>
+        </Link>
+      </div>
+    </nav>
   );
 }
