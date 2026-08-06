@@ -31,17 +31,17 @@ export default function DashboardLayout({ children }) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-slate-950">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden font-sans">
       <Sidebar />
-      
-      <main className="flex-1 overflow-y-auto relative hide-scrollbar">
+      <div className="flex flex-col flex-1 w-full relative">
         <Header />
-        <div className="p-4 sm:p-6 lg:p-8 min-h-full max-w-7xl mx-auto w-full pb-[140px] md:pb-8">
-          {children}
-        </div>
-      </main>
-      
-      <BottomNav />
+        <main className="flex-1 w-full overflow-y-auto pb-[140px] lg:pb-8">
+          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full relative z-10">
+            {children}
+          </div>
+        </main>
+        <BottomNav />
+      </div>
     </div>
   );
 }
