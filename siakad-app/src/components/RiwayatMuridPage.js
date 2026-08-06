@@ -55,6 +55,7 @@ export default function RiwayatMuridPage() {
     setLoading(false);
   }, [bulan, user]);
 
+  // eslint-disable-next-line
   useEffect(() => { loadData(); }, [loadData]);
 
   const statusColors = {

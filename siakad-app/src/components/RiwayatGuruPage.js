@@ -69,6 +69,7 @@ export default function RiwayatGuruPage() {
     setLoading(false);
   }, [bulan, isAdmin, user]);
 
+  // eslint-disable-next-line
   useEffect(() => { loadData(); }, [loadData]);
 
   const handlePrint = () => {

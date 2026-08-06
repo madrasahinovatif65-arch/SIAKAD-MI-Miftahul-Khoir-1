@@ -9,31 +9,6 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Initialize session and auth state listener
-  useEffect(() => {
-    // 1. Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        fetchUserData(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    // 2. Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        fetchUserData(session.user.id);
-      } else {
-        setUser(null);
-        localStorage.removeItem('siakad_user');
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
   const fetchUserData = async (authUserId) => {
     try {
       const { data, error } = await supabase
@@ -80,6 +55,31 @@ export function AuthProvider({ children }) {
       setLoading(false);
     }
   };
+
+  // Initialize session and auth state listener
+  useEffect(() => {
+    // 1. Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        fetchUserData(session.user.id);
+      } else {
+        setLoading(false);
+      }
+    });
+
+    // 2. Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        fetchUserData(session.user.id);
+      } else {
+        setUser(null);
+        localStorage.removeItem('siakad_user');
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Login: menggunakan Supabase Auth (Email & Password)
   const login = useCallback(async (username, pin) => {

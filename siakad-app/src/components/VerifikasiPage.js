@@ -103,6 +103,7 @@ export default function VerifikasiPage() {
     setLoading(false);
   }, [tanggal]);
 
+  // eslint-disable-next-line
   useEffect(() => { loadData(); }, [loadData]);
 
   const handleVerify = async (guru, newStatus) => {

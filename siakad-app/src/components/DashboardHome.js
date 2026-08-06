@@ -170,7 +170,7 @@ export default function DashboardHome() {
             
             {user.role === 'Murid' && (
               <p className="mt-4 max-w-2xl text-emerald-700/80 dark:text-emerald-300/70 italic text-xs sm:text-sm font-medium border-l-[3px] border-emerald-500/40 pl-4 py-1 leading-relaxed">
-                "Menuntut ilmu adalah taqwa. Menyampaikannya adalah ibadah. Mengulang-ulangnya adalah zikir. Mencari-carinya adalah jihad." <br/><span className="text-[10px] sm:text-xs font-bold mt-1.5 block opacity-80">— Imam Al-Ghazali</span>
+                &quot;Menuntut ilmu adalah taqwa. Menyampaikannya adalah ibadah. Mengulang-ulangnya adalah zikir. Mencari-carinya adalah jihad.&quot; <br/><span className="text-[10px] sm:text-xs font-bold mt-1.5 block opacity-80">— Imam Al-Ghazali</span>
               </p>
             )}
           </div>

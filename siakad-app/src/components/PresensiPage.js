@@ -107,6 +107,7 @@ export default function PresensiPage() {
     setLoading(false);
   }, [rombel, tanggal]);
 
+  // eslint-disable-next-line
   useEffect(() => { loadData(); }, [loadData]);
 
   const handleStatusChange = (nisn, status) => {

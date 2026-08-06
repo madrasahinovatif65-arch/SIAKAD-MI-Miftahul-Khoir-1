@@ -68,6 +68,7 @@ export default function RekapPage() {
     setLoading(false);
   }, [tglMulai, tglAkhir, rombel, user]);
 
+  // eslint-disable-next-line
   useEffect(() => { loadData(); }, [loadData]);
 
   const handleExportExcel = () => {
