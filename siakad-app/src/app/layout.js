@@ -2,6 +2,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import EyeCareMode from "@/components/EyeCareMode";
 import { AuthProvider } from "@/context/AuthContext";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -33,6 +34,7 @@ export default function RootLayout({ children }) {
             {children}
           </EyeCareMode>
         </AuthProvider>
+        <SpeedInsights />
         <script
           dangerouslySetInnerHTML={{
             __html: `
