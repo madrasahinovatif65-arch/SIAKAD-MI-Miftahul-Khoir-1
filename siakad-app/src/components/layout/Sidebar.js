@@ -45,7 +45,7 @@ function NavIcon({ d }) {
   );
 }
 
-export default function Sidebar({ isOpen, onClose }) {
+export default function Sidebar() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
 
@@ -54,52 +54,47 @@ export default function Sidebar({ isOpen, onClose }) {
   const navItems = NAV_CONFIG[user.role] || [];
 
   return (
-    <>
-      {isOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300" onClick={onClose} />
-      )}
-      <aside className={`fixed top-0 left-0 h-full w-72 z-50 bg-white bg-gradient-to-b from-white via-emerald-50 to-teal-50 dark:from-slate-900 dark:via-[#0a1f1c] dark:to-slate-950 border-r border-slate-300 dark:border-white/5 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-auto shadow-2xl lg:shadow-none ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="p-6 border-b border-slate-300 dark:border-white/5 flex items-center gap-3">
-          <div className="w-12 h-12 flex items-center justify-center drop-shadow-[0_0_8px_rgba(52,211,148,0.5)]">
-            <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-slate-900 dark:text-white font-semibold truncate text-sm">{user.nama}</p>
-            <p className="text-emerald-700 dark:text-emerald-300/60 text-xs">{user.role}</p>
-            {user.rombel && user.rombel !== '-' && <p className="text-emerald-700 dark:text-emerald-300/40 text-xs">{user.rombel}</p>}
-          </div>
+    <aside className="hidden md:flex flex-col sticky top-0 h-screen w-72 bg-white bg-gradient-to-b from-white via-emerald-50 to-teal-50 dark:from-slate-900 dark:via-[#0a1f1c] dark:to-slate-950 border-r border-slate-200 dark:border-white/10 shadow-lg">
+      <div className="p-6 border-b border-slate-200 dark:border-white/10 flex items-center gap-4">
+        <div className="w-12 h-12 flex items-center justify-center bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-white/5">
+          <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(52,211,148,0.5)]" />
         </div>
-        
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {navItems.map(item => {
-            const isActive = pathname === item.href;
-            return (
-              <Link key={item.href} href={item.href} onClick={onClose}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                  isActive ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300 shadow-inner' : 'text-slate-600 dark:text-white/50 hover:text-slate-900 dark:hover:text-white/80 hover:bg-emerald-50 dark:hover:bg-white/5'
-                }`}>
-                <NavIcon d={item.icon} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-        
-        <div className="p-4 border-t border-slate-300 dark:border-white/5 space-y-1">
-          <Link href="/dashboard/profil" onClick={onClose}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-              pathname === '/dashboard/profil' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300 shadow-inner' : 'text-slate-600 dark:text-white/50 hover:text-slate-900 dark:hover:text-white/80 hover:bg-emerald-50 dark:hover:bg-white/5'
-            }`}>
-            <NavIcon d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-            Profil Saya
-          </Link>
-          <button onClick={() => { logout(); onClose(); }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all">
-            <NavIcon d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-            Keluar
-          </button>
+        <div className="flex-1 min-w-0">
+          <p className="text-slate-900 dark:text-white font-bold truncate text-sm">{user.nama}</p>
+          <p className="text-emerald-600 dark:text-emerald-400 font-medium text-[11px] uppercase tracking-wider mt-0.5">{user.role}</p>
+          {user.rombel && user.rombel !== '-' && <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{user.rombel}</p>}
         </div>
-      </aside>
-    </>
+      </div>
+      
+      <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto hide-scrollbar">
+        {navItems.map(item => {
+          const isActive = pathname === item.href;
+          return (
+            <Link key={item.href} href={item.href}
+              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-semibold transition-all duration-200 ${
+                isActive ? 'bg-emerald-500 text-white shadow-[0_4px_15px_rgba(16,185,129,0.3)]' : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-white/5'
+              }`}>
+              <NavIcon d={item.icon} />
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+      
+      <div className="p-4 border-t border-slate-200 dark:border-white/10 space-y-1.5 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
+        <Link href="/dashboard/profil"
+          className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-semibold transition-all duration-200 ${
+            pathname === '/dashboard/profil' ? 'bg-emerald-500 text-white shadow-[0_4px_15px_rgba(16,185,129,0.3)]' : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-white/5'
+          }`}>
+          <NavIcon d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+          Profil Saya
+        </Link>
+        <button onClick={() => { logout(); }}
+          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all">
+          <NavIcon d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+          Keluar
+        </button>
+      </div>
+    </aside>
   );
 }

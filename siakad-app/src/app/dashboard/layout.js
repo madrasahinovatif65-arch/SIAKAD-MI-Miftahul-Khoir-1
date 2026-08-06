@@ -4,12 +4,12 @@ import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
+import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
 
 export default function DashboardLayout({ children }) {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (loading) {
     return (
@@ -32,14 +32,16 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-slate-950">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar />
       
-      <main className="flex-1 overflow-y-auto relative">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
-        <div className="p-4 sm:p-6 lg:p-8 min-h-full max-w-7xl mx-auto w-full">
+      <main className="flex-1 overflow-y-auto relative hide-scrollbar">
+        <Header />
+        <div className="p-4 sm:p-6 lg:p-8 min-h-full max-w-7xl mx-auto w-full pb-[calc(env(safe-area-inset-bottom)+80px)] md:pb-8">
           {children}
         </div>
       </main>
+      
+      <BottomNav />
     </div>
   );
 }

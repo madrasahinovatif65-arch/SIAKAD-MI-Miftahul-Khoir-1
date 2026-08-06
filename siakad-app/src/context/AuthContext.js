@@ -9,32 +9,44 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Cek session dari localStorage saat pertama kali load
+  // Initialize session and auth state listener
   useEffect(() => {
-    const savedUser = localStorage.getItem('siakad_user');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch {
-        localStorage.removeItem('siakad_user');
+    // 1. Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        fetchUserData(session.user.id);
+      } else {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    });
+
+    // 2. Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        fetchUserData(session.user.id);
+      } else {
+        setUser(null);
+        localStorage.removeItem('siakad_user');
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  // Login: verifikasi ID_User + PIN dari tabel master_user
-  const login = useCallback(async (username, pin) => {
+  const fetchUserData = async (authUserId) => {
     try {
       const { data, error } = await supabase
         .from('master_user')
         .select('*')
-        .eq('id_user', username.trim())
-        .eq('pin', pin.trim())
+        .eq('user_id', authUserId)
         .eq('status_aktif', 'Aktif')
         .single();
 
       if (error || !data) {
-        return { success: false, message: 'Kredensial tidak valid' };
+        console.error('Data pengguna tidak ditemukan di master_user');
+        await supabase.auth.signOut();
+        return;
       }
 
       // Jika Murid, cari nama wali kelasnya
@@ -62,66 +74,73 @@ export function AuthProvider({ children }) {
 
       setUser(userData);
       localStorage.setItem('siakad_user', JSON.stringify(userData));
-      return { success: true, data: userData };
+    } catch (err) {
+      console.error('Error fetching user data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Login: menggunakan Supabase Auth (Email & Password)
+  const login = useCallback(async (username, pin) => {
+    try {
+      const email = `${username.trim().toLowerCase()}@siakad.local`;
+      
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: pin.trim(),
+      });
+
+      if (authError || !authData.user) {
+        return { success: false, message: 'Kredensial tidak valid' };
+      }
+
+      // fetchUserData akan dipanggil oleh onAuthStateChange
+      return { success: true };
     } catch (err) {
       return { success: false, message: 'Terjadi kesalahan: ' + err.message };
     }
   }, []);
 
-  // Login via QR (tanpa PIN)
+  // Login via QR: Meminta server bypass token (karena kita tidak tahu PIN-nya)
   const loginQR = useCallback(async (username) => {
     try {
-      const { data, error } = await supabase
-        .from('master_user')
-        .select('*')
-        .eq('id_user', username.trim())
-        .eq('status_aktif', 'Aktif')
-        .single();
-
-      if (error || !data) {
-        return { success: false, message: 'User tidak ditemukan' };
+      const response = await fetch('/api/auth/qr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_user: username.trim() })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        return { success: false, message: data.message || 'Gagal login via QR' };
       }
 
-      let waliKelas = '-';
-      if (data.role === 'Murid' && data.rombel && data.rombel !== '-') {
-        const { data: waliData } = await supabase
-          .from('master_user')
-          .select('nama')
-          .eq('role', 'Wali Kelas')
-          .eq('rombel', data.rombel)
-          .single();
-        if (waliData) waliKelas = waliData.nama;
+      // Set session yang diterima dari server
+      const { error } = await supabase.auth.setSession(data.session);
+      if (error) {
+         return { success: false, message: 'Gagal mengatur sesi Auth' };
       }
 
-      const userData = {
-        id_user: data.id_user,
-        nama: data.nama,
-        role: data.role,
-        rombel: data.rombel,
-        status_aktif: data.status_aktif,
-        mapel: data.mapel || '-',
-        foto: data.foto || '',
-        wali_kelas: waliKelas,
-      };
-
-      setUser(userData);
-      localStorage.setItem('siakad_user', JSON.stringify(userData));
-      return { success: true, data: userData };
+      // fetchUserData akan dipanggil otomatis oleh onAuthStateChange
+      return { success: true };
     } catch (err) {
-      return { success: false, message: 'Terjadi kesalahan: ' + err.message };
+      return { success: false, message: 'Terjadi kesalahan jaringan: ' + err.message };
     }
   }, []);
 
-  const logout = useCallback(() => {
-    setUser(null);
-    localStorage.removeItem('siakad_user');
-    localStorage.removeItem('siakad_master_data');
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
+    // state dan localStorage akan dihapus oleh onAuthStateChange
   }, []);
 
   const changePin = useCallback(async (oldPin, newPin) => {
     if (!user) return { success: false, message: 'Anda belum login' };
 
-    // Verifikasi PIN lama
+    // 1. Verifikasi PIN lama dengan mencoba update password (Supabase Auth butuh sesi aktif, tapi kita tidak bisa sekadar memvalidasi oldPassword. 
+    // Sebenarnya Supabase updateUser tidak butuh oldPassword jika user sudah login.
+    // Tapi untuk keamanan tambahan, kita cek ke master_user.
     const { data: check } = await supabase
       .from('master_user')
       .select('id')
@@ -131,12 +150,18 @@ export function AuthProvider({ children }) {
 
     if (!check) return { success: false, message: 'PIN lama tidak cocok' };
 
-    const { error } = await supabase
+    // 2. Update password di Supabase Auth
+    const { error: authError } = await supabase.auth.updateUser({ password: newPin });
+    if (authError) return { success: false, message: 'Gagal update Auth: ' + authError.message };
+
+    // 3. Update PIN di master_user (untuk referensi atau QR login bypass)
+    const { error: dbError } = await supabase
       .from('master_user')
       .update({ pin: newPin })
       .eq('id_user', user.id_user);
 
-    if (error) return { success: false, message: error.message };
+    if (dbError) return { success: false, message: dbError.message };
+    
     return { success: true };
   }, [user]);
 

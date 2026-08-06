@@ -143,100 +143,114 @@ export default function DashboardHome() {
   };
 
   const cards = [
-    { label: 'Hari Ini', value: new Date().getDate(), sub: new Date().toLocaleDateString('id-ID', { month: 'short', year: 'numeric' }), gradient: 'from-blue-500 to-indigo-600' },
+    { label: 'Hari Ini', value: new Date().getDate(), sub: new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }), gradient: 'from-emerald-500 to-teal-600' },
     ...(cardsConfig[user.role] || []),
   ];
 
   const statStyles = {
-    emerald: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400',
-    amber: 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400',
-    rose: 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400',
-    slate: 'bg-slate-50 dark:bg-slate-500/10 border-slate-200 dark:border-slate-500/20 text-slate-600 dark:text-slate-400'
+    emerald: 'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 shadow-sm',
+    amber: 'bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 shadow-sm',
+    rose: 'bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 shadow-sm',
+    slate: 'bg-slate-50 dark:bg-slate-500/10 border border-slate-100 dark:border-slate-500/20 text-slate-600 dark:text-slate-400 shadow-sm'
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl rounded-3xl p-6 lg:p-8 border border-white/50 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] relative overflow-hidden">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-[2rem] p-6 lg:p-8 border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden">
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 dark:text-white tracking-tight">
-            Assalamu&apos;alaikum, <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300">{user.nama}</span> 👋
-          </h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" /></svg>
-            {today}
-          </p>
-          {user.role === 'Murid' && (
-            <p className="mt-4 max-w-2xl text-emerald-700/80 dark:text-emerald-300/70 italic text-sm font-medium border-l-2 border-emerald-500/30 pl-4">
-              "Menuntut ilmu adalah taqwa. Menyampaikannya adalah ibadah. Mengulang-ulangnya adalah zikir. Mencari-carinya adalah jihad." <br/><span className="text-xs font-normal mt-1 block">— Imam Al-Ghazali</span>
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <p className="text-slate-500 dark:text-slate-400 font-medium text-sm flex items-center gap-2 mb-1">
+              <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
+              {today}
             </p>
-          )}
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 dark:text-white tracking-tight">
+              Assalamu&apos;alaikum, <br className="md:hidden" /><span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300">{user.nama}</span> 👋
+            </h2>
+            
+            {user.role === 'Murid' && (
+              <p className="mt-4 max-w-2xl text-emerald-700/80 dark:text-emerald-300/70 italic text-xs sm:text-sm font-medium border-l-[3px] border-emerald-500/40 pl-4 py-1 leading-relaxed">
+                "Menuntut ilmu adalah taqwa. Menyampaikannya adalah ibadah. Mengulang-ulangnya adalah zikir. Mencari-carinya adalah jihad." <br/><span className="text-[10px] sm:text-xs font-bold mt-1.5 block opacity-80">— Imam Al-Ghazali</span>
+              </p>
+            )}
+          </div>
+          <div className="hidden md:flex w-16 h-16 bg-gradient-to-br from-emerald-100 to-teal-50 dark:from-emerald-900/40 dark:to-teal-900/20 rounded-2xl items-center justify-center border border-emerald-200/50 dark:border-emerald-500/20 shadow-inner">
+            <svg className="w-8 h-8 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.436 60.436 0 0 0-.491 6.347A48.627 48.627 0 0 1 12 20.904a48.627 48.627 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.57 50.57 0 0 0-2.658-.813A59.905 59.905 0 0 1 12 3.493a59.902 59.902 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
+            </svg>
+          </div>
         </div>
       </div>
       
       {user.role === 'Murid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-1 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-900/50 border border-slate-200 dark:border-white/10 rounded-3xl p-6 text-center shadow-sm relative overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-500/10 via-transparent to-transparent pointer-events-none" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+          <div className="md:col-span-1 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-white/60 dark:border-white/10 rounded-[2rem] p-6 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-transparent pointer-events-none group-hover:from-emerald-500/10 transition-colors duration-500" />
             <div className="relative z-10 flex flex-col items-center justify-center h-full">
-              <div className="w-28 h-28 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-4xl font-bold text-white mb-4 shadow-[0_0_30px_rgba(16,185,129,0.3)] ring-4 ring-emerald-50 dark:ring-emerald-900/30">
-                {muridStats.persentase}%
+              <div className="w-32 h-32 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-[2rem] rotate-3 group-hover:rotate-6 transition-transform duration-500 flex items-center justify-center text-5xl font-black text-white mb-6 shadow-[0_10px_30px_rgba(16,185,129,0.3)]">
+                <div className="-rotate-3 group-hover:-rotate-6 transition-transform duration-500">{muridStats.persentase}%</div>
               </div>
-              <h3 className="text-slate-800 dark:text-white font-bold text-lg">Kehadiran</h3>
-              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Total {muridStats.hadir + muridStats.izin + muridStats.sakit + muridStats.alpa} hari efektif</p>
+              <h3 className="text-slate-800 dark:text-white font-bold text-xl">Kehadiran</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1.5 font-medium">Total {muridStats.hadir + muridStats.izin + muridStats.sakit + muridStats.alpa} hari efektif</p>
             </div>
           </div>
           
-          <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             {[
               { label: 'Hadir', value: muridStats.hadir, color: 'emerald' },
               { label: 'Izin', value: muridStats.izin, color: 'amber' },
               { label: 'Sakit', value: muridStats.sakit, color: 'rose' },
               { label: 'Alpa', value: muridStats.alpa, color: 'slate' }
             ].map(stat => (
-              <div key={stat.label} className={`${statStyles[stat.color]} border rounded-2xl p-5 text-center flex flex-col justify-center items-center shadow-sm`}>
-                <p className="text-3xl font-bold">{stat.value}</p>
-                <p className="opacity-70 text-xs font-semibold uppercase tracking-widest mt-2">{stat.label}</p>
+              <div key={stat.label} className={`${statStyles[stat.color]} rounded-[1.5rem] p-5 text-center flex flex-col justify-center items-center relative overflow-hidden group`}>
+                <div className="absolute inset-0 bg-white/20 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <p className="text-4xl font-black tracking-tight relative z-10">{stat.value}</p>
+                <p className="opacity-70 text-[10px] font-bold uppercase tracking-widest mt-2 relative z-10">{stat.label}</p>
               </div>
             ))}
             
-            <div className="col-span-2 sm:col-span-4 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl p-6 mt-2 shadow-sm">
-              <h4 className="text-slate-800 dark:text-white text-sm font-bold mb-4 flex items-center gap-2">
+            <div className="col-span-2 sm:col-span-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-white/60 dark:border-white/10 rounded-[1.5rem] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+              <h4 className="text-slate-800 dark:text-white text-sm font-bold mb-5 flex items-center gap-2 uppercase tracking-wide">
                 <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" /></svg>
                 Informasi Akademik
               </h4>
-              <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
+              <div className="grid grid-cols-2 gap-y-5 gap-x-4 text-sm bg-slate-50/50 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-100 dark:border-white/5">
                 <div>
-                  <p className="text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-medium mb-1">NISN</p>
-                  <p className="text-slate-900 dark:text-white font-semibold">{user.id_user}</p>
+                  <p className="text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-widest font-bold mb-1">NISN</p>
+                  <p className="text-slate-900 dark:text-white font-semibold truncate">{user.id_user}</p>
                 </div>
                 <div>
-                  <p className="text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-medium mb-1">Kelas</p>
-                  <p className="text-slate-900 dark:text-white font-semibold">{user.rombel}</p>
+                  <p className="text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-widest font-bold mb-1">Kelas</p>
+                  <p className="text-slate-900 dark:text-white font-semibold truncate">{user.rombel}</p>
                 </div>
-                <div className="col-span-2 pt-2 border-t border-slate-100 dark:border-white/5">
-                  <p className="text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-medium mb-1">Wali Kelas</p>
-                  <p className="text-slate-900 dark:text-white font-semibold">{user.wali_kelas || '-'}</p>
+                <div className="col-span-2 pt-4 border-t border-slate-200/60 dark:border-white/10">
+                  <p className="text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-widest font-bold mb-1">Wali Kelas</p>
+                  <p className="text-slate-900 dark:text-white font-semibold truncate">{user.wali_kelas || '-'}</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
-          {cards.map((card, idx) => (
-            <div key={idx} className={`relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br ${card.gradient} shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.12)] hover:-translate-y-1 transform transition-all duration-300 text-white`}>
-              <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[100px] pointer-events-none" />
-              <div className="relative z-10 flex flex-col h-full justify-between">
-                <p className="text-white/80 text-xs font-bold uppercase tracking-widest">{card.label}</p>
-                <div className="mt-4">
-                  <p className="text-4xl lg:text-5xl font-extrabold tracking-tight">{card.value}</p>
-                  <p className="text-white/70 text-sm mt-1 font-medium">{card.sub}</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+          {cards.map((card, idx) => {
+            // Memberikan ukuran hero untuk card pertama di mobile
+            const isHero = idx === 0;
+            return (
+              <div key={idx} className={`relative overflow-hidden rounded-[2rem] p-5 sm:p-6 bg-gradient-to-br ${card.gradient} shadow-[0_8px_30px_rgb(0,0,0,0.08)] text-white group ${isHero ? 'col-span-2 lg:col-span-1' : 'col-span-1'}`}>
+                <div className="absolute -top-16 -right-16 w-48 h-48 bg-white/20 rounded-full blur-3xl pointer-events-none group-hover:scale-110 transition-transform duration-700" />
+                <div className="absolute top-0 right-0 w-28 h-28 bg-white/10 rounded-bl-[100px] pointer-events-none group-hover:bg-white/20 transition-colors duration-500" />
+                
+                <div className="relative z-10 flex flex-col h-full justify-between min-h-[120px] sm:min-h-[140px]">
+                  <p className="text-white/80 text-[10px] sm:text-xs font-bold uppercase tracking-widest">{card.label}</p>
+                  <div className="mt-4 flex flex-col justify-end">
+                    <p className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-none">{card.value}</p>
+                    <p className="text-white/70 text-xs sm:text-sm mt-1.5 font-semibold">{card.sub}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
