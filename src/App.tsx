@@ -8,6 +8,7 @@ import IntegrationPanel from './components/IntegrationPanel';
 import DashboardMurid from './components/DashboardMurid';
 import DashboardAdmin from './components/DashboardAdmin';
 import { Shield, BookOpen, GraduationCap, Database, Printer, LogOut, Sparkles, Smartphone, Menu, X, Check, Calendar, Clock, RefreshCw } from 'lucide-react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(() => {
@@ -517,6 +518,7 @@ export default function App() {
 
         </div>
       </div>
+      <SpeedInsights />
     </div>
   );
 }
