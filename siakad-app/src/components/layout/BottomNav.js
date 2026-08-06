@@ -29,8 +29,8 @@ export default function BottomNav() {
   if (!showNav) return null;
 
   return (
-    <nav className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[320px] md:max-w-[480px] z-50">
-      <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border border-white/40 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-black/50 rounded-full px-2 sm:px-6 py-2.5 grid grid-cols-3 items-center relative">
+    <nav className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] sm:w-[85%] md:w-[75%] max-w-2xl z-50">
+      <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border border-white/40 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-black/50 rounded-full px-4 sm:px-10 py-2.5 grid grid-cols-3 items-center relative">
         
         {/* Akun */}
         <div className="flex justify-center w-full">
