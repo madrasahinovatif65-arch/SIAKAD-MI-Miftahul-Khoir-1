@@ -29,7 +29,7 @@ export default function BottomNav() {
   if (!showNav) return null;
 
   return (
-    <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[85%] max-w-[320px] z-50">
+    <nav className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[85%] max-w-[320px] z-50">
       <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border border-white/40 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-black/50 rounded-full px-2 py-2.5 grid grid-cols-3 items-center relative">
         
         {/* Akun */}

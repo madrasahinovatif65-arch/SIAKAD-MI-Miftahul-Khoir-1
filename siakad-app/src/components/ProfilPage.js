@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function ProfilPage() {
-  const { user, changePin } = useAuth();
+  const { user, changePin, logout } = useAuth();
   const [oldPin, setOldPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
@@ -83,6 +83,19 @@ export default function ProfilPage() {
                 <span className="text-slate-800 dark:text-white font-medium bg-slate-50 dark:bg-slate-950 px-3 py-2 rounded-lg border border-slate-200 dark:border-white/5">{user.mapel}</span>
               </div>
             )}
+          </div>
+          
+          {/* Tombol Logout Mobile */}
+          <div className="w-full pt-6 border-t border-slate-100 dark:border-white/5 lg:hidden">
+            <button 
+              onClick={logout}
+              className="w-full py-3 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold rounded-xl border border-rose-200 dark:border-rose-500/20 transition-all flex items-center justify-center gap-2 shadow-sm"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+              </svg>
+              Keluar (Logout)
+            </button>
           </div>
         </div>
 

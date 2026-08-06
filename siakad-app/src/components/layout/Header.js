@@ -1,11 +1,21 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/components/EyeCareMode';
 
 export default function Header() {
   const { user } = useAuth();
   const { isEyeCare, toggleMode, mounted } = useTheme();
+  const [greeting, setGreeting] = useState('');
+
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting('Pagi');
+    else if (hour < 15) setGreeting('Siang');
+    else if (hour < 18) setGreeting('Sore');
+    else setGreeting('Malam');
+  }, []);
 
   // Helper to get initials
   const getInitials = (name) => {
@@ -16,7 +26,7 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-30 md:hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 px-4 py-3 shadow-sm">
+    <header className="sticky top-0 z-30 lg:hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 px-4 py-3 shadow-sm">
       <div className="flex items-center justify-between">
         {/* Kiri: Foto Profil User atau Inisial */}
         <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-emerald-500/30 flex items-center justify-center bg-slate-100 dark:bg-slate-800 shadow-sm flex-shrink-0">

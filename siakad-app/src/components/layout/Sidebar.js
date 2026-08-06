@@ -54,7 +54,7 @@ export default function Sidebar() {
   const navItems = NAV_CONFIG[user.role] || [];
 
   return (
-    <aside className="hidden md:flex flex-col sticky top-0 h-screen w-72 bg-white bg-gradient-to-b from-white via-emerald-50 to-teal-50 dark:from-slate-900 dark:via-[#0a1f1c] dark:to-slate-950 border-r border-slate-200 dark:border-white/10 shadow-lg">
+    <aside className="hidden lg:flex flex-col sticky top-0 h-screen w-72 bg-white bg-gradient-to-b from-white via-emerald-50 to-teal-50 dark:from-slate-900 dark:via-[#0a1f1c] dark:to-slate-950 border-r border-slate-200 dark:border-white/10 shadow-lg">
       <div className="p-6 border-b border-slate-200 dark:border-white/10 flex items-center gap-4">
         <div className="w-12 h-12 flex items-center justify-center bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-white/5">
           <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(52,211,148,0.5)]" />
