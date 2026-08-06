@@ -25,7 +25,7 @@ export default function PresensiPage() {
   // Ambil daftar rombel
   useEffect(() => {
     async function fetchRombel() {
-      const { data } = await supabase.from('master_murid').select('rombel');
+      const { data } = await supabase.from('master_user').select('rombel').eq('role', 'Murid');
       if (data) {
         const unique = [...new Set(data.map(d => d.rombel).filter(Boolean))].sort();
         setRombelOptions(unique);
@@ -61,11 +61,12 @@ export default function PresensiPage() {
 
     // Murid
     const { data: murid } = await supabase
-      .from('master_murid')
+      .from('master_user')
       .select('*')
       .eq('rombel', rombel)
-      .eq('status', 'Aktif')
-      .order('nama_murid');
+      .eq('role', 'Murid')
+      .eq('status_aktif', 'Aktif')
+      .order('nama');
 
     // NFC data hari ini
     const { data: nfc } = await supabase
@@ -92,12 +93,12 @@ export default function PresensiPage() {
     // Merge: NFC hadir otomatis, existing override, default Hadir
     const mergedAbsensi = {};
     (murid || []).forEach(m => {
-      if (absensiMap[m.nisn]) {
-        mergedAbsensi[m.nisn] = absensiMap[m.nisn];
-      } else if (nfcMap[m.nisn]) {
-        mergedAbsensi[m.nisn] = { status: 'Hadir', catatan: `NFC: ${nfcMap[m.nisn].jam_datang || '-'}` };
+      if (absensiMap[m.id_user]) {
+        mergedAbsensi[m.id_user] = absensiMap[m.id_user];
+      } else if (nfcMap[m.id_user]) {
+        mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: `NFC: ${nfcMap[m.id_user].jam_datang || '-'}` };
       } else {
-        mergedAbsensi[m.nisn] = { status: 'Hadir', catatan: '' };
+        mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: '' };
       }
     });
 
@@ -125,11 +126,11 @@ export default function PresensiPage() {
     const rows = muridList.map(m => ({
       tanggal,
       rombel,
-      nisn: m.nisn,
-      status: absensi[m.nisn]?.status || 'Hadir',
-      catatan: absensi[m.nisn]?.catatan || '-',
+      nisn: m.id_user,
+      status: absensi[m.id_user]?.status || 'Hadir',
+      catatan: absensi[m.id_user]?.catatan || '-',
       pencatat: user.nama,
-      metode: nfcData[m.nisn] ? 'NFC' : 'Manual',
+      metode: nfcData[m.id_user] ? 'NFC' : 'Manual',
     }));
 
     const { error } = await supabase
@@ -167,8 +168,8 @@ export default function PresensiPage() {
   }, {});
 
   const filteredMurid = muridList.filter(m => {
-    const matchSearch = m.nama_murid.toLowerCase().includes(searchQuery.toLowerCase()) || m.nisn.includes(searchQuery);
-    const matchStatus = filterStatus === 'Semua' || absensi[m.nisn]?.status === filterStatus;
+    const matchSearch = m.nama.toLowerCase().includes(searchQuery.toLowerCase()) || m.id_user.includes(searchQuery);
+    const matchStatus = filterStatus === 'Semua' || absensi[m.id_user]?.status === filterStatus;
     return matchSearch && matchStatus;
   });
 
@@ -282,15 +283,15 @@ export default function PresensiPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
               {filteredMurid.map((m, idx) => (
-                <tr key={m.nisn} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group">
+                <tr key={m.id_user} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group">
                   <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{idx + 1}</td>
-                  <td className="px-5 py-3 text-slate-400 dark:text-slate-500 font-mono text-xs">{m.nisn}</td>
-                  <td className="px-5 py-3 text-slate-800 dark:text-white font-medium">{m.nama_murid}</td>
+                  <td className="px-5 py-3 text-slate-400 dark:text-slate-500 font-mono text-xs">{m.id_user}</td>
+                  <td className="px-5 py-3 text-slate-800 dark:text-white font-medium">{m.nama}</td>
                   <td className="px-5 py-3">
-                    {nfcData[m.nisn] ? (
+                    {nfcData[m.id_user] ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold shadow-sm">
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-                        {nfcData[m.nisn].jam_datang || 'Tap'}
+                        {nfcData[m.id_user].jam_datang || 'Tap'}
                       </span>
                     ) : (
                       <span className="text-slate-300 dark:text-slate-600 text-xs">-</span>
@@ -301,9 +302,9 @@ export default function PresensiPage() {
                       {statusOptions.map(s => (
                         <button
                           key={s}
-                          onClick={() => handleStatusChange(m.nisn, s)}
+                          onClick={() => handleStatusChange(m.id_user, s)}
                           className={`w-8 h-8 rounded-lg text-xs font-bold border transition-all flex items-center justify-center ${
-                            absensi[m.nisn]?.status === s
+                            absensi[m.id_user]?.status === s
                               ? activeStatusColors[s]
                               : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-400 dark:text-slate-500 hover:border-emerald-300 dark:hover:border-emerald-500/50 hover:text-emerald-500 shadow-sm'
                           }`}
@@ -317,8 +318,8 @@ export default function PresensiPage() {
                   <td className="px-5 py-3">
                     <input
                       type="text"
-                      value={absensi[m.nisn]?.catatan || ''}
-                      onChange={e => handleCatatanChange(m.nisn, e.target.value)}
+                      value={absensi[m.id_user]?.catatan || ''}
+                      onChange={e => handleCatatanChange(m.id_user, e.target.value)}
                       placeholder="Tambahkan catatan..."
                       className="w-full bg-transparent border-b border-transparent hover:border-slate-300 dark:hover:border-white/20 focus:border-emerald-500 dark:focus:border-emerald-500 text-slate-700 dark:text-white/80 text-xs py-1.5 px-1 focus:outline-none transition-colors"
                     />

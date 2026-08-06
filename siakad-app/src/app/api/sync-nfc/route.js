@@ -35,7 +35,7 @@ export async function POST(request) {
 
     // 2. Ambil data murid aktif dan data NFC hari itu
     const [{ data: murid }, { data: nfc }] = await Promise.all([
-      supabase.from('master_murid').select('*').eq('status', 'Aktif'),
+      supabase.from('master_user').select('*').eq('role', 'Murid').eq('status_aktif', 'Aktif'),
       supabase.from('data_nfc_murid').select('*').eq('tanggal', targetDate)
     ]);
 
@@ -57,14 +57,14 @@ export async function POST(request) {
     let skipped = 0;
 
     murid.forEach(m => {
-      if (existingMap[m.nisn]) {
+      if (existingMap[m.id_user]) {
         skipped++; // Sudah ada, jangan ditimpa (mungkin hasil edit guru)
       } else {
         added++;
-        const isTap = !!nfcMap[m.nisn];
+        const isTap = !!nfcMap[m.id_user];
         toInsert.push({
           tanggal: targetDate,
-          nisn: m.nisn,
+          nisn: m.id_user,
           rombel: m.rombel,
           status: 'Hadir', // Default selalu hadir (R3 Sinkronisasi)
           catatan: isTap ? 'Tap NFC Mandiri' : 'Hadir (Otomatis)',

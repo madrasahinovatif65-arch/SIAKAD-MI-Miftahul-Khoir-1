@@ -23,7 +23,7 @@ export default function RekapPage() {
   // Ambil daftar rombel untuk Admin
   useEffect(() => {
     async function fetchRombel() {
-      const { data } = await supabase.from('master_murid').select('rombel');
+      const { data } = await supabase.from('master_user').select('rombel').eq('role', 'Murid');
       if (data) {
         const unique = [...new Set(data.map(d => d.rombel).filter(Boolean))].sort();
         setRombelOptions(unique);
@@ -37,11 +37,11 @@ export default function RekapPage() {
     setLoading(true);
 
     // 1. Ambil data murid
-    let queryMurid = supabase.from('master_murid').select('*').eq('status', 'Aktif');
+    let queryMurid = supabase.from('master_user').select('*').eq('role', 'Murid').eq('status_aktif', 'Aktif');
     if (rombel !== 'Semua') {
       queryMurid = queryMurid.eq('rombel', rombel);
     }
-    const { data: murid } = await queryMurid.order('rombel').order('nama_murid');
+    const { data: murid } = await queryMurid.order('rombel').order('nama');
 
     // 2. Ambil data absensi di rentang tanggal
     let queryAbsen = supabase.from('data_absensi').select('nisn, tanggal, status, rombel').gte('tanggal', tglMulai).lte('tanggal', tglAkhir);
@@ -53,7 +53,7 @@ export default function RekapPage() {
     // 3. Proses rekap
     const rekap = {};
     (murid || []).forEach(m => {
-      rekap[m.nisn] = { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, Dispen: 0, detail: {} };
+      rekap[m.id_user] = { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, Dispen: 0, detail: {} };
     });
 
     (absensi || []).forEach(a => {
@@ -74,8 +74,8 @@ export default function RekapPage() {
   const handleExportExcel = () => {
     let csv = 'NISN,Nama Murid,Rombel,Hadir,Sakit,Izin,Alfa,Dispen\n';
     muridData.forEach(m => {
-      const r = rekapData[m.nisn] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, Dispen: 0 };
-      csv += `"${m.nisn}","${m.nama_murid}","${m.rombel}",${r.Hadir},${r.Sakit},${r.Izin},${r.Alfa},${r.Dispen}\n`;
+      const r = rekapData[m.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, Dispen: 0 };
+      csv += `"${m.id_user}","${m.nama}","${m.rombel}",${r.Hadir},${r.Sakit},${r.Izin},${r.Alfa},${r.Dispen}\n`;
     });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -178,12 +178,12 @@ export default function RekapPage() {
                 </tr>
               ) : (
                 muridData.map((m, idx) => {
-                  const r = rekapData[m.nisn] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, Dispen: 0 };
+                  const r = rekapData[m.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, Dispen: 0 };
                   return (
-                    <tr key={m.nisn} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group print:hover:bg-transparent">
+                    <tr key={m.id_user} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group print:hover:bg-transparent">
                       <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 print:text-black">{idx + 1}</td>
-                      <td className="px-5 py-3 text-sm text-slate-400 dark:text-slate-500 font-mono print:text-black">{m.nisn}</td>
-                      <td className="px-5 py-3 text-sm text-slate-800 dark:text-white print:text-black font-semibold">{m.nama_murid}</td>
+                      <td className="px-5 py-3 text-sm text-slate-400 dark:text-slate-500 font-mono print:text-black">{m.id_user}</td>
+                      <td className="px-5 py-3 text-sm text-slate-800 dark:text-white print:text-black font-semibold">{m.nama}</td>
                       {rombel === 'Semua' && (
                         <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 print:text-black">
                           <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-xs font-bold">{m.rombel}</span>

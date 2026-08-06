@@ -89,7 +89,7 @@ export default function DashboardHome() {
       } else {
         const [guruRes, muridRes, pendingRes, jurnalRes] = await Promise.all([
           supabase.from('master_user').select('id', { count: 'exact', head: true }).in('role', ['Wali Kelas', 'Guru Mapel']).eq('status_aktif', 'Aktif'),
-          supabase.from('master_murid').select('id', { count: 'exact', head: true }).eq('status', 'Aktif'),
+          supabase.from('master_user').select('id_user', { count: 'exact', head: true }).eq('role', 'Murid').eq('status_aktif', 'Aktif'),
           supabase.from('log_gps_guru').select('id', { count: 'exact', head: true }).eq('tanggal', today).eq('status', 'Menunggu Verifikasi'),
           supabase.from('jurnal_guru').select('id', { count: 'exact', head: true }).gte('tanggal', monthStart).eq('id_guru', user.id_user),
         ]);

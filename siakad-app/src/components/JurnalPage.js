@@ -27,7 +27,7 @@ export default function JurnalPage() {
       const [jamRes, mapelRes, rombelRes] = await Promise.all([
         supabase.from('master_jam_pelajaran').select('*').order('id_jam'),
         supabase.from('master_mapel').select('*').order('nama_mapel'),
-        supabase.from('master_murid').select('rombel'),
+        supabase.from('master_user').select('rombel').eq('role', 'Murid'),
       ]);
       setJamOptions(jamRes.data || []);
       setMapelOptions(mapelRes.data || []);
