@@ -38,7 +38,6 @@ export default function PresensiPage() {
   
   const rombelOptions = rombelData || [];
   
-  // Ambil tanggal-tanggal yang sudah diverifikasi (ada data di data_absensi)
   const { data: verifiedDates } = useSWR(rombel ? `verified_dates_${rombel}` : null, async () => {
     const { data } = await supabase.from('data_absensi').select('tanggal').eq('rombel', rombel);
     const uniqueDates = [...new Set((data || []).map(d => d.tanggal))];
@@ -48,6 +47,23 @@ export default function PresensiPage() {
       return new Date(y, m - 1, day);
     });
   });
+
+  const { data: liburDates } = useSWR('master_libur_all', async () => {
+    const { data } = await supabase.from('master_libur').select('tanggal');
+    return (data || []).map(d => d.tanggal);
+  });
+
+  const getDayClassName = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${y}-${m}-${d}`;
+
+    if (date.getDay() === 0 || (liburDates && liburDates.includes(dateStr))) {
+      return 'react-datepicker__day--holiday !text-rose-500 font-bold';
+    }
+    return undefined;
+  };
   
   useEffect(() => {
     if (!rombel && rombelOptions.length > 0) {
@@ -249,6 +265,7 @@ export default function PresensiPage() {
               dateFormat="dd-MM-yyyy"
               locale="id"
               highlightDates={verifiedDates || []}
+              dayClassName={getDayClassName}
               className="pl-4 pr-10 py-2.5 h-[42px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm text-center font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm w-full z-50 relative"
               portalId="root-portal"
             />
@@ -473,6 +490,7 @@ export default function PresensiPage() {
                   onChange={(update) => setDateRange(update)}
                   dateFormat="dd-MM-yyyy"
                   locale="id"
+                  dayClassName={getDayClassName}
                   placeholderText="Pilih tgl mulai - akhir"
                   className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm text-center font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm"
                 />
