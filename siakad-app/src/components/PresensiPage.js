@@ -4,8 +4,11 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import useSWR from 'swr';
-import DatePicker from 'react-datepicker';
+import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { id } from 'date-fns/locale/id';
+
+registerLocale('id', id);
 
 export default function PresensiPage() {
   const { user } = useAuth();
@@ -26,6 +29,17 @@ export default function PresensiPage() {
   });
   
   const rombelOptions = rombelData || [];
+  
+  // Ambil tanggal-tanggal yang sudah diverifikasi (ada data di data_absensi)
+  const { data: verifiedDates } = useSWR(rombel ? `verified_dates_${rombel}` : null, async () => {
+    const { data } = await supabase.from('data_absensi').select('tanggal').eq('rombel', rombel);
+    const uniqueDates = [...new Set((data || []).map(d => d.tanggal))];
+    return uniqueDates.map(d => {
+      // Pastikan timezone tidak bergeser, parse manual
+      const [y, m, day] = d.split('-');
+      return new Date(y, m - 1, day);
+    });
+  });
   
   useEffect(() => {
     if (!rombel && rombelOptions.length > 0) {
@@ -171,9 +185,12 @@ export default function PresensiPage() {
                 setTanggal(`${y}-${m}-${d}`);
               }
             }}
-            dateFormat="dd-MM-yyyy"
+            dateFormat="dd MMMM yyyy"
+            locale="id"
             showIcon
-            className="px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm w-[140px] z-50 relative"
+            highlightDates={verifiedDates || []}
+            className="px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm w-44 z-50 relative"
+            portalId="root-portal"
           />
           <select
             value={rombel}

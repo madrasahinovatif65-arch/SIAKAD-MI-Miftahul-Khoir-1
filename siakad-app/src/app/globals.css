@@ -127,3 +127,20 @@ html, body {
   background-color: #020617; /* match dark:bg-slate-950 */
 }
 
+/* Highlighted dates (Verified Presensi) */
+.react-datepicker__day--highlighted {
+  background-color: #d1fae5;
+  color: #047857 !important;
+  font-weight: bold;
+}
+.react-datepicker__day--highlighted:hover {
+  background-color: #a7f3d0 !important;
+}
+.dark .react-datepicker__day--highlighted {
+  background-color: #064e3b;
+  color: #34d399 !important;
+}
+.dark .react-datepicker__day--highlighted:hover {
+  background-color: #065f46 !important;
+}
+

@@ -31,6 +31,7 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <EyeCareMode>
             {children}
+            <div id="root-portal"></div>
           </EyeCareMode>
         </AuthProvider>
         <script
