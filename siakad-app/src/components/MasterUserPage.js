@@ -10,7 +10,7 @@ export default function MasterUserPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState(null);
-  
+
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('Semua');
@@ -37,7 +37,7 @@ export default function MasterUserPage() {
       .select('*')
       .order('role')
       .order('nama');
-      
+
     if (error) {
       setMessage({ type: 'error', text: 'Gagal memuat data: ' + error.message });
     } else {
@@ -146,25 +146,23 @@ export default function MasterUserPage() {
 
   // Excel Upload/Download
   const downloadTemplate = () => {
-    const ws = XLSX.utils.json_to_sheet([
-      { id_user: '1234567890', nama: 'Siswa Contoh', role: 'Murid', rombel: '1A', mapel: '-', status_aktif: 'Aktif', rfid: '' },
-      { id_user: 'NIP001', nama: 'Guru Contoh', role: 'Guru Mapel', rombel: '-', mapel: 'Matematika', status_aktif: 'Aktif', rfid: '' }
-    ]);
+      { 'ID_User': '1234567890', 'Nama': 'Siswa Contoh', 'Role': 'Murid', 'PIN': '123456', 'Rombel': '1A', 'Status': 'Aktif', 'Mapel': '-', 'Link Foto': '', 'RFID': '' },
+      { 'ID_User': 'NIP001', 'Nama': 'Guru Contoh', 'Role': 'Guru Mapel', 'PIN': '654321', 'Rombel': '-', 'Status': 'Aktif', 'Mapel': 'Matematika', 'Link Foto': '', 'RFID': '' }
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Template_Pengguna");
     XLSX.writeFile(wb, "Template_Master_Pengguna.xlsx");
   };
 
   const exportData = () => {
-    const exportData = filteredUsers.map(u => ({
-      ID_User_NISN: u.id_user,
-      Nama: u.nama,
-      Role: u.role,
-      Rombel: u.rombel,
-      Mapel: u.mapel || '-',
-      Status: u.status_aktif,
-      RFID: u.rfid || ''
-    }));
+      'ID_User': u.id_user,
+      'Nama': u.nama,
+      'Role': u.role,
+      'PIN': u.pin || '',
+      'Rombel': u.rombel,
+      'Status': u.status_aktif,
+      'Mapel': u.mapel || '-',
+      'Link Foto': u.link_foto || '',
+      'RFID': u.rfid || ''
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Data_Pengguna");
@@ -174,7 +172,7 @@ export default function MasterUserPage() {
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     setLoading(true);
     const reader = new FileReader();
     reader.onload = async (evt) => {
@@ -184,25 +182,27 @@ export default function MasterUserPage() {
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws);
-        
+
         if (data.length === 0) throw new Error("File kosong");
-        
+
         // Format to match DB schema
         const toUpsert = data.map(d => ({
-          id_user: String(d.id_user || d.ID_User_NISN || ''),
-          nama: String(d.nama || d.Nama || ''),
-          role: String(d.role || d.Role || 'Murid'),
-          rombel: String(d.rombel || d.Rombel || '-'),
-          mapel: String(d.mapel || d.Mapel || '-'),
-          status_aktif: String(d.status_aktif || d.Status || 'Aktif'),
-          rfid: d.rfid || d.RFID || null
+          id_user: String(d.ID_User || d.id_user || ''),
+          nama: String(d.Nama || d.nama || ''),
+          role: String(d.Role || d.role || 'Murid'),
+          pin: d.PIN !== undefined ? String(d.PIN) : (d.pin !== undefined ? String(d.pin) : null),
+          rombel: String(d.Rombel || d.rombel || '-'),
+          status_aktif: String(d.Status || d.status_aktif || 'Aktif'),
+          mapel: String(d.Mapel || d.mapel || '-'),
+          link_foto: d['Link Foto'] || d.link_foto || null,
+          rfid: d.RFID || d.rfid || null
         })).filter(d => d.id_user && d.nama); // minimal required fields
 
         if (toUpsert.length === 0) throw new Error("Format tidak sesuai, pastikan kolom id_user dan nama terisi.");
 
         const { error } = await supabase.from('master_user').upsert(toUpsert, { onConflict: 'id_user' });
         if (error) throw error;
-        
+
         setMessage({ type: 'success', text: `Berhasil mengimpor ${toUpsert.length} data pengguna.` });
         loadData();
       } catch (err) {
@@ -244,9 +244,8 @@ export default function MasterUserPage() {
       </div>
 
       {message && (
-        <div className={`px-4 py-3 rounded-xl text-sm font-medium shadow-sm flex items-center justify-between ${
-          message.type === 'success' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400'
-        }`}>
+        <div className={`px-4 py-3 rounded-xl text-sm font-medium shadow-sm flex items-center justify-between ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400'
+          }`}>
           <span>{message.text}</span>
           <button onClick={() => setMessage(null)} className="opacity-50 hover:opacity-100">✕</button>
         </div>
@@ -257,9 +256,9 @@ export default function MasterUserPage() {
         <div className="flex flex-col sm:flex-row flex-wrap gap-4 items-end">
           <div className="flex-1 min-w-[200px]">
             <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Cari</label>
-            <input 
-              type="text" 
-              placeholder="Nama atau ID/NISN..." 
+            <input
+              type="text"
+              placeholder="Nama atau ID/NISN..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-700 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
@@ -374,7 +373,7 @@ export default function MasterUserPage() {
                           className="w-full px-2 py-1.5 bg-white dark:bg-slate-950 border-2 border-emerald-500 rounded-lg text-sm text-slate-800 dark:text-white font-mono focus:outline-none animate-in fade-in"
                         />
                       ) : (
-                        <div 
+                        <div
                           onClick={() => handleRfidClick(u.id, u.rfid)}
                           className={`w-full px-2 py-1.5 rounded-lg text-sm font-mono cursor-text border border-transparent hover:border-emerald-200 dark:hover:border-emerald-500/30 transition-colors ${u.rfid ? 'text-slate-700 dark:text-slate-300' : 'text-slate-300 dark:text-slate-600 italic'}`}
                         >
