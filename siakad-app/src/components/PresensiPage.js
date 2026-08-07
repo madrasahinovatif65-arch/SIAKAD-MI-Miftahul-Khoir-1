@@ -11,6 +11,10 @@ export default function PresensiPage() {
   const [rombel, setRombel] = useState(user?.rombel || '');
   const [absensi, setAbsensi] = useState({});
   const [saving, setSaving] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('Semua');
+  const [message, setMessage] = useState(null);
+
   const { data: rombelData } = useSWR('master_rombel', async () => {
     const { data } = await supabase.from('master_user').select('rombel').eq('role', 'Murid');
     return [...new Set((data || []).map(d => d.rombel).filter(Boolean))].sort();
