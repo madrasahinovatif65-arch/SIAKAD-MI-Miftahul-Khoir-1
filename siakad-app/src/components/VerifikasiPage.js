@@ -37,7 +37,7 @@ export default function VerifikasiPage() {
 
     // Ambil NFC hari ini
     const { data: nfcLogs } = await supabase
-      .from('nfc_guru')
+      .from('view_rekap_absensi_nfc')
       .select('*')
       .eq('tanggal', tanggal);
 
@@ -50,7 +50,7 @@ export default function VerifikasiPage() {
     const gpsMap = {};
     (gpsLogs || []).forEach(g => { gpsMap[g.id_guru] = g; });
     const nfcMap = {};
-    (nfcLogs || []).forEach(n => { nfcMap[n.id_guru] = n; });
+    (nfcLogs || []).forEach(n => { nfcMap[n.id_user] = n; });
     const verMap = {};
     (verified || []).forEach(v => { verMap[v.id_guru] = v; });
 

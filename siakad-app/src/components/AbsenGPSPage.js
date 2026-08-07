@@ -23,10 +23,10 @@ export default function AbsenGPSPage() {
 
     // Cek NFC dulu (prioritas)
     const { data: nfcData } = await supabase
-      .from('nfc_guru')
+      .from('view_rekap_absensi_nfc')
       .select('*')
       .eq('tanggal', today)
-      .eq('id_guru', user.id_user)
+      .eq('id_user', user.id_user)
       .single();
 
     if (nfcData) {
