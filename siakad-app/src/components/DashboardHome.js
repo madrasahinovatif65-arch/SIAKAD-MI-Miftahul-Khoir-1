@@ -66,7 +66,7 @@ export default function DashboardHome() {
         .from('data_absensi')
         .select('status')
         .eq('nisn', user.id_user);
-        
+
       let h = 0, i = 0, s = 0, a = 0;
       if (absenMurid) {
         absenMurid.forEach(ab => {
@@ -106,7 +106,7 @@ export default function DashboardHome() {
         });
 
         const dates = [];
-        for (let i=6; i>=0; i--) {
+        for (let i = 6; i >= 0; i--) {
           const d = new Date();
           d.setDate(d.getDate() - i);
           dates.push(d.toISOString().split('T')[0]);
@@ -192,10 +192,10 @@ export default function DashboardHome() {
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 dark:text-white tracking-tight">
               Assalamu&apos;alaikum, <br className="md:hidden" /><span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300">{user.nama}</span> 👋
             </h2>
-            
+
             {user.role === 'Murid' && (
               <p className="mt-4 max-w-2xl text-emerald-700/80 dark:text-emerald-300/70 italic text-xs sm:text-sm font-medium border-l-[3px] border-emerald-500/40 pl-4 py-1 leading-relaxed">
-                &quot;Menuntut ilmu adalah taqwa. Menyampaikannya adalah ibadah. Mengulang-ulangnya adalah zikir. Mencari-carinya adalah jihad.&quot; <br/><span className="text-[10px] sm:text-xs font-bold mt-1.5 block opacity-80">— Imam Al-Ghazali</span>
+                &quot;Menuntut ilmu adalah taqwa. Menyampaikannya adalah ibadah. Mengulang-ulangnya adalah zikir. Mencari-carinya adalah jihad.&quot; <br /><span className="text-[10px] sm:text-xs font-bold mt-1.5 block opacity-80">— Imam Al-Ghazali</span>
               </p>
             )}
           </div>
@@ -206,7 +206,7 @@ export default function DashboardHome() {
           </div>
         </div>
       </div>
-      
+
       {/* Quick Menu Section */}
       <div className="md:hidden">
         <h3 className="text-slate-800 dark:text-white font-bold mb-3 flex items-center gap-2 px-1">
@@ -243,7 +243,7 @@ export default function DashboardHome() {
               <p className="text-slate-500 dark:text-slate-400 text-sm mt-1.5 font-medium">Total {muridStats.hadir + muridStats.izin + muridStats.sakit + muridStats.alpa} hari efektif</p>
             </div>
           </div>
-          
+
           <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             {[
               { label: 'Hadir', value: muridStats.hadir, color: 'emerald' },
@@ -257,7 +257,7 @@ export default function DashboardHome() {
                 <p className="opacity-70 text-[10px] font-bold uppercase tracking-widest mt-2 relative z-10">{stat.label}</p>
               </div>
             ))}
-            
+
             <div className="col-span-2 sm:col-span-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-white/60 dark:border-white/10 rounded-[1.5rem] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
               <h4 className="text-slate-800 dark:text-white text-sm font-bold mb-5 flex items-center gap-2 uppercase tracking-wide">
                 <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" /></svg>
@@ -289,7 +289,7 @@ export default function DashboardHome() {
               <div key={idx} className={`relative overflow-hidden rounded-[2rem] p-5 sm:p-6 bg-gradient-to-br ${card.gradient} shadow-[0_8px_30px_rgb(0,0,0,0.08)] text-white group ${isHero ? 'col-span-2 lg:col-span-1' : 'col-span-1'}`}>
                 <div className="absolute -top-16 -right-16 w-48 h-48 bg-white/20 rounded-full blur-3xl pointer-events-none group-hover:scale-110 transition-transform duration-700" />
                 <div className="absolute top-0 right-0 w-28 h-28 bg-white/10 rounded-bl-[100px] pointer-events-none group-hover:bg-white/20 transition-colors duration-500" />
-                
+
                 <div className="relative z-10 flex flex-col h-full justify-between min-h-[120px] sm:min-h-[140px]">
                   <p className="text-white/80 text-[10px] sm:text-xs font-bold uppercase tracking-widest">{card.label}</p>
                   <div className="mt-4 flex flex-col justify-end">
@@ -308,18 +308,18 @@ export default function DashboardHome() {
           <div className="bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-white/5 rounded-2xl p-6 lg:col-span-2">
             <h3 className="text-slate-900 dark:text-white font-semibold text-sm mb-4">Tren Kehadiran (7 Hari)</h3>
             <div className="h-64">
-              <Bar 
-                data={chartData.bar} 
-                options={{ maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } } }} 
+              <Bar
+                data={chartData.bar}
+                options={{ maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } } }}
               />
             </div>
           </div>
           <div className="bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-white/5 rounded-2xl p-6">
             <h3 className="text-slate-900 dark:text-white font-semibold text-sm mb-4">Proporsi Kehadiran Hari Ini</h3>
             <div className="h-48 flex justify-center">
-              <Doughnut 
-                data={chartData.doughnut} 
-                options={{ maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#fff' } } }, cutout: '70%' }} 
+              <Doughnut
+                data={chartData.doughnut}
+                options={{ maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#fff' } } }, cutout: '70%' }}
               />
             </div>
           </div>
@@ -334,10 +334,10 @@ export default function DashboardHome() {
             </svg>
           </div>
           <div>
-            <h3 className="text-slate-900 dark:text-white font-semibold text-sm">SIAKAD v2.0 — Powered by Supabase</h3>
+            <h3 className="text-slate-900 dark:text-white font-semibold text-sm">Inovatif+ v2.0 -- Powered by Minova</h3>
             <p className="text-slate-600 dark:text-white/40 text-sm mt-1">
-              Aplikasi ini menggunakan cloud database PostgreSQL (Supabase) untuk performa maksimal. 
-              Data disinkronisasi otomatis ke Google Sheets sebagai cadangan.
+              Platform layanan cerdas terintegrasi khusus untuk warga Madrasah Inovatif.
+              Data tersinkronisasi dan aman di cloud.
             </p>
           </div>
         </div>
