@@ -67,6 +67,12 @@ export default function RiwayatGuruPage() {
 
   const data = swrData || [];
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-');
+    return `${d}-${m}-${y}`;
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -143,7 +149,7 @@ export default function RiwayatGuruPage() {
             <tbody className="divide-y divide-white/5">
               {data.map((row, idx) => (
                 <tr key={idx} className="hover:bg-white/3 transition-colors">
-                  <td className="px-4 py-3 text-slate-700 dark:text-white/70 font-mono text-xs">{row.tanggal}</td>
+                  <td className="px-4 py-3 text-slate-700 dark:text-white/70 font-mono text-xs">{formatDate(row.tanggal)}</td>
                   {isAdmin && <td className="px-4 py-3 text-slate-900 dark:text-white font-medium">{row.nama_guru}</td>}
                   <td className="px-4 py-3 text-slate-600 dark:text-white/60 text-xs">{row.waktu}</td>
                   <td className="px-4 py-3">

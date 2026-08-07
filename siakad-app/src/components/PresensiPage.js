@@ -16,6 +16,9 @@ export default function PresensiPage() {
   const [message, setMessage] = useState(null);
 
   const { data: rombelData } = useSWR('master_rombel', async () => {
+    if (user?.role === 'Wali Kelas' && user?.rombel && user.rombel !== '-') {
+      return [user.rombel];
+    }
     const { data } = await supabase.from('master_user').select('rombel').eq('role', 'Murid');
     return [...new Set((data || []).map(d => d.rombel).filter(Boolean))].sort();
   });
@@ -52,7 +55,7 @@ export default function PresensiPage() {
     const mergedAbsensi = {};
     (murid || []).forEach(m => {
       if (absensiMap[m.id_user]) mergedAbsensi[m.id_user] = absensiMap[m.id_user];
-      else if (nfcMap[m.id_user]) mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: `NFC: ${nfcMap[m.id_user].jam_datang || '-'}` };
+      else if (nfcMap[m.id_user]) mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: `Tap NFC: ${nfcMap[m.id_user].jam_datang || '-'}` };
       else mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: '' };
     });
 
@@ -78,6 +81,12 @@ export default function PresensiPage() {
     setAbsensi(prev => ({ ...prev, [nisn]: { ...prev[nisn], catatan } }));
   };
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-');
+    return `${d}-${m}-${y}`;
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setMessage(null);
@@ -100,7 +109,7 @@ export default function PresensiPage() {
     if (error) {
       setMessage({ type: 'error', text: 'Gagal menyimpan: ' + error.message });
     } else {
-      setMessage({ type: 'success', text: `Presensi ${rombel} tanggal ${tanggal} berhasil disimpan!` });
+      setMessage({ type: 'success', text: `Presensi ${rombel} tanggal ${formatDate(tanggal)} berhasil disimpan!` });
     }
   };
 

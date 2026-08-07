@@ -53,6 +53,12 @@ export default function RiwayatMuridPage() {
 
   const data = swrData || [];
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-');
+    return `${d}-${m}-${y}`;
+  };
+
   const statusColors = {
     'Hadir': 'bg-emerald-500/20 text-emerald-300',
     'Sakit': 'bg-amber-500/20 text-amber-300',
@@ -131,7 +137,7 @@ export default function RiwayatMuridPage() {
             .map((row, idx) => (
             <div key={idx} className="bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-white/5 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-4">
-                <span className="text-slate-600 dark:text-white/60 font-mono text-xs w-24 shrink-0">{row.tanggal}</span>
+                <span className="text-slate-600 dark:text-white/60 font-mono text-xs w-24 shrink-0">{formatDate(row.tanggal)}</span>
                 <span className={`px-2 py-1 rounded-md text-xs font-medium ${statusColors[row.status] || 'text-slate-600 dark:text-white/30'}`}>
                   {row.status}
                 </span>
