@@ -2,6 +2,10 @@
 
 @variant dark (&:where(.dark, .dark *));
 
+html.dark {
+  color-scheme: dark;
+}
+
 :root {
   --background: #0a0a1a;
   --foreground: #ededed;

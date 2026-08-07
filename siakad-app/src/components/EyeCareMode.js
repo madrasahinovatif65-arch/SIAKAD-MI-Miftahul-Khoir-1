@@ -13,8 +13,8 @@ export default function EyeCareMode({ children }) {
   useEffect(() => {
     setMounted(true);
     const saved = localStorage.getItem('eyeCareMode');
-    // Default to true (Dark mode / Eye care) if not set, or read from storage
-    const isDark = saved === null ? true : saved === 'true';
+    // Default to false (Light mode) if not set, or read from storage
+    const isDark = saved === null ? false : saved === 'true';
     setIsEyeCare(isDark);
     
     if (isDark) {
