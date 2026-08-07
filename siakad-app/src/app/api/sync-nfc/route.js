@@ -36,7 +36,7 @@ export async function POST(request) {
     // 2. Ambil data murid aktif dan data NFC hari itu
     const [{ data: murid }, { data: nfc }] = await Promise.all([
       supabase.from('master_user').select('*').eq('role', 'Murid').eq('status_aktif', 'Aktif'),
-      supabase.from('data_nfc_murid').select('*').eq('tanggal', targetDate)
+      supabase.from('view_rekap_absensi_nfc').select('*').eq('tanggal', targetDate).eq('role', 'Murid')
     ]);
 
     if (!murid || murid.length === 0) {
@@ -44,7 +44,7 @@ export async function POST(request) {
     }
 
     const nfcMap = {};
-    (nfc || []).forEach(n => { nfcMap[n.nisn] = n; });
+    (nfc || []).forEach(n => { nfcMap[n.id_user] = n; });
 
     // 3. Ambil absensi yang sudah ada hari itu untuk mencegah overwrite yang sudah divalidasi
     const { data: existingAbsen } = await supabase.from('data_absensi').select('*').eq('tanggal', targetDate);

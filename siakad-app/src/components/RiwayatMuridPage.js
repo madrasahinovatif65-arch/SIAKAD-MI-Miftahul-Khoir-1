@@ -27,9 +27,9 @@ export default function RiwayatMuridPage() {
 
     // Ambil dari data_nfc_murid
     const { data: nfc } = await supabase
-      .from('data_nfc_murid')
+      .from('view_rekap_absensi_nfc')
       .select('*')
-      .eq('nisn', user.id_user)
+      .eq('id_user', user.id_user)
       .gte('tanggal', startDate)
       .lte('tanggal', endDate)
       .order('tanggal', { ascending: false });

@@ -70,7 +70,7 @@ export default function PresensiPage() {
 
     // NFC data hari ini
     const { data: nfc } = await supabase
-      .from('data_nfc_murid')
+      .from('view_rekap_absensi_nfc')
       .select('*')
       .eq('tanggal', tanggal)
       .eq('rombel', rombel);
@@ -83,7 +83,7 @@ export default function PresensiPage() {
       .eq('rombel', rombel);
 
     const nfcMap = {};
-    (nfc || []).forEach(n => { nfcMap[n.nisn] = n; });
+    (nfc || []).forEach(n => { nfcMap[n.id_user] = n; });
 
     const absensiMap = {};
     (existing || []).forEach(a => {
