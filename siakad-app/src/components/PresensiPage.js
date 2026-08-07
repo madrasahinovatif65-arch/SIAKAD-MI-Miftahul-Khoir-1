@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import useSWR from 'swr';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 export default function PresensiPage() {
   const { user } = useAuth();
@@ -54,7 +56,12 @@ export default function PresensiPage() {
 
     const mergedAbsensi = {};
     (murid || []).forEach(m => {
-      if (absensiMap[m.id_user]) mergedAbsensi[m.id_user] = absensiMap[m.id_user];
+      if (absensiMap[m.id_user]) {
+        mergedAbsensi[m.id_user] = absensiMap[m.id_user];
+        if (mergedAbsensi[m.id_user].catatan && mergedAbsensi[m.id_user].catatan.startsWith('NFC:')) {
+          mergedAbsensi[m.id_user].catatan = mergedAbsensi[m.id_user].catatan.replace('NFC:', 'Tap NFC:');
+        }
+      }
       else if (nfcMap[m.id_user]) mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: `Tap NFC: ${nfcMap[m.id_user].jam_datang || '-'}` };
       else mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: '' };
     });
@@ -153,11 +160,19 @@ export default function PresensiPage() {
       <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-4 sm:p-6 shadow-sm">
         {/* Filter Tanggal & Rombel */}
         <div className="flex flex-wrap gap-4 mb-4">
-          <input
-            type="date"
-            value={tanggal}
-            onChange={e => setTanggal(e.target.value)}
-            className="px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm"
+          <DatePicker
+            selected={new Date(tanggal)}
+            onChange={(date) => {
+              if (date) {
+                // Ensure correct local time date format
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, '0');
+                const d = String(date.getDate()).padStart(2, '0');
+                setTanggal(`${y}-${m}-${d}`);
+              }
+            }}
+            dateFormat="dd-MM-yyyy"
+            className="px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm w-[140px] z-50 relative"
           />
           <select
             value={rombel}
