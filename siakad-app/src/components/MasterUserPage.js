@@ -164,7 +164,7 @@ export default function MasterUserPage() {
       'Rombel': u.rombel,
       'Status': u.status_aktif,
       'Mapel': u.mapel || '-',
-      'Link Foto': u.link_foto || '',
+      'Link Foto': u.foto || '',
       'RFID': u.rfid || ''
     }));
     const ws = XLSX.utils.json_to_sheet(exportedArray);
@@ -198,7 +198,7 @@ export default function MasterUserPage() {
           rombel: String(d.Rombel || d.rombel || '-'),
           status_aktif: String(d.Status || d.status_aktif || 'Aktif'),
           mapel: String(d.Mapel || d.mapel || '-'),
-          link_foto: d['Link Foto'] || d.link_foto || null,
+          foto: d['Link Foto'] || d.foto || null,
           rfid: d.RFID || d.rfid || null
         })).filter(d => d.id_user && d.nama); // minimal required fields
 
