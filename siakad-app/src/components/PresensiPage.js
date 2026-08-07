@@ -20,6 +20,14 @@ export default function PresensiPage() {
   const [filterStatus, setFilterStatus] = useState('Semua');
   const [message, setMessage] = useState(null);
 
+  // Range Verification states
+  const [showRangeModal, setShowRangeModal] = useState(false);
+  const [dateRange, setDateRange] = useState([null, null]);
+  const [startDate, endDate] = dateRange;
+  const [rangeRombel, setRangeRombel] = useState(user?.rombel || '');
+  const [isProcessingRange, setIsProcessingRange] = useState(false);
+  const [rangeMessage, setRangeMessage] = useState(null);
+
   const { data: rombelData } = useSWR('master_rombel', async () => {
     if (user?.role === 'Wali Kelas' && user?.rombel && user.rombel !== '-') {
       return [user.rombel];
@@ -134,6 +142,49 @@ export default function PresensiPage() {
     }
   };
 
+  const handleVerifikasiRentang = async () => {
+    if (!startDate || !endDate) {
+      setRangeMessage({ type: 'error', text: 'Pilih tanggal mulai dan akhir terlebih dahulu.' });
+      return;
+    }
+    if (!rangeRombel) {
+      setRangeMessage({ type: 'error', text: 'Pilih kelas terlebih dahulu.' });
+      return;
+    }
+    
+    // Validasi 1 bulan
+    if (startDate.getFullYear() !== endDate.getFullYear() || startDate.getMonth() !== endDate.getMonth()) {
+      setRangeMessage({ type: 'error', text: 'Rentang tanggal harus berada pada bulan dan tahun yang sama.' });
+      return;
+    }
+
+    setIsProcessingRange(true);
+    setRangeMessage(null);
+
+    try {
+      const tglMulaiStr = new Date(startDate.getTime() - (startDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+      const tglAkhirStr = new Date(endDate.getTime() - (endDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+
+      const res = await fetch('/api/sync-range', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tglMulai: tglMulaiStr, tglAkhir: tglAkhirStr, rombel: rangeRombel })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Terjadi kesalahan.');
+      }
+
+      setRangeMessage({ type: 'success', text: data.message });
+      reloadData();
+    } catch (err) {
+      setRangeMessage({ type: 'error', text: err.message });
+    } finally {
+      setIsProcessingRange(false);
+    }
+  };
+
   const statusOptions = ['Hadir', 'Sakit', 'Izin', 'Alfa', 'Dispen'];
   const statusColors = {
     Hadir: 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
@@ -169,6 +220,15 @@ export default function PresensiPage() {
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">Presensi Murid</h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Catat kehadiran harian murid secara efisien</p>
         </div>
+        <button
+          onClick={() => setShowRangeModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/30 dark:text-emerald-300 rounded-xl font-bold text-sm transition-all shadow-sm"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+          </svg>
+          Verifikasi Rentang
+        </button>
       </div>
 
       <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-4 sm:p-6 shadow-sm">
@@ -362,6 +422,70 @@ export default function PresensiPage() {
               </>
             )}
           </button>
+        </div>
+      )}
+
+      {/* Modal Verifikasi Rentang */}
+      {showRangeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-200 dark:border-white/10 relative">
+            <button
+              onClick={() => { setShowRangeModal(false); setRangeMessage(null); }}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Verifikasi Rentang Waktu</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Otomatisasi absen "Hadir" untuk tanggal yang terlewat. Maksimal 1 bulan berjalan.</p>
+            
+            {rangeMessage && (
+              <div className={`p-4 rounded-xl mb-6 text-sm font-medium border ${rangeMessage.type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400'}`}>
+                {rangeMessage.text}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Kelas</label>
+                <div className="relative">
+                  <select
+                    value={rangeRombel}
+                    onChange={e => setRangeRombel(e.target.value)}
+                    style={{ backgroundImage: 'none' }}
+                    className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm"
+                  >
+                    <option value="" className="bg-white dark:bg-slate-900 text-slate-400">Pilih Kelas...</option>
+                    {rombelOptions.map(r => (
+                      <option key={r} value={r} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{r}</option>
+                    ))}
+                  </select>
+                  <svg className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Rentang Tanggal</label>
+                <DatePicker
+                  selectsRange={true}
+                  startDate={startDate}
+                  endDate={endDate}
+                  onChange={(update) => setDateRange(update)}
+                  dateFormat="dd-MM-yyyy"
+                  locale="id"
+                  placeholderText="Pilih tgl mulai - akhir"
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm text-center font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm"
+                />
+              </div>
+              <button
+                onClick={handleVerifikasiRentang}
+                disabled={isProcessingRange}
+                className="w-full mt-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/25 hover:shadow-emerald-500/40 transition-all disabled:opacity-50 flex justify-center items-center gap-2"
+              >
+                {isProcessingRange ? 'Memproses...' : 'Simpan Rentang'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
