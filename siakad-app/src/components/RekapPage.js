@@ -131,13 +131,19 @@ export default function RekapPage() {
             />
           </div>
           {user?.role === 'Admin' && (
-            <select value={rombel} onChange={e => setRombel(e.target.value)}
-              className="w-full sm:w-auto px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
-              <option value="Semua" className="bg-white dark:bg-slate-900">Semua Rombel</option>
-              {rombelOptions.map(r => (
-                <option key={r} value={r} className="bg-white dark:bg-slate-900">{r}</option>
-              ))}
-            </select>
+            <div className="relative w-full sm:w-auto">
+              <select value={rombel} onChange={e => setRombel(e.target.value)}
+                style={{ backgroundImage: 'none' }}
+                className="appearance-none w-full sm:w-auto pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
+                <option value="Semua" className="bg-white dark:bg-slate-900">Semua Rombel</option>
+                {rombelOptions.map(r => (
+                  <option key={r} value={r} className="bg-white dark:bg-slate-900">{r}</option>
+                ))}
+              </select>
+              <svg className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+              </svg>
+            </div>
           )}
         </div>
       </div>

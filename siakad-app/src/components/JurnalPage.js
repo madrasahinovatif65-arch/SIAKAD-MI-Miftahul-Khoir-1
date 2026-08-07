@@ -165,34 +165,52 @@ export default function JurnalPage() {
             </div>
             <div className="space-y-2">
               <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Jam Pelajaran</label>
-              <select value={jamPelajaran} onChange={e => setJamPelajaran(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
-                {jamOptions.map(j => (
-                  <option key={j.id_jam} value={j.id_jam} className="bg-white dark:bg-slate-900">
-                    {j.nama_jam} ({j.waktu_mulai}-{j.waktu_selesai})
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select value={jamPelajaran} onChange={e => setJamPelajaran(e.target.value)}
+                  style={{ backgroundImage: 'none' }}
+                  className="appearance-none w-full pl-4 pr-10 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
+                  {jamOptions.map(j => (
+                    <option key={j.id_jam} value={j.id_jam} className="bg-white dark:bg-slate-900">
+                      {j.nama_jam} ({j.waktu_mulai}-{j.waktu_selesai})
+                    </option>
+                  ))}
+                </select>
+                <svg className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </div>
             </div>
             <div className="space-y-2">
               <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Rombel</label>
-              <select value={rombel} onChange={e => setRombel(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
-                <option value="" className="bg-white dark:bg-slate-900 text-slate-400">Pilih Rombel</option>
-                {rombelOptions.map(r => (
-                  <option key={r} value={r} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{r}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select value={rombel} onChange={e => setRombel(e.target.value)}
+                  style={{ backgroundImage: 'none' }}
+                  className="appearance-none w-full pl-4 pr-10 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
+                  <option value="" className="bg-white dark:bg-slate-900 text-slate-400">Pilih Rombel</option>
+                  {rombelOptions.map(r => (
+                    <option key={r} value={r} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{r}</option>
+                  ))}
+                </select>
+                <svg className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </div>
             </div>
             <div className="space-y-2">
               <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Mata Pelajaran</label>
-              <select value={mapel} onChange={e => setMapel(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
-                <option value="" className="bg-white dark:bg-slate-900 text-slate-400">Pilih Mapel</option>
-                {mapelOptions.map(m => (
-                  <option key={m.id_mapel} value={m.nama_mapel} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{m.nama_mapel}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select value={mapel} onChange={e => setMapel(e.target.value)}
+                  style={{ backgroundImage: 'none' }}
+                  className="appearance-none w-full pl-4 pr-10 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
+                  <option value="" className="bg-white dark:bg-slate-900 text-slate-400">Pilih Mapel</option>
+                  {mapelOptions.map(m => (
+                    <option key={m.id_mapel} value={m.nama_mapel} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{m.nama_mapel}</option>
+                  ))}
+                </select>
+                <svg className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </div>
             </div>
           </div>
           <div className="space-y-2">

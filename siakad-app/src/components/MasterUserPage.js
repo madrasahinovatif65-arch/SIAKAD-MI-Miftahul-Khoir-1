@@ -261,22 +261,34 @@ export default function MasterUserPage() {
           </div>
           <div className="w-full sm:w-48">
             <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Role</label>
-            <select value={filterRole} onChange={e => setFilterRole(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-700 dark:text-white focus:outline-none focus:border-emerald-500">
-              <option value="Semua">Semua Role</option>
-              <option value="Murid">Murid</option>
-              <option value="Guru Mapel">Guru Mapel</option>
-              <option value="Wali Kelas">Wali Kelas</option>
-              <option value="Admin">Admin</option>
-            </select>
+            <div className="relative">
+              <select value={filterRole} onChange={e => setFilterRole(e.target.value)}
+                style={{ backgroundImage: 'none' }}
+                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-700 dark:text-white focus:outline-none focus:border-emerald-500">
+                <option value="Semua">Semua Role</option>
+                <option value="Murid">Murid</option>
+                <option value="Guru Mapel">Guru Mapel</option>
+                <option value="Wali Kelas">Wali Kelas</option>
+                <option value="Admin">Admin</option>
+              </select>
+              <svg className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+              </svg>
+            </div>
           </div>
           <div className="w-full sm:w-48">
             <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Rombel</label>
-            <select value={filterRombel} onChange={e => setFilterRombel(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-700 dark:text-white focus:outline-none focus:border-emerald-500">
-              <option value="Semua">Semua Rombel</option>
-              {rombelOptions.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
+            <div className="relative">
+              <select value={filterRombel} onChange={e => setFilterRombel(e.target.value)}
+                style={{ backgroundImage: 'none' }}
+                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-700 dark:text-white focus:outline-none focus:border-emerald-500">
+                <option value="Semua">Semua Rombel</option>
+                {rombelOptions.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <svg className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+              </svg>
+            </div>
           </div>
         </div>
       </div>
