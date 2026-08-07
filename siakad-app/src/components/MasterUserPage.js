@@ -146,14 +146,17 @@ export default function MasterUserPage() {
 
   // Excel Upload/Download
   const downloadTemplate = () => {
+    const ws = XLSX.utils.json_to_sheet([
       { 'ID_User': '1234567890', 'Nama': 'Siswa Contoh', 'Role': 'Murid', 'PIN': '123456', 'Rombel': '1A', 'Status': 'Aktif', 'Mapel': '-', 'Link Foto': '', 'RFID': '' },
       { 'ID_User': 'NIP001', 'Nama': 'Guru Contoh', 'Role': 'Guru Mapel', 'PIN': '654321', 'Rombel': '-', 'Status': 'Aktif', 'Mapel': 'Matematika', 'Link Foto': '', 'RFID': '' }
+    ]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Template_Pengguna");
     XLSX.writeFile(wb, "Template_Master_Pengguna.xlsx");
   };
 
   const exportData = () => {
+    const exportedArray = filteredUsers.map(u => ({
       'ID_User': u.id_user,
       'Nama': u.nama,
       'Role': u.role,
@@ -163,7 +166,8 @@ export default function MasterUserPage() {
       'Mapel': u.mapel || '-',
       'Link Foto': u.link_foto || '',
       'RFID': u.rfid || ''
-    const ws = XLSX.utils.json_to_sheet(exportData);
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportedArray);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Data_Pengguna");
     XLSX.writeFile(wb, "Export_Master_Pengguna.xlsx");
