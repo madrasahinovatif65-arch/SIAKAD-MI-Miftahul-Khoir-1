@@ -147,8 +147,8 @@ export default function MasterUserPage() {
   // Excel Upload/Download
   const downloadTemplate = () => {
     const ws = XLSX.utils.json_to_sheet([
-      { id_user: '1234567890', nama: 'Siswa Contoh', role: 'Murid', rombel: '1A', status_aktif: 'Aktif', rfid: '' },
-      { id_user: 'NIP001', nama: 'Guru Contoh', role: 'Guru Mapel', rombel: '-', status_aktif: 'Aktif', rfid: '' }
+      { id_user: '1234567890', nama: 'Siswa Contoh', role: 'Murid', rombel: '1A', mapel: '-', status_aktif: 'Aktif', rfid: '' },
+      { id_user: 'NIP001', nama: 'Guru Contoh', role: 'Guru Mapel', rombel: '-', mapel: 'Matematika', status_aktif: 'Aktif', rfid: '' }
     ]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Template_Pengguna");
@@ -161,6 +161,7 @@ export default function MasterUserPage() {
       Nama: u.nama,
       Role: u.role,
       Rombel: u.rombel,
+      Mapel: u.mapel || '-',
       Status: u.status_aktif,
       RFID: u.rfid || ''
     }));
@@ -192,6 +193,7 @@ export default function MasterUserPage() {
           nama: String(d.nama || d.Nama || ''),
           role: String(d.role || d.Role || 'Murid'),
           rombel: String(d.rombel || d.Rombel || '-'),
+          mapel: String(d.mapel || d.Mapel || '-'),
           status_aktif: String(d.status_aktif || d.Status || 'Aktif'),
           rfid: d.rfid || d.RFID || null
         })).filter(d => d.id_user && d.nama); // minimal required fields
@@ -323,7 +325,7 @@ export default function MasterUserPage() {
                 </th>
                 <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">ID / NISN</th>
                 <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nama Lengkap</th>
-                <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Role & Rombel</th>
+                <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Info Akademik</th>
                 <th className="px-5 py-4 text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider bg-emerald-50/50 dark:bg-emerald-500/5">
                   <span className="flex items-center gap-1">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" /></svg>
@@ -352,10 +354,11 @@ export default function MasterUserPage() {
                     </td>
                     <td className="px-5 py-3 text-sm text-slate-400 dark:text-slate-500 font-mono">{u.id_user}</td>
                     <td className="px-5 py-3 text-sm text-slate-800 dark:text-white font-semibold">{u.nama}</td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2">
+                    <td className="px-5 py-3 max-w-[200px]">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded text-xs font-semibold">{u.role}</span>
                         {u.rombel && u.rombel !== '-' && <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded text-xs font-bold">{u.rombel}</span>}
+                        {u.mapel && u.mapel !== '-' && <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded text-xs font-bold">{u.mapel}</span>}
                       </div>
                     </td>
                     <td className="px-5 py-3 bg-emerald-50/30 dark:bg-emerald-500/5 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-500/10 transition-colors w-56">
