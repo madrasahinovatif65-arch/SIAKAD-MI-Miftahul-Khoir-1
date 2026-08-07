@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import useSWR from 'swr';
 
 export default function RekapPage() {
   const { user } = useAuth();
@@ -16,9 +17,7 @@ export default function RekapPage() {
   const [rombel, setRombel] = useState(user?.role === 'Admin' ? 'Semua' : user?.rombel || '');
   const [rombelOptions, setRombelOptions] = useState([]);
   
-  const [muridData, setMuridData] = useState([]);
-  const [rekapData, setRekapData] = useState({});
-  const [loading, setLoading] = useState(false);
+
 
   // Ambil daftar rombel untuk Admin
   useEffect(() => {
@@ -32,10 +31,7 @@ export default function RekapPage() {
     if (user?.role === 'Admin') fetchRombel();
   }, [user]);
 
-  const loadData = useCallback(async () => {
-    if (!tglMulai || !tglAkhir || (!rombel && user?.role !== 'Admin')) return;
-    setLoading(true);
-
+  const { data: swrData, isLoading: loading } = useSWR(tglMulai && tglAkhir && rombel ? `rekap_${rombel}_${tglMulai}_${tglAkhir}` : null, async () => {
     // 1. Ambil data murid
     let queryMurid = supabase.from('master_user').select('*').eq('role', 'Murid').eq('status_aktif', 'Aktif');
     if (rombel !== 'Semua') {
@@ -63,13 +59,11 @@ export default function RekapPage() {
       }
     });
 
-    setMuridData(murid || []);
-    setRekapData(rekap);
-    setLoading(false);
-  }, [tglMulai, tglAkhir, rombel, user]);
+    return { muridData: murid || [], rekapData: rekap };
+  });
 
-  // eslint-disable-next-line
-  useEffect(() => { loadData(); }, [loadData]);
+  const muridData = swrData?.muridData || [];
+  const rekapData = swrData?.rekapData || {};
 
   const handleExportExcel = () => {
     let csv = 'NISN,Nama Murid,Rombel,Hadir,Sakit,Izin,Alfa,Dispen\n';

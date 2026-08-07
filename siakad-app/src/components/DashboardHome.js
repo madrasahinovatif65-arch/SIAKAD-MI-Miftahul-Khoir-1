@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
+import useSWR from 'swr';
 import Link from 'next/link';
 import {
   Chart as ChartJS,
@@ -57,98 +57,93 @@ const QUICK_MENU_CONFIG = {
 
 export default function DashboardHome() {
   const { user } = useAuth();
-  const [stats, setStats] = useState({ guru: '-', murid: '-', pending: '-', jurnal: '-' });
-  const [muridStats, setMuridStats] = useState({ hadir: 0, izin: 0, sakit: 0, alpa: 0, persentase: 0 });
-  const [chartData, setChartData] = useState(null);
+  const { data } = useSWR(user ? `dashboard-stats-${user.id_user}` : null, async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const monthStart = today.slice(0, 7) + '-01';
 
-  useEffect(() => {
-    async function fetchStats() {
-      if (!user) return;
-      
-      const today = new Date().toISOString().split('T')[0];
-      const monthStart = today.slice(0, 7) + '-01';
+    if (user.role === 'Murid') {
+      const { data: absenMurid } = await supabase
+        .from('data_absensi')
+        .select('status')
+        .eq('nisn', user.id_user);
+        
+      let h = 0, i = 0, s = 0, a = 0;
+      if (absenMurid) {
+        absenMurid.forEach(ab => {
+          if (ab.status === 'Hadir') h++;
+          else if (ab.status === 'Izin') i++;
+          else if (ab.status === 'Sakit') s++;
+          else if (ab.status === 'Alpa') a++;
+        });
+      }
+      const total = h + i + s + a;
+      const pct = total > 0 ? Math.round((h / total) * 100) : 0;
+      return { muridStats: { hadir: h, izin: i, sakit: s, alpa: a, persentase: pct } };
+    } else {
+      const [guruRes, muridRes, pendingRes, jurnalRes] = await Promise.all([
+        supabase.from('master_user').select('id', { count: 'exact', head: true }).in('role', ['Wali Kelas', 'Guru Mapel']).eq('status_aktif', 'Aktif'),
+        supabase.from('master_user').select('id_user', { count: 'exact', head: true }).eq('role', 'Murid').eq('status_aktif', 'Aktif'),
+        supabase.from('log_gps_guru').select('id', { count: 'exact', head: true }).eq('tanggal', today).eq('status', 'Menunggu Verifikasi'),
+        supabase.from('jurnal_guru').select('id', { count: 'exact', head: true }).gte('tanggal', monthStart).eq('id_guru', user.id_user),
+      ]);
 
-      if (user.role === 'Murid') {
-        const { data: absenMurid } = await supabase
-          .from('data_absensi')
-          .select('status')
-          .eq('nisn', user.id_user);
-          
-        if (absenMurid) {
-          let h = 0, i = 0, s = 0, a = 0;
-          absenMurid.forEach(ab => {
-            if (ab.status === 'Hadir') h++;
-            else if (ab.status === 'Izin') i++;
-            else if (ab.status === 'Sakit') s++;
-            else if (ab.status === 'Alpa') a++;
-          });
-          const total = h + i + s + a;
-          const pct = total > 0 ? Math.round((h / total) * 100) : 0;
-          setMuridStats({ hadir: h, izin: i, sakit: s, alpa: a, persentase: pct });
-        }
-      } else {
-        const [guruRes, muridRes, pendingRes, jurnalRes] = await Promise.all([
-          supabase.from('master_user').select('id', { count: 'exact', head: true }).in('role', ['Wali Kelas', 'Guru Mapel']).eq('status_aktif', 'Aktif'),
-          supabase.from('master_user').select('id_user', { count: 'exact', head: true }).eq('role', 'Murid').eq('status_aktif', 'Aktif'),
-          supabase.from('log_gps_guru').select('id', { count: 'exact', head: true }).eq('tanggal', today).eq('status', 'Menunggu Verifikasi'),
-          supabase.from('jurnal_guru').select('id', { count: 'exact', head: true }).gte('tanggal', monthStart).eq('id_guru', user.id_user),
-        ]);
+      const resStats = {
+        guru: guruRes.count ?? '-',
+        murid: muridRes.count ?? '-',
+        pending: pendingRes.count ?? '-',
+        jurnal: jurnalRes.count ?? '-',
+      };
 
-        setStats({
-          guru: guruRes.count ?? '-',
-          murid: muridRes.count ?? '-',
-          pending: pendingRes.count ?? '-',
-          jurnal: jurnalRes.count ?? '-',
+      let resChartData = null;
+      if (user.role === 'Admin') {
+        const { data: todayAbsen } = await supabase.from('data_absensi').select('status').eq('tanggal', today);
+        let th = 0, ti = 0, ts = 0, ta = 0;
+        (todayAbsen || []).forEach(ab => {
+          if (ab.status === 'Hadir') th++;
+          else if (ab.status === 'Izin') ti++;
+          else if (ab.status === 'Sakit') ts++;
+          else if (ab.status === 'Alpa') ta++;
         });
 
-        // Admin charts logic
-        if (user.role === 'Admin') {
-          const { data: todayAbsen } = await supabase.from('data_absensi').select('status').eq('tanggal', today);
-          let th = 0, ti = 0, ts = 0, ta = 0;
-          (todayAbsen || []).forEach(ab => {
-            if (ab.status === 'Hadir') th++;
-            else if (ab.status === 'Izin') ti++;
-            else if (ab.status === 'Sakit') ts++;
-            else if (ab.status === 'Alpa') ta++;
-          });
-
-          // Generate last 7 days
-          const dates = [];
-          for (let i=6; i>=0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            dates.push(d.toISOString().split('T')[0]);
-          }
-
-          const { data: weekAbsen } = await supabase.from('data_absensi').select('tanggal, status').in('tanggal', dates);
-          const barData = dates.map(d => {
-            return (weekAbsen || []).filter(a => a.tanggal === d && a.status === 'Hadir').length;
-          });
-
-          setChartData({
-            doughnut: {
-              labels: ['Hadir', 'Izin', 'Sakit', 'Alpa'],
-              datasets: [{
-                data: [th, ti, ts, ta],
-                backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#6b7280'],
-                borderWidth: 0,
-              }]
-            },
-            bar: {
-              labels: dates.map(d => d.slice(5)),
-              datasets: [{
-                label: 'Hadir',
-                data: barData,
-                backgroundColor: '#3b82f6',
-                borderRadius: 4,
-              }]
-            }
-          });
+        const dates = [];
+        for (let i=6; i>=0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          dates.push(d.toISOString().split('T')[0]);
         }
+
+        const { data: weekAbsen } = await supabase.from('data_absensi').select('tanggal, status').in('tanggal', dates);
+        const barData = dates.map(d => {
+          return (weekAbsen || []).filter(a => a.tanggal === d && a.status === 'Hadir').length;
+        });
+
+        resChartData = {
+          doughnut: {
+            labels: ['Hadir', 'Izin', 'Sakit', 'Alpa'],
+            datasets: [{
+              data: [th, ti, ts, ta],
+              backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#6b7280'],
+              borderWidth: 0,
+            }]
+          },
+          bar: {
+            labels: dates.map(d => d.slice(5)),
+            datasets: [{
+              label: 'Hadir',
+              data: barData,
+              backgroundColor: '#3b82f6',
+              borderRadius: 4,
+            }]
+          }
+        };
       }
+      return { stats: resStats, chartData: resChartData };
     }
-    fetchStats();
-  }, [user]);
+  });
+
+  const stats = data?.stats || { guru: '-', murid: '-', pending: '-', jurnal: '-' };
+  const muridStats = data?.muridStats || { hadir: 0, izin: 0, sakit: 0, alpa: 0, persentase: 0 };
+  const chartData = data?.chartData || null;
 
   if (!user) return null;
 

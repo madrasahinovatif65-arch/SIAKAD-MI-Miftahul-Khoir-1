@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import useSWR from 'swr';
 
 export default function JurnalPage() {
   const { user } = useAuth();
@@ -13,41 +14,38 @@ export default function JurnalPage() {
   const [materi, setMateri] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
-  const [jamOptions, setJamOptions] = useState([]);
-  const [mapelOptions, setMapelOptions] = useState([]);
-  const [rombelOptions, setRombelOptions] = useState([]);
-  const [riwayat, setRiwayat] = useState([]);
-  const [loadingRiwayat, setLoadingRiwayat] = useState(false);
   const [isHoliday, setIsHoliday] = useState(false);
   const [holidayName, setHolidayName] = useState('');
   const [editId, setEditId] = useState(null);
 
-  useEffect(() => {
-    async function fetchMaster() {
-      const [jamRes, mapelRes, rombelRes] = await Promise.all([
-        supabase.from('master_jam_pelajaran').select('*').order('id_jam'),
-        supabase.from('master_mapel').select('*').order('nama_mapel'),
-        supabase.from('master_user').select('rombel').eq('role', 'Murid'),
-      ]);
-      setJamOptions(jamRes.data || []);
-      setMapelOptions(mapelRes.data || []);
-      const unique = [...new Set((rombelRes.data || []).map(d => d.rombel).filter(Boolean))].sort();
-      setRombelOptions(unique);
-      if (jamRes.data?.length) setJamPelajaran(jamRes.data[0].id_jam);
-    }
-    fetchMaster();
-  }, []);
+  const { data: masterData } = useSWR('master_jurnal', async () => {
+    const [jamRes, mapelRes, rombelRes] = await Promise.all([
+      supabase.from('master_jam_pelajaran').select('*').order('id_jam'),
+      supabase.from('master_mapel').select('*').order('nama_mapel'),
+      supabase.from('master_user').select('rombel').eq('role', 'Murid'),
+    ]);
+    const unique = [...new Set((rombelRes.data || []).map(d => d.rombel).filter(Boolean))].sort();
+    return { jam: jamRes.data || [], mapel: mapelRes.data || [], rombel: unique };
+  });
 
-  const loadRiwayat = useCallback(async () => {
-    setLoadingRiwayat(true);
+  const jamOptions = masterData?.jam || [];
+  const mapelOptions = masterData?.mapel || [];
+  const rombelOptions = masterData?.rombel || [];
+
+  useEffect(() => {
+    if (!jamPelajaran && jamOptions.length > 0) setJamPelajaran(jamOptions[0].id_jam);
+  }, [jamOptions, jamPelajaran]);
+
+  const { data: riwayatData, isLoading: loadingRiwayat, mutate: mutateRiwayat } = useSWR(user ? `jurnal_riwayat_${user.id_user}` : null, async () => {
     let query = supabase.from('jurnal_guru').select('*, master_user(nama)').order('tanggal', { ascending: false }).order('jam_pelajaran').limit(20);
     if (user.role !== 'Admin') {
       query = query.eq('id_guru', user.id_user);
     }
     const { data } = await query;
-    setRiwayat(data || []);
-    setLoadingRiwayat(false);
-  }, [user]);
+    return data || [];
+  });
+
+  const riwayat = riwayatData || [];
 
   const checkHoliday = useCallback(async (tgl) => {
     setIsHoliday(false);
@@ -65,7 +63,7 @@ export default function JurnalPage() {
     }
   }, []);
 
-  useEffect(() => { loadRiwayat(); }, [loadRiwayat]);
+
   useEffect(() => { checkHoliday(tanggal); }, [tanggal, checkHoliday]);
 
   const handleEdit = (j) => {
@@ -120,7 +118,7 @@ export default function JurnalPage() {
       setMessage({ type: 'success', text: editId ? 'Jurnal berhasil diperbarui!' : 'Jurnal berhasil disimpan!' });
       setMateri('');
       setEditId(null);
-      loadRiwayat();
+      mutateRiwayat();
     }
   };
 

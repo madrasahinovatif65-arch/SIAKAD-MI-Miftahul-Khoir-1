@@ -1,18 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import useSWR from 'swr';
 
 export default function RiwayatGuruPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'Admin';
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [bulan, setBulan] = useState(() => new Date().toISOString().slice(0, 7)); // YYYY-MM
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const { data: swrData, isLoading: loading } = useSWR(user ? `riwayat_guru_${user.id_user}_${bulan}` : null, async () => {
     const startDate = `${bulan}-01`;
     const endDate = `${bulan}-31`;
 
@@ -24,7 +21,7 @@ export default function RiwayatGuruPage() {
         .gte('tanggal', startDate)
         .lte('tanggal', endDate)
         .order('tanggal', { ascending: false });
-      setData(verData || []);
+      return verData || [];
     } else {
       // Guru: lihat riwayat sendiri
       const { data: verData } = await supabase
@@ -64,13 +61,11 @@ export default function RiwayatGuruPage() {
       // Tambahkan verifikasi
       (verData || []).forEach(v => combined.push(v));
       combined.sort((a, b) => b.tanggal.localeCompare(a.tanggal));
-      setData(combined);
+      return combined;
     }
-    setLoading(false);
-  }, [bulan, isAdmin, user]);
+  });
 
-  // eslint-disable-next-line
-  useEffect(() => { loadData(); }, [loadData]);
+  const data = swrData || [];
 
   const handlePrint = () => {
     window.print();

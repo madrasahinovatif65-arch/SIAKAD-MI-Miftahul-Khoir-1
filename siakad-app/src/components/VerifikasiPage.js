@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import useSWR from 'swr';
 
 export default function VerifikasiPage() {
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().split('T')[0]);
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(null);
   const [message, setMessage] = useState(null);
 
@@ -21,10 +20,7 @@ export default function VerifikasiPage() {
     'Di Luar Radius': 'bg-orange-500/20 text-orange-300',
   };
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setMessage(null);
-
+  const { data: swrData, isLoading: loading, mutate: reloadData } = useSWR(`verifikasi_${tanggal}`, async () => {
     // Ambil semua guru
     const { data: allGuru } = await supabase
       .from('master_user')
@@ -99,12 +95,10 @@ export default function VerifikasiPage() {
       };
     });
 
-    setData(merged);
-    setLoading(false);
-  }, [tanggal]);
+    return merged;
+  });
 
-  // eslint-disable-next-line
-  useEffect(() => { loadData(); }, [loadData]);
+  const data = swrData || [];
 
   const handleVerify = async (guru, newStatus) => {
     setSaving(guru.id_user);
@@ -124,7 +118,7 @@ export default function VerifikasiPage() {
     if (error) {
       setMessage({ type: 'error', text: 'Gagal: ' + error.message });
     } else {
-      loadData();
+      reloadData();
     }
   };
 
@@ -150,7 +144,7 @@ export default function VerifikasiPage() {
       setMessage({ type: 'error', text: 'Gagal batch verify: ' + error.message });
     } else {
       setMessage({ type: 'success', text: `${rows.length} guru berhasil diverifikasi!` });
-      loadData();
+      reloadData();
     }
   };
 

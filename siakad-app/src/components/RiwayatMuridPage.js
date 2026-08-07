@@ -1,18 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import useSWR from 'swr';
 
 export default function RiwayatMuridPage() {
   const { user } = useAuth();
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [bulan, setBulan] = useState(() => new Date().toISOString().slice(0, 7));
   const [filterStatus, setFilterStatus] = useState('Semua');
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const { data: swrData, isLoading: loading } = useSWR(user ? `riwayat_murid_${user.id_user}_${bulan}` : null, async () => {
     const startDate = `${bulan}-01`;
     const endDate = `${bulan}-31`;
 
@@ -51,12 +48,10 @@ export default function RiwayatMuridPage() {
     });
     (absensi || []).forEach(a => combined.push({ ...a, metode: a.metode || 'Manual' }));
     combined.sort((a, b) => b.tanggal.localeCompare(a.tanggal));
-    setData(combined);
-    setLoading(false);
-  }, [bulan, user]);
+    return combined;
+  });
 
-  // eslint-disable-next-line
-  useEffect(() => { loadData(); }, [loadData]);
+  const data = swrData || [];
 
   const statusColors = {
     'Hadir': 'bg-emerald-500/20 text-emerald-300',

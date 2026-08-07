@@ -1,21 +1,19 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import useSWR from 'swr';
 import * as XLSX from 'xlsx';
 
 export default function MasterUserPage() {
   const { user } = useAuth();
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('Semua');
   const [filterRombel, setFilterRombel] = useState('Semua');
-  const [rombelOptions, setRombelOptions] = useState([]);
 
   // Selection
   const [selectedIds, setSelectedIds] = useState([]);
@@ -30,27 +28,20 @@ export default function MasterUserPage() {
   const [newRombel, setNewRombel] = useState('');
 
   // Fetch Data
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('master_user')
-      .select('*')
-      .order('role')
-      .order('nama');
+  // Fetch Data using SWR
+  const { data: usersData, error: swrError, isLoading: loading, mutate } = useSWR(user?.role === 'Admin' ? 'master_user' : null, async () => {
+    const { data, error } = await supabase.from('master_user').select('*').order('role').order('nama');
+    if (error) throw error;
+    return data || [];
+  });
 
-    if (error) {
-      setMessage({ type: 'error', text: 'Gagal memuat data: ' + error.message });
-    } else {
-      setUsers(data || []);
-      const r = [...new Set(data.map(d => d.rombel).filter(r => r && r !== '-'))].sort();
-      setRombelOptions(r);
-    }
-    setLoading(false);
-  }, []);
-
+  const users = usersData || [];
+  
   useEffect(() => {
-    if (user?.role === 'Admin') loadData();
-  }, [user, loadData]);
+    if (swrError) setMessage({ type: 'error', text: 'Gagal memuat data: ' + swrError.message });
+  }, [swrError]);
+
+  const rombelOptions = users.length > 0 ? [...new Set(users.map(d => d.rombel).filter(r => r && r !== '-'))].sort() : [];
 
   if (user?.role !== 'Admin') {
     return <div className="p-8 text-center text-red-500">Akses ditolak. Khusus Admin.</div>;
@@ -85,7 +76,7 @@ export default function MasterUserPage() {
     if (error) {
       setMessage({ type: 'error', text: 'Gagal update RFID: ' + error.message });
     } else {
-      setUsers(prev => prev.map(u => u.id === id ? { ...u, rfid: val || null } : u));
+      mutate(users.map(u => u.id === id ? { ...u, rfid: val || null } : u), false);
       setMessage({ type: 'success', text: 'RFID berhasil diperbarui!' });
     }
     setEditingRfidId(null);
@@ -122,7 +113,7 @@ export default function MasterUserPage() {
     } else {
       setMessage({ type: 'success', text: `${selectedIds.length} pengguna berhasil dihapus.` });
       setSelectedIds([]);
-      loadData();
+      mutate();
     }
     setLoading(false);
   };
@@ -139,7 +130,7 @@ export default function MasterUserPage() {
       setShowMoveRombel(false);
       setNewRombel('');
       setSelectedIds([]);
-      loadData();
+      mutate();
     }
     setLoading(false);
   };
@@ -208,7 +199,7 @@ export default function MasterUserPage() {
         if (error) throw error;
 
         setMessage({ type: 'success', text: `Berhasil mengimpor ${toUpsert.length} data pengguna.` });
-        loadData();
+        mutate();
       } catch (err) {
         setMessage({ type: 'error', text: 'Gagal impor: ' + err.message });
       }
@@ -377,11 +368,22 @@ export default function MasterUserPage() {
                           className="w-full px-2 py-1.5 bg-white dark:bg-slate-950 border-2 border-emerald-500 rounded-lg text-sm text-slate-800 dark:text-white font-mono focus:outline-none animate-in fade-in"
                         />
                       ) : (
-                        <div
-                          onClick={() => handleRfidClick(u.id, u.rfid)}
-                          className={`w-full px-2 py-1.5 rounded-lg text-sm font-mono cursor-text border border-transparent hover:border-emerald-200 dark:hover:border-emerald-500/30 transition-colors ${u.rfid ? 'text-slate-700 dark:text-slate-300' : 'text-slate-300 dark:text-slate-600 italic'}`}
-                        >
-                          {u.rfid || 'Klik & Scan RFID...'}
+                        <div className="flex items-center gap-2">
+                          <div
+                            onClick={() => handleRfidClick(u.id, u.rfid)}
+                            className={`flex-1 px-2 py-1.5 rounded-lg text-sm font-mono cursor-text border border-transparent hover:border-emerald-200 dark:hover:border-emerald-500/30 transition-colors ${u.rfid ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-500 italic'}`}
+                          >
+                            {u.rfid || 'Belum ada RFID'}
+                          </div>
+                          <button
+                            onClick={() => handleRfidClick(u.id, u.rfid)}
+                            className="p-1.5 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/40 text-emerald-600 dark:text-emerald-400 rounded-lg transition-colors shadow-sm"
+                            title="Scan RFID"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
+                            </svg>
+                          </button>
                         </div>
                       )}
                     </td>

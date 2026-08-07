@@ -1,27 +1,24 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import useSWR from 'swr';
 
 export default function LiburPage() {
-  const [libur, setLibur] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [tanggal, setTanggal] = useState('');
   const [keterangan, setKeterangan] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
-
-  const loadLibur = useCallback(async () => {
-    setLoading(true);
+  
+  const { data: liburData, isLoading: loading, mutate: mutateLibur } = useSWR('master_libur', async () => {
     const { data } = await supabase
       .from('master_libur')
       .select('*')
       .order('tanggal', { ascending: false });
-    setLibur(data || []);
-    setLoading(false);
-  }, []);
+    return data || [];
+  });
 
-  useEffect(() => { loadLibur(); }, [loadLibur]);
+  const libur = liburData || [];
 
   const handleAdd = async () => {
     if (!tanggal || !keterangan) {
@@ -40,7 +37,7 @@ export default function LiburPage() {
       setMessage({ type: 'success', text: 'Hari libur berhasil ditambahkan!' });
       setTanggal('');
       setKeterangan('');
-      loadLibur();
+      mutateLibur();
     }
   };
 
@@ -50,7 +47,7 @@ export default function LiburPage() {
     if (error) {
       setMessage({ type: 'error', text: error.message });
     } else {
-      loadLibur();
+      mutateLibur();
     }
   };
 

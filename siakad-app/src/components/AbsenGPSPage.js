@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import useSWR from 'swr';
 
 export default function AbsenGPSPage() {
   const { user } = useAuth();
@@ -16,42 +17,45 @@ export default function AbsenGPSPage() {
   const SCHOOL_LNG = parseFloat(process.env.NEXT_PUBLIC_SCHOOL_LNG || '112.123456');
   const RADIUS = parseInt(process.env.NEXT_PUBLIC_GPS_RADIUS_METER || '50');
 
-  // Cek apakah sudah absen hari ini (GPS atau NFC)
-  useEffect(() => {
-    async function checkToday() {
-      const today = new Date().toISOString().split('T')[0];
+  // Cek apakah sudah absen hari ini (GPS atau NFC) menggunakan SWR
+  const { data: todayStatus, mutate: reloadStatus } = useSWR(user ? `absen_gps_${user.id_user}` : null, async () => {
+    const today = new Date().toISOString().split('T')[0];
 
-      // Cek NFC dulu (prioritas)
-      const { data: nfcData } = await supabase
-        .from('nfc_guru')
-        .select('*')
-        .eq('tanggal', today)
-        .eq('id_guru', user.id_user)
-        .single();
+    // Cek NFC dulu (prioritas)
+    const { data: nfcData } = await supabase
+      .from('nfc_guru')
+      .select('*')
+      .eq('tanggal', today)
+      .eq('id_guru', user.id_user)
+      .single();
 
-      if (nfcData) {
-        setTodayNFC(nfcData);
-        setStatus('nfc');
-        setMessage(`Anda sudah tercatat hadir via NFC hari ini (${nfcData.jam_datang || '-'}). GPS dinonaktifkan.`);
-        return;
-      }
-
-      // Cek GPS
-      const { data: gpsData } = await supabase
-        .from('log_gps_guru')
-        .select('*')
-        .eq('tanggal', today)
-        .eq('id_guru', user.id_user)
-        .single();
-
-      if (gpsData) {
-        setTodayAbsen(gpsData);
-        setStatus('already');
-        setMessage(`Anda sudah absen GPS hari ini pukul ${gpsData.waktu}. Status: ${gpsData.status}`);
-      }
+    if (nfcData) {
+      return { type: 'nfc', data: nfcData, message: `Anda sudah tercatat hadir via NFC hari ini (${nfcData.jam_datang || '-'}). GPS dinonaktifkan.` };
     }
-    checkToday();
-  }, [user, SCHOOL_LAT, SCHOOL_LNG, RADIUS]);
+
+    // Cek GPS
+    const { data: gpsData } = await supabase
+      .from('log_gps_guru')
+      .select('*')
+      .eq('tanggal', today)
+      .eq('id_guru', user.id_user)
+      .single();
+
+    if (gpsData) {
+      return { type: 'already', data: gpsData, message: `Anda sudah absen GPS hari ini pukul ${gpsData.waktu}. Status: ${gpsData.status}` };
+    }
+
+    return null;
+  });
+
+  useEffect(() => {
+    if (todayStatus) {
+      setStatus(todayStatus.type);
+      setMessage(todayStatus.message);
+      if (todayStatus.type === 'nfc') setTodayNFC(todayStatus.data);
+      if (todayStatus.type === 'already') setTodayAbsen(todayStatus.data);
+    }
+  }, [todayStatus]);
 
   function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371000;

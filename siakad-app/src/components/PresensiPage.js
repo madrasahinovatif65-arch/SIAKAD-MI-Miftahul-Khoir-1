@@ -1,115 +1,70 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import useSWR from 'swr';
 
 export default function PresensiPage() {
   const { user } = useAuth();
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().split('T')[0]);
   const [rombel, setRombel] = useState(user?.rombel || '');
-  const [muridList, setMuridList] = useState([]);
   const [absensi, setAbsensi] = useState({});
-  const [nfcData, setNfcData] = useState({});
   const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(null);
-  const [rombelOptions, setRombelOptions] = useState([]);
+  const { data: rombelData } = useSWR('master_rombel', async () => {
+    const { data } = await supabase.from('master_user').select('rombel').eq('role', 'Murid');
+    return [...new Set((data || []).map(d => d.rombel).filter(Boolean))].sort();
+  });
   
-  // New features
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('Semua');
-  const [isHoliday, setIsHoliday] = useState(false);
-  const [holidayName, setHolidayName] = useState('');
-
-  // Ambil daftar rombel
+  const rombelOptions = rombelData || [];
+  
   useEffect(() => {
-    async function fetchRombel() {
-      const { data } = await supabase.from('master_user').select('rombel').eq('role', 'Murid');
-      if (data) {
-        const unique = [...new Set(data.map(d => d.rombel).filter(Boolean))].sort();
-        setRombelOptions(unique);
-        if (!rombel && unique.length > 0) setRombel(user?.rombel && user.rombel !== '-' ? user.rombel : unique[0]);
-      }
+    if (!rombel && rombelOptions.length > 0) {
+      setRombel(user?.rombel && user.rombel !== '-' ? user.rombel : rombelOptions[0]);
     }
-    fetchRombel();
-  }, [user, rombel]);
+  }, [rombel, rombelOptions, user]);
 
-  // Ambil data murid + NFC + absensi existing
-  const loadData = useCallback(async () => {
-    if (!rombel || !tanggal) return;
-    setLoading(true);
-    setMessage(null);
-    setIsHoliday(false);
-    setHolidayName('');
-
+  const { data: presensiData, isLoading: loading, mutate: reloadData } = useSWR(rombel && tanggal ? `presensi_${rombel}_${tanggal}` : null, async () => {
     // Cek Hari Libur
     const d = new Date(tanggal);
     if (d.getDay() === 0) {
-      setIsHoliday(true);
-      setHolidayName('Hari Minggu');
-      setLoading(false);
-      return;
+      return { isHoliday: true, holidayName: 'Hari Minggu', murid: [], nfcMap: {}, mergedAbsensi: {} };
     }
     const { data: libur } = await supabase.from('master_libur').select('*').eq('tanggal', tanggal).single();
     if (libur) {
-      setIsHoliday(true);
-      setHolidayName(libur.keterangan);
-      setLoading(false);
-      return;
+      return { isHoliday: true, holidayName: libur.keterangan, murid: [], nfcMap: {}, mergedAbsensi: {} };
     }
 
     // Murid
-    const { data: murid } = await supabase
-      .from('master_user')
-      .select('*')
-      .eq('rombel', rombel)
-      .eq('role', 'Murid')
-      .eq('status_aktif', 'Aktif')
-      .order('nama');
-
-    // NFC data hari ini
-    const { data: nfc } = await supabase
-      .from('view_rekap_absensi_nfc')
-      .select('*')
-      .eq('tanggal', tanggal)
-      .eq('rombel', rombel);
-
-    // Absensi existing
-    const { data: existing } = await supabase
-      .from('data_absensi')
-      .select('*')
-      .eq('tanggal', tanggal)
-      .eq('rombel', rombel);
+    const { data: murid } = await supabase.from('master_user').select('*').eq('rombel', rombel).eq('role', 'Murid').eq('status_aktif', 'Aktif').order('nama');
+    const { data: nfc } = await supabase.from('view_rekap_absensi_nfc').select('*').eq('tanggal', tanggal).eq('rombel', rombel);
+    const { data: existing } = await supabase.from('data_absensi').select('*').eq('tanggal', tanggal).eq('rombel', rombel);
 
     const nfcMap = {};
     (nfc || []).forEach(n => { nfcMap[n.id_user] = n; });
-
     const absensiMap = {};
-    (existing || []).forEach(a => {
-      absensiMap[a.nisn] = { status: a.status, catatan: a.catatan || '' };
-    });
+    (existing || []).forEach(a => { absensiMap[a.nisn] = { status: a.status, catatan: a.catatan || '' }; });
 
-    // Merge: NFC hadir otomatis, existing override, default Hadir
     const mergedAbsensi = {};
     (murid || []).forEach(m => {
-      if (absensiMap[m.id_user]) {
-        mergedAbsensi[m.id_user] = absensiMap[m.id_user];
-      } else if (nfcMap[m.id_user]) {
-        mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: `NFC: ${nfcMap[m.id_user].jam_datang || '-'}` };
-      } else {
-        mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: '' };
-      }
+      if (absensiMap[m.id_user]) mergedAbsensi[m.id_user] = absensiMap[m.id_user];
+      else if (nfcMap[m.id_user]) mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: `NFC: ${nfcMap[m.id_user].jam_datang || '-'}` };
+      else mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: '' };
     });
 
-    setMuridList(murid || []);
-    setNfcData(nfcMap);
-    setAbsensi(mergedAbsensi);
-    setLoading(false);
-  }, [rombel, tanggal]);
+    return { isHoliday: false, holidayName: '', murid: murid || [], nfcMap, mergedAbsensi };
+  });
 
-  // eslint-disable-next-line
-  useEffect(() => { loadData(); }, [loadData]);
+  const isHoliday = presensiData?.isHoliday || false;
+  const holidayName = presensiData?.holidayName || '';
+  const muridList = presensiData?.murid || [];
+  const nfcData = presensiData?.nfcMap || {};
+
+  useEffect(() => {
+    if (presensiData?.mergedAbsensi) {
+      setAbsensi(presensiData.mergedAbsensi);
+    }
+  }, [presensiData?.mergedAbsensi]);
 
   const handleStatusChange = (nisn, status) => {
     setAbsensi(prev => ({ ...prev, [nisn]: { ...prev[nisn], status } }));
