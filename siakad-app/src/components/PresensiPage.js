@@ -415,34 +415,43 @@ export default function PresensiPage() {
         <div className="text-center py-12 text-slate-600 dark:text-white/30">Tidak ada murid yang cocok dengan pencarian/filter</div>
       ) : (
         <div className="overflow-x-auto rounded-3xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-900/40 backdrop-blur-md shadow-sm">
-          <table className="w-full text-sm text-left">
-            <thead>
+          <table className="w-full text-sm text-left block md:table">
+            <thead className="hidden md:table-header-group">
               <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
                 <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">No</th>
                 <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">Nama</th>
                 <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">NFC</th>
                 <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider text-center">Status</th>
-                <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider hidden md:table-cell">Catatan</th>
+                <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">Catatan</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+            <tbody className="block md:table-row-group divide-y divide-transparent md:divide-slate-100 md:dark:divide-white/5">
               {filteredMurid.map((m, idx) => (
-                <tr key={m.id_user} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group">
-                  <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{idx + 1}</td>
-                  <td className="px-5 py-3">
-                    <div className="text-slate-800 dark:text-white font-medium">{m.nama}</div>
-                    <div className="text-slate-400 dark:text-slate-500 font-mono text-xs mt-0.5">{m.id_user}</div>
-                    <div className="mt-2 md:hidden">
-                      <input
-                        type="text"
-                        value={absensi[m.id_user]?.catatan || ''}
-                        onChange={e => handleCatatanChange(m.id_user, e.target.value)}
-                        placeholder="Catatan..."
-                        className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-white/10 rounded-lg text-slate-700 dark:text-white/80 text-xs py-1.5 px-2.5 focus:outline-none focus:border-emerald-500 transition-colors"
-                      />
+                <tr key={m.id_user} className="block md:table-row bg-white md:bg-transparent dark:bg-slate-800/40 md:dark:bg-transparent mb-4 md:mb-0 rounded-2xl md:rounded-none border border-slate-100 dark:border-white/5 md:border-none shadow-sm md:shadow-none hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group">
+                  <td className="hidden md:table-cell px-5 py-3 text-slate-500 dark:text-slate-400">{idx + 1}</td>
+                  <td className="block md:table-cell px-4 py-3 md:px-5 md:py-3 border-b border-slate-50 dark:border-white/5 md:border-none">
+                    <div className="flex justify-between items-start md:block">
+                      <div>
+                        <div className="text-slate-800 dark:text-white font-medium">
+                          <span className="md:hidden mr-1.5 text-slate-400">{idx + 1}.</span>
+                          {m.nama}
+                        </div>
+                        <div className="text-slate-400 dark:text-slate-500 font-mono text-xs mt-0.5">{m.id_user}</div>
+                      </div>
+                      {/* NFC Status for Mobile */}
+                      <div className="md:hidden mt-1">
+                        {nfcData[m.id_user] ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            {formatTime(nfcData[m.id_user].jam_datang || nfcData[m.id_user].jam_pulang) || 'Tap'}
+                          </span>
+                        ) : (
+                          <span className="text-slate-300 dark:text-slate-600 text-[10px] border border-slate-100 dark:border-white/5 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5">No NFC</span>
+                        )}
+                      </div>
                     </div>
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="hidden md:table-cell px-5 py-3">
                     {nfcData[m.id_user] ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold shadow-sm">
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
@@ -452,32 +461,39 @@ export default function PresensiPage() {
                       <span className="text-slate-300 dark:text-slate-600 text-xs">-</span>
                     )}
                   </td>
-                  <td className="px-5 py-3">
-                    <div className="flex flex-wrap gap-1.5 justify-center">
-                      {statusOptions.map(s => (
-                        <button
-                          key={s}
-                          onClick={() => handleStatusChange(m.id_user, s)}
-                          className={`w-8 h-8 rounded-lg text-xs font-bold border transition-all flex items-center justify-center ${
-                            absensi[m.id_user]?.status === s
-                              ? activeStatusColors[s]
-                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-400 dark:text-slate-500 hover:border-emerald-300 dark:hover:border-emerald-500/50 hover:text-emerald-500 shadow-sm'
-                          }`}
-                          title={s}
-                        >
-                          {s.charAt(0)}
-                        </button>
-                      ))}
+                  <td className="block md:table-cell px-4 py-3 md:px-5 md:py-3 border-b border-slate-50 dark:border-white/5 md:border-none">
+                    <div className="flex flex-col gap-2">
+                      <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider md:hidden">Status Presensi</span>
+                      <div className="flex gap-2 justify-between md:justify-center">
+                        {statusOptions.map(s => (
+                          <button
+                            key={s}
+                            onClick={() => handleStatusChange(m.id_user, s)}
+                            className={`flex-1 md:flex-none md:w-8 h-8 md:h-8 rounded-lg text-xs font-bold border transition-all flex items-center justify-center ${
+                              absensi[m.id_user]?.status === s
+                                ? activeStatusColors[s]
+                                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-400 dark:text-slate-500 hover:border-emerald-300 dark:hover:border-emerald-500/50 hover:text-emerald-500 shadow-sm'
+                            }`}
+                            title={s}
+                          >
+                            <span className="md:hidden">{s}</span>
+                            <span className="hidden md:inline">{s.charAt(0)}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </td>
-                  <td className="px-5 py-3 hidden md:table-cell">
-                    <input
-                      type="text"
-                      value={absensi[m.id_user]?.catatan || ''}
-                      onChange={e => handleCatatanChange(m.id_user, e.target.value)}
-                      placeholder="Tambahkan catatan..."
-                      className="w-full bg-transparent border-b border-transparent hover:border-slate-300 dark:hover:border-white/20 focus:border-emerald-500 dark:focus:border-emerald-500 text-slate-700 dark:text-white/80 text-xs py-1.5 px-1 focus:outline-none transition-colors"
-                    />
+                  <td className="block md:table-cell px-4 py-3 md:px-5 md:py-3">
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider md:hidden">Catatan Tambahan</span>
+                      <input
+                        type="text"
+                        value={absensi[m.id_user]?.catatan || ''}
+                        onChange={e => handleCatatanChange(m.id_user, e.target.value)}
+                        placeholder="Tambahkan catatan..."
+                        className="w-full bg-slate-50 md:bg-transparent dark:bg-slate-800/50 md:dark:bg-transparent border md:border-b border-slate-200 md:border-transparent md:hover:border-slate-300 dark:border-white/10 md:dark:hover:border-white/20 rounded-lg md:rounded-none focus:border-emerald-500 md:focus:border-emerald-500 text-slate-700 dark:text-white/80 text-xs py-2 md:py-1.5 px-3 md:px-1 focus:outline-none transition-colors"
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}
