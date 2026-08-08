@@ -504,11 +504,11 @@ export default function PresensiPage() {
 
       {/* Save Button */}
       {!isHoliday && muridList.length > 0 && (
-        <div className="fixed md:sticky bottom-0 md:bottom-4 left-0 right-0 w-full md:w-auto p-4 md:p-0 bg-white/90 md:bg-transparent dark:bg-slate-900/90 md:dark:bg-transparent backdrop-blur-md md:backdrop-blur-none border-t border-slate-200 dark:border-white/10 md:border-none z-50 md:z-20 flex justify-end">
+        <div className="fixed md:sticky bottom-6 md:bottom-4 left-4 right-4 md:left-auto md:right-auto z-50 md:z-20 flex justify-end pointer-events-none">
           <button
             onClick={handleSave}
             disabled={saving}
-            className="w-full sm:w-auto px-8 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl shadow-lg shadow-emerald-600/25 hover:shadow-emerald-500/40 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none disabled:shadow-none flex items-center justify-center gap-2"
+            className="pointer-events-auto w-full sm:w-auto px-8 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl shadow-xl shadow-emerald-600/30 hover:shadow-emerald-500/40 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none disabled:shadow-none flex items-center justify-center gap-2"
           >
             {saving ? (
               <>
