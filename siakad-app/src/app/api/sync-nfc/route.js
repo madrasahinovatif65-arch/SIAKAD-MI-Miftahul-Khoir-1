@@ -69,7 +69,7 @@ export async function POST(request) {
     const nfcMapData = {};
     (nfc || []).forEach(n => {
       const m = murid.find(x => x.id_user === n.id_user);
-      const rawTime = m && rfidToTime[m.rfid_uid] ? rfidToTime[m.rfid_uid] : null;
+      const rawTime = m && rfidToTime[m.rfid] ? rfidToTime[m.rfid] : null;
       nfcMapData[n.id_user] = rawTime || n.jam_datang || n.jam_pulang;
     });
 

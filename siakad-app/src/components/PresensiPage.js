@@ -125,7 +125,7 @@ export default function PresensiPage() {
     (nfc || []).forEach(n => {
       // Cari rfid_uid dari data murid
       const m = (murid || []).find(x => x.id_user === n.id_user);
-      const rawTime = m && rfidToTime[m.rfid_uid] ? rfidToTime[m.rfid_uid] : null;
+      const rawTime = m && rfidToTime[m.rfid] ? rfidToTime[m.rfid] : null;
       
       nfcMap[n.id_user] = {
         ...n,
@@ -412,7 +412,6 @@ export default function PresensiPage() {
             <thead>
               <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
                 <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">No</th>
-                <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">NISN</th>
                 <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">Nama</th>
                 <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">NFC</th>
                 <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider text-center">Status</th>
@@ -423,8 +422,10 @@ export default function PresensiPage() {
               {filteredMurid.map((m, idx) => (
                 <tr key={m.id_user} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group">
                   <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{idx + 1}</td>
-                  <td className="px-5 py-3 text-slate-400 dark:text-slate-500 font-mono text-xs">{m.id_user}</td>
-                  <td className="px-5 py-3 text-slate-800 dark:text-white font-medium">{m.nama}</td>
+                  <td className="px-5 py-3">
+                    <div className="text-slate-800 dark:text-white font-medium">{m.nama}</div>
+                    <div className="text-slate-400 dark:text-slate-500 font-mono text-xs mt-0.5">{m.id_user}</div>
+                  </td>
                   <td className="px-5 py-3">
                     {nfcData[m.id_user] ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold shadow-sm">
