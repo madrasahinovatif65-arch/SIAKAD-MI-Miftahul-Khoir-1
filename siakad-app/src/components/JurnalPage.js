@@ -21,6 +21,49 @@ export default function JurnalPage() {
   const [isHoliday, setIsHoliday] = useState(false);
   const [holidayName, setHolidayName] = useState('');
   const [editId, setEditId] = useState(null);
+  const [absensiMapel, setAbsensiMapel] = useState({});
+
+  const { data: siswaData, isLoading: loadingSiswa } = useSWR(rombel && tanggal ? `siswa_absen_${rombel}_${tanggal}` : null, async () => {
+    // Ambil murid
+    const { data: murid } = await supabase.from('master_user').select('id_user, nama').eq('role', 'Murid').eq('rombel', rombel).order('nama');
+    
+    // Ambil absen harian pagi ini
+    const { data: absenHarian } = await supabase.from('data_absensi').select('nisn, status').eq('tanggal', tanggal).eq('rombel', rombel);
+    
+    const absenMap = {};
+    (absenHarian || []).forEach(a => absenMap[a.nisn] = a.status);
+
+    return { murid: murid || [], absenMap };
+  });
+
+  const { data: editAbsensiMapel } = useSWR(editId ? `edit_absensi_mapel_${editId}` : null, async () => {
+    const { data } = await supabase.from('data_absensi_mapel').select('nisn, status').eq('id_jurnal', editId);
+    return data || [];
+  });
+
+  useEffect(() => {
+    if (siswaData) {
+      const draft = {};
+      siswaData.murid.forEach(m => {
+        draft[m.id_user] = 'Hadir'; // default
+      });
+
+      if (editId && editAbsensiMapel) {
+         editAbsensiMapel.forEach(a => draft[a.nisn] = a.status);
+         setAbsensiMapel(draft);
+      } else if (!editId) {
+         // Auto fill
+         siswaData.murid.forEach(m => {
+           draft[m.id_user] = siswaData.absenMap[m.id_user] || 'Hadir';
+         });
+         setAbsensiMapel(draft);
+      }
+    }
+  }, [siswaData, editId, editAbsensiMapel]);
+
+  const handleStatusChange = (id_user, status) => {
+    setAbsensiMapel(prev => ({...prev, [id_user]: status}));
+  };
 
   const { data: masterData } = useSWR('master_jurnal', async () => {
     const [jamRes, mapelRes, rombelRes] = await Promise.all([
@@ -107,19 +150,43 @@ export default function JurnalPage() {
     };
 
     let error;
+    let jurnalId = editId;
+
     if (editId) {
       const { error: updateError } = await supabase.from('jurnal_guru').update(payload).eq('id', editId);
       error = updateError;
     } else {
-      const { error: insertError } = await supabase.from('jurnal_guru').insert(payload);
+      const { data: insertedJurnal, error: insertError } = await supabase.from('jurnal_guru').insert(payload).select('id').single();
       error = insertError;
+      jurnalId = insertedJurnal?.id;
+    }
+
+    if (!error && jurnalId) {
+      if (editId) {
+        await supabase.from('data_absensi_mapel').delete().eq('id_jurnal', editId);
+      }
+      
+      const mapelPayload = [];
+      Object.entries(absensiMapel).forEach(([nisn, status]) => {
+         if (status !== 'Hadir') {
+           mapelPayload.push({
+             id_jurnal: jurnalId,
+             nisn,
+             status,
+             catatan: '-'
+           });
+         }
+      });
+      if (mapelPayload.length > 0) {
+         await supabase.from('data_absensi_mapel').insert(mapelPayload);
+      }
     }
 
     setSaving(false);
     if (error) {
       setMessage({ type: 'error', text: 'Gagal menyimpan: ' + error.message });
     } else {
-      setMessage({ type: 'success', text: editId ? 'Jurnal berhasil diperbarui!' : 'Jurnal berhasil disimpan!' });
+      setMessage({ type: 'success', text: editId ? 'Jurnal & Absensi Mapel berhasil diperbarui!' : 'Jurnal & Absensi Mapel berhasil disimpan!' });
       setMateri('');
       setEditId(null);
       mutateRiwayat();
@@ -242,6 +309,54 @@ export default function JurnalPage() {
             <textarea value={materi} onChange={e => setMateri(e.target.value)} rows={3} placeholder="Tuliskan materi yang diajarkan dengan detail..."
               className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm resize-none" />
           </div>
+
+          {/* Tabel Absen Mapel */}
+          {rombel && siswaData && !isHoliday && (
+            <div className="space-y-3 mt-6">
+              <h3 className="text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Absensi Kelas (Mapel)</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Pilih absensi jika ada murid yang bolos pelajaran Anda (otomatis diisi sesuai absen harian pagi).</p>
+              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
+                        <th className="px-5 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">No</th>
+                        <th className="px-5 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Nama</th>
+                        <th className="px-5 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right whitespace-nowrap">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                      {loadingSiswa ? (
+                        <tr><td colSpan={3} className="px-5 py-4 text-center text-sm text-slate-500">Memuat data murid...</td></tr>
+                      ) : siswaData.murid.length === 0 ? (
+                        <tr><td colSpan={3} className="px-5 py-4 text-center text-sm text-slate-500">Belum ada data murid di rombel ini</td></tr>
+                      ) : (
+                        siswaData.murid.map((m, idx) => {
+                           const currentStatus = absensiMapel[m.id_user] || 'Hadir';
+                           return (
+                             <tr key={m.id_user} className="hover:bg-slate-100/50 dark:hover:bg-white/5 transition-colors">
+                               <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">{idx + 1}</td>
+                               <td className="px-5 py-3 text-sm font-semibold text-slate-900 dark:text-white whitespace-nowrap">{m.nama}</td>
+                               <td className="px-5 py-3 text-sm text-right whitespace-nowrap">
+                                 <div className="inline-flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl">
+                                    {['Hadir', 'Sakit', 'Izin', 'Alfa'].map(s => (
+                                      <button key={s} onClick={() => handleStatusChange(m.id_user, s)}
+                                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentStatus === s ? (s === 'Hadir' ? 'bg-emerald-500 text-white shadow-md' : s === 'Sakit' ? 'bg-amber-500 text-white shadow-md' : s === 'Izin' ? 'bg-blue-500 text-white shadow-md' : 'bg-rose-500 text-white shadow-md') : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-300/50 dark:hover:bg-white/10'}`}>
+                                         {s}
+                                      </button>
+                                    ))}
+                                 </div>
+                               </td>
+                             </tr>
+                           );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
 
           {message && (
             <div className={`px-4 py-3 rounded-2xl text-sm font-medium shadow-sm animate-in fade-in slide-in-from-top-2 ${
