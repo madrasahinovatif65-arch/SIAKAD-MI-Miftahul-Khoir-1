@@ -373,6 +373,12 @@ export default function PresensiPage() {
       {/* Summary Bar */}
       {muridList.length > 0 && (
         <div className="flex flex-wrap gap-2">
+          <span className="px-3 py-1.5 rounded-lg text-xs font-semibold border shadow-sm bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+            Siswa: {muridList.length}
+          </span>
+          <span className="px-3 py-1.5 rounded-lg text-xs font-semibold border shadow-sm bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20">
+            NFC: {muridList.filter(m => !!nfcData[m.id_user]).length}
+          </span>
           {statusOptions.map(s => (
             <span key={s} className={`px-3 py-1.5 rounded-lg text-xs font-semibold border shadow-sm ${statusColors[s]}`}>
               {s}: {summary[s]}
