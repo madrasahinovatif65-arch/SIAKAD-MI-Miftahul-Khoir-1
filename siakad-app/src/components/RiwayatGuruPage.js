@@ -42,7 +42,7 @@ export default function RiwayatGuruPage() {
       // 3. Proses rekap
       const rekap = {};
       (guruData || []).forEach(g => {
-        rekap[g.id_user] = { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, 'Dinas Luar': 0, detail: {} };
+        rekap[g.id_user] = { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, detail: {} };
       });
 
       (verData || []).forEach(v => {
@@ -105,10 +105,10 @@ export default function RiwayatGuruPage() {
   const handleExportExcel = () => {
     if (swrData?.type !== 'rekap') return;
     
-    let csv = 'Nama Guru,Hadir,Sakit,Izin,Alfa,Dinas Luar\\n';
+    let csv = 'Nama Guru,Hadir,Sakit,Izin,Alfa\\n';
     (swrData.guruList || []).forEach(g => {
-      const r = swrData.rekapData[g.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, 'Dinas Luar': 0 };
-      csv += `"${g.nama}",${r.Hadir},${r.Sakit},${r.Izin},${r.Alfa},${r['Dinas Luar']}\\n`;
+      const r = swrData.rekapData[g.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
+      csv += `"${g.nama}",${r.Hadir},${r.Sakit},${r.Izin},${r.Alfa}\\n`;
     });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -126,11 +126,10 @@ export default function RiwayatGuruPage() {
     'Sakit': 'bg-amber-500/20 text-amber-300',
     'Izin': 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300',
     'Alfa': 'bg-red-500/20 text-red-600 dark:text-red-300',
-    'Dinas Luar': 'bg-purple-500/20 text-purple-300',
   };
 
   // Summary for Guru
-  const guruSummary = { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, 'Dinas Luar': 0 };
+  const guruSummary = { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
   if (swrData?.type === 'history') {
     (swrData.history || []).forEach(d => { if (guruSummary[d.status] !== undefined) guruSummary[d.status]++; });
   }
@@ -251,7 +250,6 @@ export default function RiwayatGuruPage() {
                     <th className="px-5 py-4 text-xs font-bold text-amber-600 dark:text-amber-400 print:text-black text-center uppercase tracking-wider">Sakit</th>
                     <th className="px-5 py-4 text-xs font-bold text-emerald-600 dark:text-emerald-400 print:text-black text-center uppercase tracking-wider">Izin</th>
                     <th className="px-5 py-4 text-xs font-bold text-red-600 dark:text-red-400 print:text-black text-center uppercase tracking-wider">Alfa</th>
-                    <th className="px-5 py-4 text-xs font-bold text-purple-600 dark:text-purple-400 print:text-black text-center uppercase tracking-wider">Dinas Luar</th>
                   </tr>
                 ) : (
                   <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 print:bg-gray-200 print:border-black/50">
@@ -276,7 +274,6 @@ export default function RiwayatGuruPage() {
                           <td className="px-5 py-4 text-sm text-center font-bold text-amber-600 dark:text-amber-400 print:text-black">{r.Sakit || '-'}</td>
                           <td className="px-5 py-4 text-sm text-center font-bold text-emerald-600 dark:text-emerald-400 print:text-black">{r.Izin || '-'}</td>
                           <td className="px-5 py-4 text-sm text-center font-bold text-red-600 dark:text-red-400 print:text-black">{r.Alfa || '-'}</td>
-                          <td className="px-5 py-4 text-sm text-center font-bold text-purple-600 dark:text-purple-400 print:text-black">{r['Dinas Luar'] || '-'}</td>
                         </tr>
                       );
                     })

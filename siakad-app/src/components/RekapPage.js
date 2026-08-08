@@ -53,7 +53,7 @@ export default function RekapPage() {
     // 3. Proses rekap
     const rekap = {};
     (murid || []).forEach(m => {
-      rekap[m.id_user] = { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, Dispen: 0, detail: {} };
+      rekap[m.id_user] = { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, detail: {} };
     });
 
     (absensi || []).forEach(a => {
@@ -70,10 +70,10 @@ export default function RekapPage() {
   const rekapData = swrData?.rekapData || {};
 
   const handleExportExcel = () => {
-    let csv = 'NISN,Nama Murid,Rombel,Hadir,Sakit,Izin,Alfa,Dispen\n';
+    let csv = 'NISN,Nama Murid,Rombel,Hadir,Sakit,Izin,Alfa\n';
     muridData.forEach(m => {
-      const r = rekapData[m.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, Dispen: 0 };
-      csv += `"${m.id_user}","${m.nama}","${m.rombel}",${r.Hadir},${r.Sakit},${r.Izin},${r.Alfa},${r.Dispen}\n`;
+      const r = rekapData[m.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
+      csv += `"${m.id_user}","${m.nama}","${m.rombel}",${r.Hadir},${r.Sakit},${r.Izin},${r.Alfa}\n`;
     });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -200,7 +200,6 @@ export default function RekapPage() {
                 <th className="px-5 py-4 text-xs font-bold text-amber-600 dark:text-amber-400 print:text-black text-center uppercase tracking-wider">Sakit</th>
                 <th className="px-5 py-4 text-xs font-bold text-blue-600 dark:text-blue-400 print:text-black text-center uppercase tracking-wider">Izin</th>
                 <th className="px-5 py-4 text-xs font-bold text-rose-600 dark:text-rose-400 print:text-black text-center uppercase tracking-wider">Alfa</th>
-                <th className="px-5 py-4 text-xs font-bold text-purple-600 dark:text-purple-400 print:text-black text-center uppercase tracking-wider">Dispen</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/5 print:divide-black/20">
@@ -229,7 +228,6 @@ export default function RekapPage() {
                       <td className="px-5 py-3 text-sm text-amber-600 dark:text-amber-400 print:text-black text-center font-bold bg-amber-50/30 dark:bg-amber-500/5">{r.Sakit || '-'}</td>
                       <td className="px-5 py-3 text-sm text-blue-600 dark:text-blue-400 print:text-black text-center font-bold bg-blue-50/30 dark:bg-blue-500/5">{r.Izin || '-'}</td>
                       <td className="px-5 py-3 text-sm text-rose-600 dark:text-rose-400 print:text-black text-center font-bold bg-rose-50/30 dark:bg-rose-500/5">{r.Alfa || '-'}</td>
-                      <td className="px-5 py-3 text-sm text-purple-600 dark:text-purple-400 print:text-black text-center font-bold bg-purple-50/30 dark:bg-purple-500/5">{r.Dispen || '-'}</td>
                     </tr>
                   );
                 })
