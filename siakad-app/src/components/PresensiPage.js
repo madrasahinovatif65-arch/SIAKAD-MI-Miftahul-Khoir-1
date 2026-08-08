@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import useSWR from 'swr';
+import { fetchMasterLibur, fetchPresensiData } from '@/lib/fetchers';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { id } from 'date-fns/locale/id';
@@ -48,10 +49,7 @@ export default function PresensiPage() {
     });
   });
 
-  const { data: liburDates } = useSWR('master_libur_all', async () => {
-    const { data } = await supabase.from('master_libur').select('tanggal');
-    return (data || []).map(d => d.tanggal);
-  });
+  const { data: liburDates } = useSWR('master_libur_all', fetchMasterLibur);
 
   const getDayClassName = (date) => {
     const y = date.getFullYear();
@@ -75,90 +73,16 @@ export default function PresensiPage() {
     return timeStr;
   };
 
-  const isLate = (timeStr) => {
-    if (!timeStr || timeStr === '-') return false;
-    const match = timeStr.match(/\d{2}[:.]\d{2}[:.]\d{2}/);
-    if (match) return match[0].replace(/\./g, ':') > '07:00:00';
-    const matchShort = timeStr.match(/\d{2}[:.]\d{2}/);
-    if (matchShort) return matchShort[0].replace(/\./g, ':') > '07:00';
-    return false;
-  };
-  
   useEffect(() => {
     if (!rombel && rombelOptions.length > 0) {
       setRombel(user?.rombel && user.rombel !== '-' ? user.rombel : rombelOptions[0]);
     }
   }, [rombel, rombelOptions, user]);
 
-  const { data: presensiData, isLoading: loading, mutate: reloadData } = useSWR(rombel && tanggal ? `presensi_${rombel}_${tanggal}` : null, async () => {
-    // Cek Hari Libur
-    const d = new Date(tanggal);
-    if (d.getDay() === 0) {
-      return { isHoliday: true, holidayName: 'Hari Minggu', murid: [], nfcMap: {}, mergedAbsensi: {} };
-    }
-    const { data: libur } = await supabase.from('master_libur').select('*').eq('tanggal', tanggal).single();
-    if (libur) {
-      return { isHoliday: true, holidayName: libur.keterangan, murid: [], nfcMap: {}, mergedAbsensi: {} };
-    }
-
-    // Murid
-    const { data: murid } = await supabase.from('master_user').select('*').eq('rombel', rombel).eq('role', 'Murid').eq('status_aktif', 'Aktif').order('nama');
-    const { data: nfc } = await supabase.from('view_rekap_absensi_nfc').select('*').eq('tanggal', tanggal).eq('rombel', rombel);
-    const { data: existing } = await supabase.from('data_absensi').select('*').eq('tanggal', tanggal).eq('rombel', rombel);
-
-    const startUTC = new Date(`${tanggal}T00:00:00+07:00`).toISOString();
-    const endUTC = new Date(`${tanggal}T23:59:59+07:00`).toISOString();
-    
-    const { data: rawLogs } = await supabase.from('log_absensi')
-      .select('rfid_uid, waktu')
-      .gte('waktu', startUTC)
-      .lte('waktu', endUTC);
-
-    const rfidToTime = {};
-    (rawLogs || []).forEach(log => {
-      const wibTime = new Date(log.waktu).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
-      if (!rfidToTime[log.rfid_uid] || wibTime < rfidToTime[log.rfid_uid]) {
-        rfidToTime[log.rfid_uid] = wibTime; // get earliest tap
-      }
-    });
-
-    const nfcMap = {};
-    (nfc || []).forEach(n => {
-      // Cari rfid_uid dari data murid
-      const m = (murid || []).find(x => x.id_user === n.id_user);
-      const rawTime = m && rfidToTime[m.rfid] ? rfidToTime[m.rfid] : null;
-      
-      nfcMap[n.id_user] = {
-        ...n,
-        jam_datang: rawTime || n.jam_datang || n.jam_pulang // override with rawTime if available
-      };
-    });
-    const absensiMap = {};
-    (existing || []).forEach(a => { absensiMap[a.nisn] = { status: a.status, catatan: a.catatan || '' }; });
-
-    const mergedAbsensi = {};
-    (murid || []).forEach(m => {
-      if (absensiMap[m.id_user]) {
-        mergedAbsensi[m.id_user] = absensiMap[m.id_user];
-        if (mergedAbsensi[m.id_user].catatan && mergedAbsensi[m.id_user].catatan.startsWith('NFC:')) {
-          mergedAbsensi[m.id_user].catatan = mergedAbsensi[m.id_user].catatan.replace('NFC:', 'Tap NFC:');
-        }
-      }
-      else if (nfcMap[m.id_user]) {
-        const jam = nfcMap[m.id_user].jam_datang || nfcMap[m.id_user].jam_pulang;
-        if (isLate(jam)) {
-          mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: 'Terlambat' };
-        } else {
-          mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: 'Tap NFC' };
-        }
-      }
-      else {
-        mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: '' };
-      }
-    });
-
-    return { isHoliday: false, holidayName: '', murid: murid || [], nfcMap, mergedAbsensi };
-  });
+  const { data: presensiData, isLoading: loading, mutate: reloadData } = useSWR(
+    rombel && tanggal ? ['presensi', rombel, tanggal] : null, 
+    fetchPresensiData
+  );
 
   const isHoliday = presensiData?.isHoliday || false;
   const holidayName = presensiData?.holidayName || '';

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import useSWR from 'swr';
+import { fetchMasterLibur, fetchVerifiedDatesGuru, fetchVerifikasiGuru } from '@/lib/fetchers';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { id } from 'date-fns/locale/id';
@@ -44,19 +45,9 @@ export default function VerifikasiPage() {
     'Di Luar Radius': 'bg-orange-500 text-white shadow-md'
   };
 
-  const { data: liburDates } = useSWR('master_libur_all', async () => {
-    const { data } = await supabase.from('master_libur').select('tanggal');
-    return (data || []).map(d => d.tanggal);
-  });
+  const { data: liburDates } = useSWR('master_libur_all', fetchMasterLibur);
 
-  const { data: verifiedDates } = useSWR('verified_dates_guru', async () => {
-    const { data } = await supabase.from('verifikasi_guru').select('tanggal');
-    const uniqueDates = [...new Set((data || []).map(d => d.tanggal))];
-    return uniqueDates.map(d => {
-      const [y, m, day] = d.split('-');
-      return new Date(y, m - 1, day);
-    });
-  });
+  const { data: verifiedDates } = useSWR('verified_dates_guru', fetchVerifiedDatesGuru);
 
   const getDayClassName = (date) => {
     const y = date.getFullYear();
@@ -79,146 +70,10 @@ export default function VerifikasiPage() {
     return timeStr;
   };
 
-  const { data: swrData, isLoading: loading, mutate: reloadData } = useSWR(`verifikasi_${tanggal}`, async () => {
-    const d = new Date(tanggal);
-    if (d.getDay() === 0) {
-      return { isHoliday: true, holidayName: 'Hari Minggu', guruList: [], mergedAbsensi: {} };
-    }
-    const { data: libur } = await supabase.from('master_libur').select('*').eq('tanggal', tanggal).single();
-    if (libur) {
-      return { isHoliday: true, holidayName: libur.keterangan, guruList: [], mergedAbsensi: {} };
-    }
-
-    const { data: allGuru } = await supabase
-      .from('master_user')
-      .select('id_user, nama, role, rombel, rfid')
-      .in('role', ['Wali Kelas', 'Guru Mapel'])
-      .eq('status_aktif', 'Aktif')
-      .order('nama');
-
-    const { data: gpsLogs } = await supabase
-      .from('log_gps_guru')
-      .select('*')
-      .eq('tanggal', tanggal);
-
-    const { data: nfcLogs } = await supabase
-      .from('view_rekap_absensi_nfc')
-      .select('*')
-      .eq('tanggal', tanggal);
-
-    const { data: verified } = await supabase
-      .from('verifikasi_guru')
-      .select('*')
-      .eq('tanggal', tanggal);
-
-    // Fetch raw logs for fallback
-    const startUTC = new Date(`${tanggal}T00:00:00+07:00`).toISOString();
-    const endUTC = new Date(`${tanggal}T23:59:59+07:00`).toISOString();
-    const { data: rawLogs } = await supabase.from('log_absensi')
-      .select('rfid_uid, waktu')
-      .gte('waktu', startUTC)
-      .lte('waktu', endUTC);
-
-    const rfidToTime = {};
-    (rawLogs || []).forEach(log => {
-      const wibTime = new Date(log.waktu).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
-      if (!rfidToTime[log.rfid_uid]) {
-        rfidToTime[log.rfid_uid] = { earliest: wibTime, latest: wibTime };
-      } else {
-        if (wibTime < rfidToTime[log.rfid_uid].earliest) rfidToTime[log.rfid_uid].earliest = wibTime;
-        if (wibTime > rfidToTime[log.rfid_uid].latest) rfidToTime[log.rfid_uid].latest = wibTime;
-      }
-    });
-
-    const gpsMap = {};
-    (gpsLogs || []).forEach(g => { gpsMap[g.id_guru] = g; });
-    const nfcMap = {};
-    (nfcLogs || []).forEach(n => { nfcMap[n.id_user] = n; });
-    const verMap = {};
-    (verified || []).forEach(v => { verMap[v.id_guru] = v; });
-
-    const mergedAbsensi = {};
-    (allGuru || []).forEach(guru => {
-      const gps = gpsMap[guru.id_user];
-      const nfc = nfcMap[guru.id_user];
-      const ver = verMap[guru.id_user];
-
-      let waktu_datang = null;
-      let waktu_pulang = null;
-
-      const rawTimes = rfidToTime[guru.rfid];
-
-      if (nfc) {
-        if (nfc.jam_datang) waktu_datang = nfc.jam_datang;
-        if (nfc.jam_pulang) waktu_pulang = nfc.jam_pulang;
-      }
-
-      if (rawTimes) {
-        waktu_datang = waktu_datang || rawTimes.earliest;
-        if (rawTimes.latest !== rawTimes.earliest) {
-          waktu_pulang = waktu_pulang || rawTimes.latest;
-        }
-      }
-      
-      if (gps) {
-        // Asumsi: jika GPS > jam 10, itu jam pulang. Jika tidak, jam datang.
-        const jamGPS = parseInt(gps.waktu.split(':')[0], 10);
-        if (jamGPS >= 10) {
-          if (!waktu_pulang) waktu_pulang = gps.waktu;
-        } else {
-          if (!waktu_datang) waktu_datang = gps.waktu;
-        }
-      }
-
-      let isLate = false;
-      if (waktu_datang) {
-        const match = waktu_datang.match(/(\d{2})[:.](\d{2})/);
-        if (match) {
-          const h = parseInt(match[1], 10);
-          const m = parseInt(match[2], 10);
-          if (h > 7 || (h === 7 && m > 0)) {
-            isLate = true;
-          }
-        }
-      }
-
-      let currentStatus = 'Hadir'; // default
-      let catatan = '';
-      let metode = 'Otomatis';
-      let waktu = '-';
-
-      if (ver) {
-        currentStatus = ver.status;
-        waktu = ver.waktu;
-        metode = ver.metode;
-        catatan = ver.catatan || '';
-      } else if (nfc || gps) {
-        currentStatus = 'Hadir';
-        metode = (nfc && gps) ? 'NFC+GPS' : (nfc ? 'NFC' : 'GPS');
-        catatan = isLate ? 'Terlambat' : 'Absen Mandiri';
-        waktu = waktu_datang || waktu_pulang || '-';
-      } else {
-        currentStatus = 'Hadir';
-        catatan = '';
-        metode = '-';
-      }
-
-      mergedAbsensi[guru.id_user] = {
-        status: currentStatus,
-        catatan,
-        waktu,
-        waktu_datang,
-        waktu_pulang,
-        metode,
-        isLate,
-        isNFC: !!nfc,
-        isGPS: !!gps,
-        isVerified: !!ver,
-      };
-    });
-
-    return { isHoliday: false, holidayName: '', guruList: allGuru || [], mergedAbsensi };
-  });
+  const { data: swrData, isLoading: loading, mutate: reloadData } = useSWR(
+    tanggal ? ['verifikasi', tanggal] : null, 
+    fetchVerifikasiGuru
+  );
 
   const isHoliday = swrData?.isHoliday || false;
   const holidayName = swrData?.holidayName || '';

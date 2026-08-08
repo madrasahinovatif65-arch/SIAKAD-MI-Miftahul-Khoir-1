@@ -2,6 +2,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import EyeCareMode from "@/components/EyeCareMode";
 import { AuthProvider } from "@/context/AuthContext";
+import PullToRefresh from "@/components/PullToRefresh";
+import BackgroundSync from "@/components/BackgroundSync";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -29,8 +31,11 @@ export default function RootLayout({ children }) {
     <html lang="id" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-white font-[family-name:var(--font-inter)]">
         <AuthProvider>
+          <BackgroundSync />
           <EyeCareMode>
-            {children}
+            <PullToRefresh>
+              {children}
+            </PullToRefresh>
             <div id="root-portal"></div>
           </EyeCareMode>
         </AuthProvider>
