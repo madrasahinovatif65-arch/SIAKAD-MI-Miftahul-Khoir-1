@@ -90,9 +90,9 @@ export async function POST(request) {
         
         let catatan = isTap ? 'Tap NFC Mandiri' : 'Hadir (Otomatis)';
         if (isTap && jam) {
-          const match = jam.match(/\d{2}:\d{2}:\d{2}/);
-          const matchShort = jam.match(/\d{2}:\d{2}/);
-          if ((match && match[0] > '07:00:00') || (matchShort && matchShort[0] > '07:00')) {
+          const match = jam.match(/\d{2}[:.]\d{2}[:.]\d{2}/);
+          const matchShort = jam.match(/\d{2}[:.]\d{2}/);
+          if ((match && match[0].replace(/\./g, ':') > '07:00:00') || (matchShort && matchShort[0].replace(/\./g, ':') > '07:00')) {
             catatan = 'Terlambat';
           }
         }

@@ -67,19 +67,20 @@ export default function PresensiPage() {
 
   const formatTime = (timeStr) => {
     if (!timeStr || timeStr === '-') return '-';
-    const match = timeStr.match(/\d{2}:\d{2}:\d{2}/);
-    if (match) return match[0];
-    const matchShort = timeStr.match(/\d{2}:\d{2}/);
-    if (matchShort) return matchShort[0];
+    // Match HH:MM:SS or HH.MM.SS
+    const match = timeStr.match(/\d{2}[:.]\d{2}[:.]\d{2}/);
+    if (match) return match[0].replace(/\./g, ':'); // normalize to colon
+    const matchShort = timeStr.match(/\d{2}[:.]\d{2}/);
+    if (matchShort) return matchShort[0].replace(/\./g, ':');
     return timeStr;
   };
 
   const isLate = (timeStr) => {
     if (!timeStr || timeStr === '-') return false;
-    const match = timeStr.match(/\d{2}:\d{2}:\d{2}/);
-    if (match) return match[0] > '07:00:00';
-    const matchShort = timeStr.match(/\d{2}:\d{2}/);
-    if (matchShort) return matchShort[0] > '07:00';
+    const match = timeStr.match(/\d{2}[:.]\d{2}[:.]\d{2}/);
+    if (match) return match[0].replace(/\./g, ':') > '07:00:00';
+    const matchShort = timeStr.match(/\d{2}[:.]\d{2}/);
+    if (matchShort) return matchShort[0].replace(/\./g, ':') > '07:00';
     return false;
   };
   
