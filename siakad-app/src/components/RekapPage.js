@@ -85,6 +85,15 @@ export default function RekapPage() {
     return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
   };
 
+  const getDynamicPadding = () => {
+    const count = muridData.length;
+    if (count === 0) return '6px';
+    if (count <= 15) return '12px 6px';
+    if (count <= 25) return '8px 6px';
+    if (count <= 35) return '4px 6px';
+    return '2px 6px';
+  };
+
   const handleExportWord = () => {
     let html = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
@@ -292,25 +301,25 @@ export default function RekapPage() {
 
       <div className="print-container">
         {/* Header Print */}
-        <div className="hidden print:block mb-6 pt-2">
-          <div className="flex items-center gap-6 mb-4 border-b-[3px] border-black pb-4 relative">
-            <img src="/logo.png" alt="Logo" className="w-24 h-24 object-contain" />
+        <div className="hidden print:block mb-4">
+          <div className="flex items-center gap-4 mb-2 border-b-[3px] border-black pb-2 relative">
+            <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain" />
             <div className="flex-1 text-center">
-              <h3 className="text-xl font-bold text-slate-800 tracking-tight">Yayasan NU Miftakhul Khoir Damarjati</h3>
-              <h2 className="text-3xl font-bold text-green-700 tracking-tight mt-1">MI Miftahul Khoir 1 Karangrejo</h2>
-              <p className="text-xs text-slate-600 mt-2 tracking-wide font-medium">NPSN: 60716857 | Jl. Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo, Kec. Purwosari, Kabupaten Pasuruan</p>
+              <h3 className="text-lg font-bold text-slate-800 tracking-tight">Yayasan NU Miftakhul Khoir Damarjati</h3>
+              <h2 className="text-2xl font-bold text-green-700 tracking-tight mt-0.5">MI Miftahul Khoir 1 Karangrejo</h2>
+              <p className="text-[10px] text-slate-600 mt-1 tracking-wide font-medium">NPSN: 60716857 | Jl. Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo, Kec. Purwosari, Kabupaten Pasuruan</p>
             </div>
-            <div className="absolute bottom-0 left-0 w-full border-b border-black mt-1"></div>
+            <div className="absolute bottom-0 left-0 w-full border-b border-black mt-0.5"></div>
           </div>
           
-          <div className="text-center mt-6 mb-6">
-            <h3 className="text-lg font-bold text-slate-800">Laporan Rekapitulasi Presensi Bulanan</h3>
-            <p className="text-sm text-slate-600 mt-1">Periode: {formatDateString(tglMulai)} s.d. {formatDateString(tglAkhir)}</p>
-            <p className="text-sm text-slate-600 mt-0.5">Kelas/Rombel: <span className="font-bold text-green-700">{rombel}</span></p>
+          <div className="text-center mt-3 mb-3">
+            <h3 className="text-base font-bold text-slate-800">Laporan Rekapitulasi Presensi Bulanan</h3>
+            <p className="text-xs text-slate-600 mt-0.5">Periode: {formatDateString(tglMulai)} s.d. {formatDateString(tglAkhir)}</p>
+            <p className="text-xs text-slate-600 mt-0.5">Kelas/Rombel: <span className="font-bold text-green-700">{rombel}</span></p>
           </div>
           
-          <h4 className="font-bold text-green-800 text-sm mb-3 flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <h4 className="font-bold text-green-800 text-[11px] mb-2 flex items-center gap-2">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
             </svg>
             1. REKAPITULASI KEHADIRAN SISWA
@@ -376,19 +385,19 @@ export default function RekapPage() {
                     })}
                     {/* Baris Tanda Tangan Menyatu dengan Tabel (Tanpa Border) */}
                     <tr className="print:table-row hidden print-no-border">
-                      <td colSpan={rombel === 'Semua' ? 9 : 8} className="pt-12 pb-8">
-                        <div className="flex justify-between items-end px-12 text-center text-sm text-black w-full">
+                      <td colSpan={rombel === 'Semua' ? 9 : 8} className="pt-6 pb-2">
+                        <div className="flex justify-between items-end px-12 text-center text-xs text-black w-full">
                           <div className="flex flex-col items-center">
                             <p>Disiapkan Oleh,</p>
                             <p className="font-bold uppercase mt-1">WALI KELAS {rombel === 'Semua' ? '...' : rombel},</p>
-                            <div className="mt-20 border-b border-black w-48 font-bold whitespace-normal break-words">{waliKelasName}</div>
+                            <div className="mt-14 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">{waliKelasName}</div>
                             <p className="mt-1">-</p>
                           </div>
                           <div className="flex flex-col items-center">
                             <p>Karangrejo, {formatDateString(new Date().toISOString())}</p>
                             <p>Mengetahui Kepala Madrasah,</p>
                             <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
-                            <div className="mt-20 border-b border-black w-56 font-bold">Nur Su'ud, S.Pd.I.</div>
+                            <div className="mt-10 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">Nur Su'ud, S.Pd.I.</div>
                             <p className="mt-1">-</p>
                           </div>
                         </div>
@@ -414,7 +423,7 @@ export default function RekapPage() {
           thead { display: table-header-group; }
           
           /* Kolom mengecil sesuai isi teks agar menghemat tempat, kecuali kolom nama */
-          th, td { border: 1px solid #000; padding: 6px 10px; color: #000 !important; font-size: 11px; white-space: nowrap; }
+          th, td { border: 1px solid #000; padding: ${getDynamicPadding()}; color: #000 !important; font-size: 10px; white-space: nowrap; }
           
           /* Kolom Nama Murid akan melar dan wrap text */
           .col-nama { white-space: normal !important; width: auto !important; word-wrap: break-word; }
