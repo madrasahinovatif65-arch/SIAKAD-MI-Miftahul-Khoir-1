@@ -64,19 +64,28 @@ export default function RekapPage() {
 
     // 4. Ambil data Wali Kelas
     let waliKelasData = null;
+    let waliKelasMap = {};
     if (rombel !== 'Semua') {
       const { data: guru } = await supabase.from('master_user').select('nama').in('role', ['Wali Kelas', 'Guru']).eq('rombel', rombel).maybeSingle();
       if (guru) {
         waliKelasData = guru.nama;
       }
+    } else {
+      const { data: gurus } = await supabase.from('master_user').select('nama, rombel').in('role', ['Wali Kelas', 'Guru']);
+      if (gurus) {
+        gurus.forEach(g => {
+          if (g.rombel) waliKelasMap[g.rombel] = g.nama;
+        });
+      }
     }
 
-    return { muridData: murid || [], rekapData: rekap, waliKelas: waliKelasData };
+    return { muridData: murid || [], rekapData: rekap, waliKelas: waliKelasData, waliKelasMap };
   });
 
   const muridData = swrData?.muridData || [];
   const rekapData = swrData?.rekapData || {};
   const waliKelasName = swrData?.waliKelas || '.............................................';
+  const waliKelasMap = swrData?.waliKelasMap || {};
 
   const formatDateString = (dateStr) => {
     if (!dateStr) return '';
@@ -94,12 +103,20 @@ export default function RekapPage() {
     return '4px 6px';
   };
 
+  const rombelsToPrint = rombel === 'Semua' ? rombelOptions : [rombel];
+
   const handleExportWord = () => {
     let html = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
       <head><meta charset="utf-8"><title>Rekapitulasi Presensi</title></head>
       <body style="font-family: Arial, sans-serif;">
-        
+    `;
+
+    rombelsToPrint.forEach((rName, rIdx) => {
+      const rMuridData = rombel === 'Semua' ? muridData.filter(m => m.rombel === rName) : muridData;
+      const rWaliName = rombel === 'Semua' ? (waliKelasMap[rName] || '.............................................') : waliKelasName;
+      
+      html += `
         <table style="width: 100%; border-bottom: 3px solid black; margin-bottom: 20px; border-collapse: collapse;">
           <tr>
             <td style="width: 15%; text-align: left; vertical-align: middle;">
@@ -116,7 +133,7 @@ export default function RekapPage() {
         <div style="text-align: center; margin-bottom: 20px;">
           <h3 style="margin: 0; font-size: 14pt;">Laporan Rekapitulasi Presensi Bulanan</h3>
           <p style="margin: 5px 0;">Periode: ${formatDateString(tglMulai)} s.d. ${formatDateString(tglAkhir)}</p>
-          <p style="margin: 0;">Kelas/Rombel: <b>${rombel}</b></p>
+          <p style="margin: 0;">Kelas/Rombel: <b>${rName}</b></p>
         </div>
 
         <h4 style="color: #166534; font-size: 11pt; margin-bottom: 10px;">1. REKAPITULASI KEHADIRAN SISWA</h4>
@@ -126,7 +143,6 @@ export default function RekapPage() {
             <tr style="background-color: #e2e8f0;">
               <th style="width: 5%;">No</th>
               <th style="text-align: left;">Nama Murid</th>
-              ${rombel === 'Semua' ? '<th>Rombel</th>' : ''}
               <th>Hadir</th>
               <th>Sakit</th>
               <th>Izin</th>
@@ -136,56 +152,63 @@ export default function RekapPage() {
             </tr>
           </thead>
           <tbody>
-    `;
+      `;
 
-    muridData.forEach((m, idx) => {
-      const r = rekapData[m.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
-      const hadir = r.Hadir || 0;
-      const sakit = r.Sakit || 0;
-      const izin = r.Izin || 0;
-      const alfa = r.Alfa || 0;
-      const total = hadir + sakit + izin + alfa;
-      const persentase = total > 0 ? ((hadir / total) * 100).toFixed(1) + '%' : '-';
+      rMuridData.forEach((m, idx) => {
+        const r = rekapData[m.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
+        const hadir = r.Hadir || 0;
+        const sakit = r.Sakit || 0;
+        const izin = r.Izin || 0;
+        const alfa = r.Alfa || 0;
+        const total = hadir + sakit + izin + alfa;
+        const persentase = total > 0 ? ((hadir / total) * 100).toFixed(1) + '%' : '-';
+
+        html += `
+          <tr>
+            <td>${idx + 1}</td>
+            <td style="text-align: left;">${m.nama}</td>
+            <td>${hadir || '-'}</td>
+            <td>${sakit || '-'}</td>
+            <td>${izin || '-'}</td>
+            <td>${alfa || '-'}</td>
+            <td>${total || '-'}</td>
+            <td>${persentase}</td>
+          </tr>
+        `;
+      });
 
       html += `
-        <tr>
-          <td>${idx + 1}</td>
-          <td style="text-align: left;">${m.nama}</td>
-          ${rombel === 'Semua' ? `<td>${m.rombel}</td>` : ''}
-          <td>${hadir || '-'}</td>
-          <td>${sakit || '-'}</td>
-          <td>${izin || '-'}</td>
-          <td>${alfa || '-'}</td>
-          <td>${total || '-'}</td>
-          <td>${persentase}</td>
-        </tr>
+            </tbody>
+          </table>
+          <br><br><br>
+          <table style="width: 100%; text-align: center; border: none; font-size: 11pt;">
+            <tr>
+              <td style="width: 50%; border: none;">
+                <p style="color: transparent;">.</p>
+                <p>Disiapkan Oleh,</p>
+                <p><b>WALI KELAS ${rName}</b></p>
+                <br><br><br><br>
+                <p><b><u>${rWaliName}</u></b></p>
+                <p style="margin-top: 0;">-</p>
+              </td>
+              <td style="width: 50%; border: none;">
+                <p>Karangrejo, ${formatDateString(new Date().toISOString())}</p>
+                <p>Mengetahui Kepala Madrasah,</p>
+                <p><b>MI Miftahul Khoir 1 Karangrejo</b></p>
+                <br><br><br><br>
+                <p><b><u>Nur Su'ud, S.Pd.I.</u></b></p>
+                <p style="margin-top: 0;">-</p>
+              </td>
+            </tr>
+          </table>
       `;
+
+      if (rIdx < rombelsToPrint.length - 1) {
+        html += `<br clear=all style='mso-special-character:line-break;page-break-before:always'>`;
+      }
     });
 
     html += `
-          </tbody>
-        </table>
-        <br><br><br>
-        <table style="width: 100%; text-align: center; border: none; font-size: 11pt;">
-          <tr>
-            <td style="width: 50%; border: none;">
-              <p style="color: transparent;">.</p>
-              <p>Disiapkan Oleh,</p>
-              <p><b>WALI KELAS ${rombel === 'Semua' ? '...' : rombel}</b></p>
-              <br><br><br><br>
-              <p><b><u>${waliKelasName}</u></b></p>
-              <p style="margin-top: 0;">-</p>
-            </td>
-            <td style="width: 50%; border: none;">
-              <p>Karangrejo, ${formatDateString(new Date().toISOString())}</p>
-              <p>Mengetahui Kepala Madrasah,</p>
-              <p><b>MI Miftahul Khoir 1 Karangrejo</b></p>
-              <br><br><br><br>
-              <p><b><u>Nur Su'ud, S.Pd.I.</u></b></p>
-              <p style="margin-top: 0;">-</p>
-            </td>
-          </tr>
-        </table>
       </body>
       </html>
     `;
@@ -300,117 +323,177 @@ export default function RekapPage() {
         </div>
       </div>
 
-      <div className="print-container">
-        {/* Header Print */}
-        <div className="hidden print:block mb-4">
-          <div className="flex items-center gap-4 mb-2 border-b-[3px] border-black pb-2 relative">
-            <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain" />
-            <div className="flex-1 text-center">
-              <h3 className="text-lg font-bold text-slate-800 tracking-tight">Yayasan NU Miftakhul Khoir Damarjati</h3>
-              <h2 className="text-2xl font-bold text-green-700 tracking-tight mt-0.5">MI Miftahul Khoir 1 Karangrejo</h2>
-              <p className="text-[10px] text-slate-600 mt-1 tracking-wide font-medium">NPSN: 60716857 | Jl. Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo, Kec. Purwosari, Kabupaten Pasuruan</p>
-            </div>
-            <div className="absolute bottom-0 left-0 w-full border-b border-black mt-0.5"></div>
-          </div>
-          
-          <div className="text-center mt-3 mb-3">
-            <h3 className="text-base font-bold text-slate-800">Laporan Rekapitulasi Presensi Bulanan</h3>
-            <p className="text-xs text-slate-600 mt-0.5">Periode: {formatDateString(tglMulai)} s.d. {formatDateString(tglAkhir)}</p>
-            <p className="text-xs text-slate-600 mt-0.5">Kelas/Rombel: <span className="font-bold text-green-700">{rombel}</span></p>
-          </div>
-          
-          <h4 className="font-bold text-green-800 text-[11px] mb-2 flex items-center gap-2">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
-            </svg>
-            1. REKAPITULASI KEHADIRAN SISWA
-          </h4>
-        </div>
-
-        {/* Tabel */}
-        <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm print:border-none print:shadow-none print:rounded-none print:bg-transparent print:overflow-visible">
-          <div className="overflow-x-auto print:overflow-visible">
-            <table className="w-full text-left border-collapse print:text-black print:bg-white print:table-auto">
-              <thead>
-                <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 print:bg-gray-200 print:border-black">
-                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider text-center">No</th>
-                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider col-nama">Nama Murid</th>
-                  {rombel === 'Semua' && (
-                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider">Rombel</th>
-                  )}
-                  <th className="px-5 py-4 text-xs font-bold text-emerald-600 dark:text-emerald-400 print:text-black text-center uppercase tracking-wider">Hadir</th>
-                  <th className="px-5 py-4 text-xs font-bold text-amber-600 dark:text-amber-400 print:text-black text-center uppercase tracking-wider">Sakit</th>
-                  <th className="px-5 py-4 text-xs font-bold text-blue-600 dark:text-blue-400 print:text-black text-center uppercase tracking-wider">Izin</th>
-                  <th className="px-5 py-4 text-xs font-bold text-rose-600 dark:text-rose-400 print:text-black text-center uppercase tracking-wider">Alfa</th>
-                  <th className="px-5 py-4 text-xs font-bold text-purple-600 dark:text-purple-400 print:text-black text-center uppercase tracking-wider">Total</th>
-                  <th className="px-5 py-4 text-xs font-bold text-indigo-600 dark:text-indigo-400 print:text-black text-center uppercase tracking-wider">%</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-white/5 print:divide-black/20">
-                {loading ? (
-                  <tr>
-                    <td colSpan={10} className="p-8 text-center text-slate-500 dark:text-slate-400 font-medium print:hidden">Memuat data...</td>
-                  </tr>
-                ) : muridData.length === 0 ? (
-                  <tr>
-                    <td colSpan={10} className="p-8 text-center text-slate-500 dark:text-slate-400 font-medium">Tidak ada data murid di rentang tanggal & rombel ini.</td>
-                  </tr>
-                ) : (
-                  <>
-                    {muridData.map((m, idx) => {
-                      const r = rekapData[m.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
-                      const hadir = r.Hadir || 0;
-                      const sakit = r.Sakit || 0;
-                      const izin = r.Izin || 0;
-                      const alfa = r.Alfa || 0;
-                      const total = hadir + sakit + izin + alfa;
-                      const persentase = total > 0 ? ((hadir / total) * 100).toFixed(1) + '%' : '-';
-
-                      return (
-                        <tr key={m.id_user} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group print:hover:bg-transparent">
-                          <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 print:text-black print:px-2 print:py-2 text-center">{idx + 1}</td>
-                          <td className="px-5 py-3 text-sm text-slate-800 dark:text-white print:text-black font-semibold print:px-2 print:py-2 col-nama">{m.nama}</td>
-                          {rombel === 'Semua' && (
-                            <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 print:text-black print:px-2 print:py-2">
-                              <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-xs font-bold print:bg-transparent print:p-0">{m.rombel}</span>
-                            </td>
-                          )}
-                          <td className="px-5 py-3 text-sm text-emerald-600 dark:text-emerald-400 print:text-black text-center font-bold bg-emerald-50/30 dark:bg-emerald-500/5 print:bg-transparent print:px-2 print:py-2">{hadir || '-'}</td>
-                          <td className="px-5 py-3 text-sm text-amber-600 dark:text-amber-400 print:text-black text-center font-bold bg-amber-50/30 dark:bg-amber-500/5 print:bg-transparent print:px-2 print:py-2">{sakit || '-'}</td>
-                          <td className="px-5 py-3 text-sm text-blue-600 dark:text-blue-400 print:text-black text-center font-bold bg-blue-50/30 dark:bg-blue-500/5 print:bg-transparent print:px-2 print:py-2">{izin || '-'}</td>
-                          <td className="px-5 py-3 text-sm text-rose-600 dark:text-rose-400 print:text-black text-center font-bold bg-rose-50/30 dark:bg-rose-500/5 print:bg-transparent print:px-2 print:py-2">{alfa || '-'}</td>
-                          <td className="px-5 py-3 text-sm text-purple-600 dark:text-purple-400 print:text-black text-center font-bold bg-purple-50/30 dark:bg-purple-500/5 print:bg-transparent print:px-2 print:py-2">{total || '-'}</td>
-                          <td className="px-5 py-3 text-sm text-indigo-600 dark:text-indigo-400 print:text-black text-center font-bold bg-indigo-50/30 dark:bg-indigo-500/5 print:bg-transparent print:px-2 print:py-2">{persentase}</td>
-                        </tr>
-                      );
-                    })}
-                    {/* Baris Tanda Tangan Menyatu dengan Tabel (Tanpa Border) */}
-                    <tr className="print:table-row hidden print-no-border">
-                      <td colSpan={rombel === 'Semua' ? 9 : 8} className="pt-6 pb-2">
-                        <div className="flex justify-between items-end px-12 text-center text-xs text-black w-full">
-                          <div className="flex flex-col items-center">
-                            <p className="text-transparent select-none">.</p>
-                            <p>Disiapkan Oleh,</p>
-                            <p className="font-bold uppercase mt-1">WALI KELAS {rombel === 'Semua' ? '...' : rombel},</p>
-                            <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">{waliKelasName}</div>
-                            <p className="mt-1">-</p>
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <p>Karangrejo, {formatDateString(new Date().toISOString())}</p>
-                            <p>Mengetahui Kepala Madrasah,</p>
-                            <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
-                            <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">Nur Su'ud, S.Pd.I.</div>
-                            <p className="mt-1">-</p>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  </>
+      {/* Tabel Layar (Screen) */}
+      <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm print:hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
+                <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center">No</th>
+                <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider col-nama">Nama Murid</th>
+                {rombel === 'Semua' && (
+                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Rombel</th>
                 )}
-              </tbody>
-            </table>
-          </div>
+                <th className="px-5 py-4 text-xs font-bold text-emerald-600 dark:text-emerald-400 text-center uppercase tracking-wider">Hadir</th>
+                <th className="px-5 py-4 text-xs font-bold text-amber-600 dark:text-amber-400 text-center uppercase tracking-wider">Sakit</th>
+                <th className="px-5 py-4 text-xs font-bold text-blue-600 dark:text-blue-400 text-center uppercase tracking-wider">Izin</th>
+                <th className="px-5 py-4 text-xs font-bold text-rose-600 dark:text-rose-400 text-center uppercase tracking-wider">Alfa</th>
+                <th className="px-5 py-4 text-xs font-bold text-purple-600 dark:text-purple-400 text-center uppercase tracking-wider">Total</th>
+                <th className="px-5 py-4 text-xs font-bold text-indigo-600 dark:text-indigo-400 text-center uppercase tracking-wider">%</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+              {loading ? (
+                <tr>
+                  <td colSpan={10} className="p-8 text-center text-slate-500 dark:text-slate-400 font-medium">Memuat data...</td>
+                </tr>
+              ) : muridData.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="p-8 text-center text-slate-500 dark:text-slate-400 font-medium">Tidak ada data murid di rentang tanggal & rombel ini.</td>
+                </tr>
+              ) : (
+                <>
+                  {muridData.map((m, idx) => {
+                    const r = rekapData[m.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
+                    const hadir = r.Hadir || 0;
+                    const sakit = r.Sakit || 0;
+                    const izin = r.Izin || 0;
+                    const alfa = r.Alfa || 0;
+                    const total = hadir + sakit + izin + alfa;
+                    const persentase = total > 0 ? ((hadir / total) * 100).toFixed(1) + '%' : '-';
+
+                    return (
+                      <tr key={m.id_user} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group">
+                        <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 text-center">{idx + 1}</td>
+                        <td className="px-5 py-3 text-sm text-slate-800 dark:text-white font-semibold col-nama">{m.nama}</td>
+                        {rombel === 'Semua' && (
+                          <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400">
+                            <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-xs font-bold">{m.rombel}</span>
+                          </td>
+                        )}
+                        <td className="px-5 py-3 text-sm text-emerald-600 dark:text-emerald-400 text-center font-bold bg-emerald-50/30 dark:bg-emerald-500/5">{hadir || '-'}</td>
+                        <td className="px-5 py-3 text-sm text-amber-600 dark:text-amber-400 text-center font-bold bg-amber-50/30 dark:bg-amber-500/5">{sakit || '-'}</td>
+                        <td className="px-5 py-3 text-sm text-blue-600 dark:text-blue-400 text-center font-bold bg-blue-50/30 dark:bg-blue-500/5">{izin || '-'}</td>
+                        <td className="px-5 py-3 text-sm text-rose-600 dark:text-rose-400 text-center font-bold bg-rose-50/30 dark:bg-rose-500/5">{alfa || '-'}</td>
+                        <td className="px-5 py-3 text-sm text-purple-600 dark:text-purple-400 text-center font-bold bg-purple-50/30 dark:bg-purple-500/5">{total || '-'}</td>
+                        <td className="px-5 py-3 text-sm text-indigo-600 dark:text-indigo-400 text-center font-bold bg-indigo-50/30 dark:bg-indigo-500/5">{persentase}</td>
+                      </tr>
+                    );
+                  })}
+                </>
+              )}
+            </tbody>
+          </table>
         </div>
+      </div>
+      
+      {/* Container Khusus Cetak Massal (Print) */}
+      <div className="print-container hidden print:block">
+        {rombelsToPrint.map((rName, rIdx) => {
+          const rMuridData = rombel === 'Semua' ? muridData.filter(m => m.rombel === rName) : muridData;
+          const rWaliName = rombel === 'Semua' ? (waliKelasMap[rName] || '.............................................') : waliKelasName;
+
+          return (
+            <div key={rName} className={rIdx < rombelsToPrint.length - 1 ? 'page-break-after' : ''}>
+              {/* Header Print */}
+              <div className="mb-4">
+                <div className="flex items-center gap-4 mb-2 border-b-[3px] border-black pb-2 relative">
+                  <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain" />
+                  <div className="flex-1 text-center">
+                    <h3 className="text-lg font-bold text-slate-800 tracking-tight">Yayasan NU Miftakhul Khoir Damarjati</h3>
+                    <h2 className="text-2xl font-bold text-green-700 tracking-tight mt-0.5">MI Miftahul Khoir 1 Karangrejo</h2>
+                    <p className="text-[10px] text-slate-600 mt-1 tracking-wide font-medium">NPSN: 60716857 | Jl. Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo, Kec. Purwosari, Kabupaten Pasuruan</p>
+                  </div>
+                  <div className="absolute bottom-0 left-0 w-full border-b border-black mt-0.5"></div>
+                </div>
+                
+                <div className="text-center mt-3 mb-3">
+                  <h3 className="text-base font-bold text-slate-800">Laporan Rekapitulasi Presensi Bulanan</h3>
+                  <p className="text-xs text-slate-600 mt-0.5">Periode: {formatDateString(tglMulai)} s.d. {formatDateString(tglAkhir)}</p>
+                  <p className="text-xs text-slate-600 mt-0.5">Kelas/Rombel: <span className="font-bold text-green-700">{rName}</span></p>
+                </div>
+                
+                <h4 className="font-bold text-green-800 text-[11px] mb-2 flex items-center gap-2">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+                  </svg>
+                  1. REKAPITULASI KEHADIRAN SISWA
+                </h4>
+              </div>
+
+              {/* Tabel Khusus Print (Tanpa kolom rombel) */}
+              <div className="overflow-visible">
+                <table className="w-full text-left border-collapse print:text-black print:bg-white print:table-auto">
+                  <thead>
+                    <tr className="print:bg-gray-200 print:border-black">
+                      <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">No</th>
+                      <th className="text-xs font-bold print:text-black uppercase tracking-wider col-nama">Nama Murid</th>
+                      <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">Hadir</th>
+                      <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">Sakit</th>
+                      <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">Izin</th>
+                      <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">Alfa</th>
+                      <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">Total</th>
+                      <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">%</th>
+                    </tr>
+                  </thead>
+                  <tbody className="print:divide-black/20">
+                    {rMuridData.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="p-8 text-center text-slate-500 font-medium">Tidak ada data murid di rentang tanggal & rombel ini.</td>
+                      </tr>
+                    ) : (
+                      <>
+                        {rMuridData.map((m, idx) => {
+                          const r = rekapData[m.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
+                          const hadir = r.Hadir || 0;
+                          const sakit = r.Sakit || 0;
+                          const izin = r.Izin || 0;
+                          const alfa = r.Alfa || 0;
+                          const total = hadir + sakit + izin + alfa;
+                          const persentase = total > 0 ? ((hadir / total) * 100).toFixed(1) + '%' : '-';
+
+                          return (
+                            <tr key={m.id_user} className="print:hover:bg-transparent">
+                              <td className="text-sm print:text-black print:px-2 print:py-2 text-center">{idx + 1}</td>
+                              <td className="text-sm print:text-black font-semibold print:px-2 print:py-2 col-nama">{m.nama}</td>
+                              <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{hadir || '-'}</td>
+                              <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{sakit || '-'}</td>
+                              <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{izin || '-'}</td>
+                              <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{alfa || '-'}</td>
+                              <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{total || '-'}</td>
+                              <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{persentase}</td>
+                            </tr>
+                          );
+                        })}
+                        {/* Baris Tanda Tangan Menyatu dengan Tabel (Tanpa Border) */}
+                        <tr className="print:table-row print-no-border">
+                          <td colSpan={8} className="pt-6 pb-2">
+                            <div className="flex justify-between items-end px-12 text-center text-xs text-black w-full">
+                              <div className="flex flex-col items-center">
+                                <p className="text-transparent select-none">.</p>
+                                <p>Disiapkan Oleh,</p>
+                                <p className="font-bold uppercase mt-1">WALI KELAS {rName},</p>
+                                <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">{rWaliName}</div>
+                                <p className="mt-1">-</p>
+                              </div>
+                              <div className="flex flex-col items-center">
+                                <p>Karangrejo, {formatDateString(new Date().toISOString())}</p>
+                                <p>Mengetahui Kepala Madrasah,</p>
+                                <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
+                                <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">Nur Su'ud, S.Pd.I.</div>
+                                <p className="mt-1">-</p>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      </>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })}
       </div>
       
       <style dangerouslySetInnerHTML={{__html: `
@@ -420,6 +503,7 @@ export default function RekapPage() {
           body * { visibility: hidden; }
           .print-container, .print-container * { visibility: visible; }
           .print-container { position: relative; left: 0; top: 0; width: 100%; }
+          .page-break-after { page-break-after: always; }
           table { border-collapse: collapse; width: 100%; margin-top: 10px; page-break-inside: auto; }
           tr { page-break-inside: avoid; page-break-after: auto; }
           thead { display: table-header-group; }
