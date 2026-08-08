@@ -169,9 +169,10 @@ export default function RekapPage() {
         <table style="width: 100%; text-align: center; border: none; font-size: 11pt;">
           <tr>
             <td style="width: 50%; border: none;">
+              <p style="color: transparent;">.</p>
               <p>Disiapkan Oleh,</p>
               <p><b>WALI KELAS ${rombel === 'Semua' ? '...' : rombel}</b></p>
-              <br><br><br>
+              <br><br><br><br>
               <p><b><u>${waliKelasName}</u></b></p>
               <p style="margin-top: 0;">-</p>
             </td>
@@ -388,9 +389,10 @@ export default function RekapPage() {
                       <td colSpan={rombel === 'Semua' ? 9 : 8} className="pt-6 pb-2">
                         <div className="flex justify-between items-end px-12 text-center text-xs text-black w-full">
                           <div className="flex flex-col items-center">
+                            <p className="text-transparent select-none">.</p>
                             <p>Disiapkan Oleh,</p>
                             <p className="font-bold uppercase mt-1">WALI KELAS {rombel === 'Semua' ? '...' : rombel},</p>
-                            <div className="mt-14 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">{waliKelasName}</div>
+                            <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">{waliKelasName}</div>
                             <p className="mt-1">-</p>
                           </div>
                           <div className="flex flex-col items-center">
