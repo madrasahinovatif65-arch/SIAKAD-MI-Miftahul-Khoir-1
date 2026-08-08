@@ -298,8 +298,8 @@ export default function RekapPage() {
         </div>
 
         {/* Tabel */}
-        <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm print:border-none print:shadow-none print:rounded-none print:bg-transparent">
-          <div className="overflow-x-auto">
+        <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm print:border-none print:shadow-none print:rounded-none print:bg-transparent print:overflow-visible">
+          <div className="overflow-x-auto print:overflow-visible">
             <table className="w-full text-left border-collapse print:text-black print:bg-white">
               <thead>
                 <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 print:bg-gray-200 print:border-black">
