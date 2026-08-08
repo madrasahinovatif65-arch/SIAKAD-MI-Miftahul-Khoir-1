@@ -98,27 +98,155 @@ export default function RiwayatGuruPage() {
     return `${d}-${m}-${y}`;
   };
 
-  const handlePrint = () => {
-    window.print();
+  const formatDateString = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
   };
 
-  const handleExportExcel = () => {
-    if (swrData?.type !== 'rekap') return;
+  const getDynamicPadding = () => {
+    let count = 0;
+    if (isAdmin && swrData?.type === 'rekap') count = swrData.guruList.length;
+    else if (!isAdmin && swrData?.type === 'history') count = swrData.history.length;
     
-    let csv = 'Nama Guru,Hadir,Sakit,Izin,Alfa\\n';
-    (swrData.guruList || []).forEach(g => {
-      const r = swrData.rekapData[g.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
-      csv += `"${g.nama}",${r.Hadir},${r.Sakit},${r.Izin},${r.Alfa}\\n`;
-    });
+    if (count === 0) return '6px';
+    if (count <= 20) return '8px 6px';
+    if (count <= 25) return '6px 6px';
+    if (count <= 28) return '5px 6px';
+    return '4px 6px';
+  };
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const handleExportWord = () => {
+    let html = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8">
+        <title>Export Word</title>
+        <style>
+          body { font-family: 'Times New Roman', serif; font-size: 11pt; }
+          .header { text-align: center; margin-bottom: 20px; border-bottom: 3px solid black; padding-bottom: 10px; }
+          .header h3 { margin: 0; font-size: 14pt; }
+          .header h2 { margin: 0; font-size: 18pt; color: #15803d; }
+          .header p { margin: 5px 0 0 0; font-size: 9pt; }
+          .title-doc { text-align: center; margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th, td { border: 1px solid black; padding: 5px; text-align: center; }
+          .text-left { text-align: left; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h3>Yayasan NU Miftakhul Khoir Damarjati</h3>
+          <h2>MI Miftahul Khoir 1 Karangrejo</h2>
+          <p>NPSN: 60716857 | Jl. Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo, Kec. Purwosari, Kab. Pasuruan</p>
+        </div>
+        
+        <div class="title-doc">
+          <h3>Laporan Rekapitulasi Presensi Guru</h3>
+          <p>Periode: ${formatDateString(tglMulai)} s.d. ${formatDateString(tglAkhir)}</p>
+          ${!isAdmin ? `<p>Nama Guru: <b>${user?.nama || ''}</b></p>` : ''}
+        </div>
+        
+        <table>
+          <thead>
+    `;
+    
+    if (isAdmin) {
+      html += `
+        <tr>
+          <th>No</th>
+          <th>Nama Guru</th>
+          <th>Hadir</th>
+          <th>Sakit</th>
+          <th>Izin</th>
+          <th>Alfa</th>
+        </tr>
+      </thead><tbody>
+      `;
+      if (swrData?.guruList?.length > 0) {
+        swrData.guruList.forEach((guru, idx) => {
+          const r = swrData.rekapData[guru.id_user];
+          html += `
+            <tr>
+              <td style="width: 5%;">${idx + 1}</td>
+              <td class="text-left">${guru.nama}</td>
+              <td>${r.Hadir || '-'}</td>
+              <td>${r.Sakit || '-'}</td>
+              <td>${r.Izin || '-'}</td>
+              <td>${r.Alfa || '-'}</td>
+            </tr>
+          `;
+        });
+      }
+    } else {
+      html += `
+        <tr>
+          <th>Tanggal</th>
+          <th>Waktu</th>
+          <th>Metode</th>
+          <th>Status</th>
+          <th>Catatan</th>
+        </tr>
+      </thead><tbody>
+      `;
+      if (swrData?.history?.length > 0) {
+        swrData.history.forEach((row) => {
+          html += `
+            <tr>
+              <td>${formatDate(row.tanggal)}</td>
+              <td>${row.waktu}</td>
+              <td>${row.metode || 'GPS'}</td>
+              <td>${row.status}</td>
+              <td>${row.catatan || '-'}</td>
+            </tr>
+          `;
+        });
+      }
+    }
+
+    html += `
+          </tbody>
+        </table>
+        
+        <br>
+        <table style="width: 100%; text-align: center; border: none; font-size: 11pt;">
+          <tr>
+            <td style="width: 50%; border: none;">
+              <p style="color: transparent;">.</p>
+              <p>Disiapkan Oleh,</p>
+              <p><b>STAF TATA USAHA</b></p>
+              <br><br><br><br>
+              <p><b><u>.......................................</u></b></p>
+              <p style="margin-top: 0;">-</p>
+            </td>
+            <td style="width: 50%; border: none;">
+              <p>Karangrejo, ${formatDateString(new Date().toISOString())}</p>
+              <p>Mengetahui Kepala Madrasah,</p>
+              <p><b>MI Miftahul Khoir 1 Karangrejo</b></p>
+              <br><br><br><br>
+              <p><b><u>Nur Su'ud, S.Pd.I.</u></b></p>
+              <p style="margin-top: 0;">-</p>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `Rekap_Guru_${tglMulai}_sd_${tglAkhir}.csv`);
+    link.download = `Laporan_Guru_${isAdmin ? 'Rekap' : 'Riwayat'}_${tglMulai}.doc`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const statusColors = {
@@ -148,12 +276,12 @@ export default function RiwayatGuruPage() {
         
         <div className="flex flex-wrap gap-2">
           {isAdmin && (
-            <button onClick={handleExportExcel}
-              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-xl text-sm font-semibold transition-all shadow-sm">
+            <button onClick={handleExportWord}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 rounded-xl text-sm font-semibold transition-all shadow-sm">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
               </svg>
-              Export Excel
+              Export Word
             </button>
           )}
           <button onClick={handlePrint}
@@ -165,6 +293,33 @@ export default function RiwayatGuruPage() {
           </button>
         </div>
       </div>
+
+      <div className="print-container">
+        {/* Header Print */}
+        <div className="hidden print:block mb-4">
+          <div className="flex items-center gap-4 mb-2 border-b-[3px] border-black pb-2 relative">
+            <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain" />
+            <div className="flex-1 text-center">
+              <h3 className="text-lg font-bold text-slate-800 tracking-tight">Yayasan NU Miftakhul Khoir Damarjati</h3>
+              <h2 className="text-2xl font-bold text-green-700 tracking-tight mt-0.5">MI Miftahul Khoir 1 Karangrejo</h2>
+              <p className="text-[10px] text-slate-600 mt-1 tracking-wide font-medium">NPSN: 60716857 | Jl. Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo, Kec. Purwosari, Kabupaten Pasuruan</p>
+            </div>
+            <div className="absolute bottom-0 left-0 w-full border-b border-black mt-0.5"></div>
+          </div>
+          
+          <div className="text-center mt-3 mb-3">
+            <h3 className="text-base font-bold text-slate-800">Laporan Rekapitulasi Presensi Guru</h3>
+            <p className="text-xs text-slate-600 mt-0.5">Periode: {formatDateString(tglMulai)} s.d. {formatDateString(tglAkhir)}</p>
+            {!isAdmin && <p className="text-xs text-slate-600 mt-0.5">Nama Guru: <span className="font-bold text-green-700">{user?.nama}</span></p>}
+          </div>
+          
+          <h4 className="font-bold text-green-800 text-[11px] mb-2 flex items-center gap-2">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+            </svg>
+            1. REKAPITULASI KEHADIRAN GURU
+          </h4>
+        </div>
 
       {/* Filter Tanggal */}
       <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-4 sm:p-6 shadow-sm print:hidden">
@@ -238,14 +393,14 @@ export default function RiwayatGuruPage() {
           <div className="w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse print:text-black print:bg-white">
+        <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm print:border-none print:shadow-none print:rounded-none print:bg-transparent print:overflow-visible">
+          <div className="overflow-x-auto print:overflow-visible">
+            <table className="w-full text-left border-collapse print:text-black print:bg-white print:table-auto">
               <thead>
                 {isAdmin ? (
                   <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 print:bg-gray-200 print:border-black/50">
                     <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider">No</th>
-                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider">Nama Guru</th>
+                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider col-nama">Nama Guru</th>
                     <th className="px-5 py-4 text-xs font-bold text-emerald-600 dark:text-emerald-400 print:text-black text-center uppercase tracking-wider">Hadir</th>
                     <th className="px-5 py-4 text-xs font-bold text-amber-600 dark:text-amber-400 print:text-black text-center uppercase tracking-wider">Sakit</th>
                     <th className="px-5 py-4 text-xs font-bold text-emerald-600 dark:text-emerald-400 print:text-black text-center uppercase tracking-wider">Izin</th>
@@ -257,7 +412,7 @@ export default function RiwayatGuruPage() {
                     <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider">Waktu</th>
                     <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider">Metode</th>
                     <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider">Status</th>
-                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider">Catatan</th>
+                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider col-nama">Catatan</th>
                   </tr>
                 )}
               </thead>
@@ -303,22 +458,56 @@ export default function RiwayatGuruPage() {
                     <tr><td colSpan="5" className="text-center py-12 text-slate-500 dark:text-slate-400">Tidak ada riwayat absensi pada rentang tanggal tersebut</td></tr>
                   )
                 )}
+                {/* Baris Tanda Tangan Menyatu dengan Tabel (Tanpa Border) */}
+                {!loading && (
+                  <tr className="print:table-row hidden print-no-border">
+                    <td colSpan={isAdmin ? 6 : 5} className="pt-6 pb-2">
+                      <div className="flex justify-between items-end px-12 text-center text-xs text-black w-full">
+                        <div className="flex flex-col items-center">
+                          <p className="text-transparent select-none">.</p>
+                          <p>Disiapkan Oleh,</p>
+                          <p className="font-bold uppercase mt-1">STAF TATA USAHA,</p>
+                          <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">.......................................</div>
+                          <p className="mt-1">-</p>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <p>Karangrejo, {formatDateString(new Date().toISOString())}</p>
+                          <p>Mengetahui Kepala Madrasah,</p>
+                          <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
+                          <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">Nur Su'ud, S.Pd.I.</div>
+                          <p className="mt-1">-</p>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </div>
       )}
+      </div>
 
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
+          body { background: white; }
+          @page { size: 215.9mm 330.2mm; margin: 10mm; }
           body * { visibility: hidden; }
           .print\\:hidden { display: none !important; }
-          .print\\:visible, .print\\:visible * { visibility: visible; }
-          .print\\:visible { position: absolute; left: 0; top: 0; width: 100%; }
-          table, table * { visibility: visible; }
-          table { position: relative; width: 100%; border-collapse: collapse; margin-top: 2rem; }
-          th, td { border: 1px solid #000; padding: 12px 8px; color: #000 !important; }
-          th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; color: #000 !important; }
+          .print-container, .print-container * { visibility: visible; }
+          .print-container { position: absolute; left: 0; top: 0; width: 100%; }
+          
+          table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+          thead { display: table-header-group; }
+          
+          /* Kolom mengecil sesuai isi teks agar menghemat tempat, kecuali kolom nama */
+          th, td { border: 1px solid #000; padding: ${getDynamicPadding()}; color: #000 !important; font-size: 10px; white-space: nowrap; }
+          
+          /* Kolom Nama Guru akan melar dan wrap text */
+          .col-nama { white-space: normal !important; width: auto !important; word-wrap: break-word; }
+          
+          /* Hilangkan border khusus untuk baris tanda tangan */
+          tr.print-no-border > td { border: none !important; padding: 0 !important; }
         }
       `}} />
     </div>
