@@ -291,13 +291,15 @@ export default function RekapPage() {
       
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
-          @page { size: portrait; margin: 15mm; }
+          @page { size: 215mm 330mm portrait; margin: 10mm; }
           body { background: white; -webkit-print-color-adjust: exact; }
           body * { visibility: hidden; }
           .print-container, .print-container * { visibility: visible; }
-          .print-container { position: absolute; left: 0; top: 0; width: 100%; }
-          table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-          th, td { border: 1px solid #000; padding: 6px 8px; color: #000 !important; font-size: 12px; }
+          .print-container { position: relative; left: 0; top: 0; width: 100%; margin-top: -10px; }
+          table { border-collapse: collapse; width: 100%; margin-top: 10px; page-break-inside: auto; }
+          tr { page-break-inside: avoid; page-break-after: auto; }
+          thead { display: table-header-group; }
+          th, td { border: 1px solid #000; padding: 6px 8px; color: #000 !important; font-size: 11px; }
           th { background: #e2e8f0 !important; -webkit-print-color-adjust: exact; }
           .print\\:hidden { display: none !important; }
         }

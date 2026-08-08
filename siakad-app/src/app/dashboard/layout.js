@@ -31,16 +31,22 @@ export default function DashboardLayout({ children }) {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden font-sans">
-      <Sidebar />
-      <div className="flex flex-col flex-1 w-full relative">
-        <Header />
-        <main className="flex-1 w-full overflow-y-auto pb-[140px] lg:pb-8">
-          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full relative z-10">
+    <div className="flex h-screen print:h-auto print:block bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden print:overflow-visible font-sans">
+      <div className="print:hidden h-full">
+        <Sidebar />
+      </div>
+      <div className="flex flex-col flex-1 w-full relative print:block">
+        <div className="print:hidden">
+          <Header />
+        </div>
+        <main className="flex-1 w-full overflow-y-auto print:overflow-visible pb-[140px] lg:pb-8 print:pb-0">
+          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full relative z-10 print:max-w-none print:p-0">
             {children}
           </div>
         </main>
-        <BottomNav />
+        <div className="print:hidden">
+          <BottomNav />
+        </div>
       </div>
     </div>
   );
