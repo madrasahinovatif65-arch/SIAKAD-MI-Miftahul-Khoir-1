@@ -21,6 +21,7 @@ export default function RekapPage() {
   });
   const [rombel, setRombel] = useState(user?.role === 'Admin' ? 'Semua' : user?.rombel || '');
   const [rombelOptions, setRombelOptions] = useState([]);
+  const [selectedHistory, setSelectedHistory] = useState(null);
   
   // Ambil daftar rombel untuk Admin
   useEffect(() => {
@@ -52,13 +53,16 @@ export default function RekapPage() {
     // 3. Proses rekap
     const rekap = {};
     (murid || []).forEach(m => {
-      rekap[m.id_user] = { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, detail: {} };
+      rekap[m.id_user] = { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, detail: {}, history: { Sakit: [], Izin: [], Alfa: [] } };
     });
 
     (absensi || []).forEach(a => {
       if (rekap[a.nisn] && rekap[a.nisn][a.status] !== undefined) {
         rekap[a.nisn][a.status] += 1;
         rekap[a.nisn].detail[a.tanggal] = a.status.charAt(0); // H, S, I, A
+        if (['Sakit', 'Izin', 'Alfa'].includes(a.status)) {
+          rekap[a.nisn].history[a.status].push(a);
+        }
       }
     });
 
@@ -376,9 +380,21 @@ export default function RekapPage() {
                           </td>
                         )}
                         <td className="px-5 py-3 text-sm text-emerald-600 dark:text-emerald-400 text-center font-bold bg-emerald-50/30 dark:bg-emerald-500/5">{hadir || '-'}</td>
-                        <td className="px-5 py-3 text-sm text-amber-600 dark:text-amber-400 text-center font-bold bg-amber-50/30 dark:bg-amber-500/5">{sakit || '-'}</td>
-                        <td className="px-5 py-3 text-sm text-blue-600 dark:text-blue-400 text-center font-bold bg-blue-50/30 dark:bg-blue-500/5">{izin || '-'}</td>
-                        <td className="px-5 py-3 text-sm text-rose-600 dark:text-rose-400 text-center font-bold bg-rose-50/30 dark:bg-rose-500/5">{alfa || '-'}</td>
+                        <td className="px-5 py-3 text-sm text-center font-bold bg-amber-50/30 dark:bg-amber-500/5">
+                          {sakit > 0 ? (
+                            <button onClick={() => setSelectedHistory({ type: 'Sakit', name: m.nama, data: r.history.Sakit })} className="text-amber-600 dark:text-amber-400 hover:underline hover:text-amber-800 dark:hover:text-amber-300 w-full">{sakit}</button>
+                          ) : <span className="text-amber-600 dark:text-amber-400">-</span>}
+                        </td>
+                        <td className="px-5 py-3 text-sm text-center font-bold bg-blue-50/30 dark:bg-blue-500/5">
+                          {izin > 0 ? (
+                            <button onClick={() => setSelectedHistory({ type: 'Izin', name: m.nama, data: r.history.Izin })} className="text-blue-600 dark:text-blue-400 hover:underline hover:text-blue-800 dark:hover:text-blue-300 w-full">{izin}</button>
+                          ) : <span className="text-blue-600 dark:text-blue-400">-</span>}
+                        </td>
+                        <td className="px-5 py-3 text-sm text-center font-bold bg-rose-50/30 dark:bg-rose-500/5">
+                          {alfa > 0 ? (
+                            <button onClick={() => setSelectedHistory({ type: 'Alfa', name: m.nama, data: r.history.Alfa })} className="text-rose-600 dark:text-rose-400 hover:underline hover:text-rose-800 dark:hover:text-rose-300 w-full">{alfa}</button>
+                          ) : <span className="text-rose-600 dark:text-rose-400">-</span>}
+                        </td>
                         <td className="px-5 py-3 text-sm text-purple-600 dark:text-purple-400 text-center font-bold bg-purple-50/30 dark:bg-purple-500/5">{total || '-'}</td>
                         <td className="px-5 py-3 text-sm text-indigo-600 dark:text-indigo-400 text-center font-bold bg-indigo-50/30 dark:bg-indigo-500/5">{persentase}</td>
                       </tr>
@@ -500,6 +516,37 @@ export default function RekapPage() {
         })}
       </div>
       
+      {/* Modal Riwayat Detail */}
+      {selectedHistory && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm print:hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-5 border-b border-slate-200 dark:border-white/10">
+              <div>
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white">Detail {selectedHistory.type}</h3>
+                <p className="text-sm text-slate-500">{selectedHistory.name}</p>
+              </div>
+              <button onClick={() => setSelectedHistory(null)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 rounded-full transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-5 max-h-[60vh] overflow-y-auto">
+              {selectedHistory.data.length === 0 ? (
+                 <p className="text-center text-slate-500 py-4">Tidak ada catatan</p>
+              ) : (
+                <div className="space-y-3">
+                   {selectedHistory.data.map((item, i) => (
+                      <div key={i} className="flex flex-col p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-white/5">
+                         <span className="font-mono text-xs font-semibold text-slate-600 dark:text-slate-300">{formatDateString(item.tanggal)}</span>
+                         <span className="text-sm text-slate-800 dark:text-white mt-1">{item.catatan || '-'}</span>
+                      </div>
+                   ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           @page { size: 215mm 330mm portrait; margin: 10mm 10mm 10mm 15mm; }

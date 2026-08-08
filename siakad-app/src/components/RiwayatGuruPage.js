@@ -13,6 +13,7 @@ registerLocale('id', id);
 export default function RiwayatGuruPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'Admin';
+  const [selectedHistory, setSelectedHistory] = useState(null);
   
   const [tglMulai, setTglMulai] = useState(() => {
     const d = new Date();
@@ -42,16 +43,18 @@ export default function RiwayatGuruPage() {
       // 3. Proses rekap
       const rekap = {};
       (guruData || []).forEach(g => {
-        rekap[g.id_user] = { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, detail: {} };
+        rekap[g.id_user] = { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, detail: {}, history: { Sakit: [], Izin: [], Alfa: [] } };
       });
 
       (verData || []).forEach(v => {
         if (rekap[v.id_guru] && rekap[v.id_guru][v.status] !== undefined) {
           rekap[v.id_guru][v.status] += 1;
+          rekap[v.id_guru].detail[v.tanggal] = v.status.charAt(0);
+          if (['Sakit', 'Izin', 'Alfa'].includes(v.status)) {
+            rekap[v.id_guru].history[v.status].push(v);
+          }
         }
-      });
-
-      return { guruList: guruData || [], rekapData: rekap, type: 'rekap' };
+      }); return { guruList: guruData || [], rekapData: rekap, type: 'rekap' };
     } else {
       // Guru: riwayat harian
       const { data: verData } = await supabase
@@ -447,9 +450,21 @@ export default function RiwayatGuruPage() {
                           <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black text-center">{idx + 1}</td>
                           <td className="px-5 py-4 text-sm font-medium text-slate-900 dark:text-white print:text-black col-nama">{guru.nama}</td>
                           <td className="px-5 py-4 text-sm text-center font-bold text-emerald-600 dark:text-emerald-400 print:text-black">{hadir || '-'}</td>
-                          <td className="px-5 py-4 text-sm text-center font-bold text-amber-600 dark:text-amber-400 print:text-black">{sakit || '-'}</td>
-                          <td className="px-5 py-4 text-sm text-center font-bold text-emerald-600 dark:text-emerald-400 print:text-black">{izin || '-'}</td>
-                          <td className="px-5 py-4 text-sm text-center font-bold text-red-600 dark:text-red-400 print:text-black">{alfa || '-'}</td>
+                          <td className="px-5 py-4 text-sm text-center font-bold text-amber-600 dark:text-amber-400 print:text-black">
+                            {sakit > 0 ? (
+                              <button onClick={() => setSelectedHistory({ type: 'Sakit', name: guru.nama, data: r.history.Sakit })} className="hover:underline hover:text-amber-800 dark:hover:text-amber-300 w-full print:pointer-events-none">{sakit}</button>
+                            ) : '-'}
+                          </td>
+                          <td className="px-5 py-4 text-sm text-center font-bold text-blue-600 dark:text-blue-400 print:text-black">
+                            {izin > 0 ? (
+                              <button onClick={() => setSelectedHistory({ type: 'Izin', name: guru.nama, data: r.history.Izin })} className="hover:underline hover:text-blue-800 dark:hover:text-blue-300 w-full print:pointer-events-none">{izin}</button>
+                            ) : '-'}
+                          </td>
+                          <td className="px-5 py-4 text-sm text-center font-bold text-red-600 dark:text-red-400 print:text-black">
+                            {alfa > 0 ? (
+                              <button onClick={() => setSelectedHistory({ type: 'Alfa', name: guru.nama, data: r.history.Alfa })} className="hover:underline hover:text-red-800 dark:hover:text-red-300 w-full print:pointer-events-none">{alfa}</button>
+                            ) : '-'}
+                          </td>
                           <td className="px-5 py-4 text-sm text-center font-bold text-purple-600 dark:text-purple-400 print:text-black">{total || '-'}</td>
                           <td className="px-5 py-4 text-sm text-center font-bold text-indigo-600 dark:text-indigo-400 print:text-black">{persen > 0 ? persen + '%' : '-'}</td>
                         </tr>
@@ -510,6 +525,37 @@ export default function RiwayatGuruPage() {
         </div>
       )}
       </div>
+
+      {/* Modal Riwayat Detail */}
+      {selectedHistory && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm print:hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-5 border-b border-slate-200 dark:border-white/10">
+              <div>
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white">Detail {selectedHistory.type}</h3>
+                <p className="text-sm text-slate-500">{selectedHistory.name}</p>
+              </div>
+              <button onClick={() => setSelectedHistory(null)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 rounded-full transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-5 max-h-[60vh] overflow-y-auto">
+              {selectedHistory.data.length === 0 ? (
+                 <p className="text-center text-slate-500 py-4">Tidak ada catatan</p>
+              ) : (
+                <div className="space-y-3">
+                   {selectedHistory.data.map((item, i) => (
+                      <div key={i} className="flex flex-col p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-white/5">
+                         <span className="font-mono text-xs font-semibold text-slate-600 dark:text-slate-300">{formatDate(item.tanggal)}</span>
+                         <span className="text-sm text-slate-800 dark:text-white mt-1">{item.catatan || '-'}</span>
+                      </div>
+                   ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
