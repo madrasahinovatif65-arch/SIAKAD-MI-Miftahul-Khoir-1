@@ -108,7 +108,11 @@ export default function RekapPage() {
   const handleExportWord = () => {
     let html = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-      <head><meta charset="utf-8"><title>Rekapitulasi Presensi</title></head>
+      <head>
+        <meta charset="utf-8">
+        <title>Rekapitulasi Presensi</title>
+        <style>@page { margin: 1.0cm 1.0cm 1.0cm 1.5cm; }</style>
+      </head>
       <body style="font-family: Arial, sans-serif;">
     `;
 
@@ -136,7 +140,7 @@ export default function RekapPage() {
           <p style="margin: 0;">Kelas/Rombel: <b>${rName}</b></p>
         </div>
 
-        <h4 style="color: #166534; font-size: 11pt; margin-bottom: 10px;">1. REKAPITULASI KEHADIRAN SISWA</h4>
+        <h4 style="color: #166534; font-size: 11pt; margin-bottom: 10px;">REKAPITULASI KEHADIRAN SISWA</h4>
 
         <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; font-size: 10pt; text-align: center;">
           <thead>
@@ -417,7 +421,7 @@ export default function RekapPage() {
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
                   </svg>
-                  1. REKAPITULASI KEHADIRAN SISWA
+                  REKAPITULASI KEHADIRAN SISWA
                 </h4>
               </div>
 
@@ -498,7 +502,7 @@ export default function RekapPage() {
       
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
-          @page { size: 215mm 330mm portrait; margin: 10mm; }
+          @page { size: 215mm 330mm portrait; margin: 10mm 10mm 10mm 15mm; }
           body { background: white; -webkit-print-color-adjust: exact; }
           body * { visibility: hidden; }
           .print-container, .print-container * { visibility: visible; }
