@@ -62,11 +62,21 @@ export default function RekapPage() {
       }
     });
 
-    return { muridData: murid || [], rekapData: rekap };
+    // 4. Ambil data Wali Kelas
+    let waliKelasData = null;
+    if (rombel !== 'Semua') {
+      const { data: guru } = await supabase.from('master_user').select('nama').eq('role', 'Guru').eq('rombel', rombel).maybeSingle();
+      if (guru) {
+        waliKelasData = guru.nama;
+      }
+    }
+
+    return { muridData: murid || [], rekapData: rekap, waliKelas: waliKelasData };
   });
 
   const muridData = swrData?.muridData || [];
   const rekapData = swrData?.rekapData || {};
+  const waliKelasName = swrData?.waliKelas || '.............................................';
 
   const formatDateString = (dateStr) => {
     if (!dateStr) return '';
@@ -84,7 +94,7 @@ export default function RekapPage() {
         <table style="width: 100%; border-bottom: 3px solid black; margin-bottom: 20px; border-collapse: collapse;">
           <tr>
             <td style="width: 15%; text-align: left; vertical-align: middle;">
-              <!-- Placeholder untuk logo jika diperlukan, karena URL relatif tidak akan ter-load di Word -->
+              <!-- Placeholder untuk logo -->
             </td>
             <td style="width: 85%; text-align: center; vertical-align: middle;">
               <h3 style="margin: 0; font-size: 16pt;">Yayasan NU Miftakhul Khoir Damarjati</h3>
@@ -112,6 +122,8 @@ export default function RekapPage() {
               <th>Hadir</th>
               <th>Sakit</th>
               <th>Izin</th>
+              <th>Total</th>
+              <th>Persentase</th>
               <th>Alfa</th>
             </tr>
           </thead>
@@ -120,16 +132,25 @@ export default function RekapPage() {
 
     muridData.forEach((m, idx) => {
       const r = rekapData[m.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
+      const hadir = r.Hadir || 0;
+      const sakit = r.Sakit || 0;
+      const izin = r.Izin || 0;
+      const alfa = r.Alfa || 0;
+      const total = hadir + sakit + izin + alfa;
+      const persentase = total > 0 ? ((hadir / total) * 100).toFixed(1) + '%' : '-';
+
       html += `
         <tr>
           <td>${idx + 1}</td>
           <td>${m.id_user}</td>
           <td style="text-align: left;">${m.nama}</td>
           ${rombel === 'Semua' ? `<td>${m.rombel}</td>` : ''}
-          <td>${r.Hadir || '-'}</td>
-          <td>${r.Sakit || '-'}</td>
-          <td>${r.Izin || '-'}</td>
-          <td>${r.Alfa || '-'}</td>
+          <td>${hadir || '-'}</td>
+          <td>${sakit || '-'}</td>
+          <td>${izin || '-'}</td>
+          <td>${total || '-'}</td>
+          <td>${persentase}</td>
+          <td>${alfa || '-'}</td>
         </tr>
       `;
     });
@@ -144,7 +165,7 @@ export default function RekapPage() {
               <p>Disiapkan Oleh,</p>
               <p><b>WALI KELAS ${rombel === 'Semua' ? '...' : rombel}</b></p>
               <br><br><br>
-              <p><b><u>Muhammad Ridwan, S.Pd.</u></b></p>
+              <p><b><u>${waliKelasName}</u></b></p>
               <p style="margin-top: 0;">-</p>
             </td>
             <td style="width: 50%; border: none;">
@@ -291,7 +312,7 @@ export default function RekapPage() {
           
           <h4 className="font-bold text-green-800 text-sm mb-3 flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
             </svg>
             1. REKAPITULASI KEHADIRAN SISWA
           </h4>
@@ -300,19 +321,21 @@ export default function RekapPage() {
         {/* Tabel */}
         <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm print:border-none print:shadow-none print:rounded-none print:bg-transparent print:overflow-visible">
           <div className="overflow-x-auto print:overflow-visible">
-            <table className="w-full text-left border-collapse print:text-black print:bg-white">
+            <table className="w-full text-left border-collapse print:text-black print:bg-white print:table-fixed">
               <thead>
                 <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 print:bg-gray-200 print:border-black">
-                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider">No</th>
-                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider">NISN</th>
-                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider">Nama Murid</th>
+                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider print:w-[3%]">No</th>
+                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider print:w-[15%]">NISN</th>
+                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider col-nama">Nama Murid</th>
                   {rombel === 'Semua' && (
-                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider">Rombel</th>
+                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider print:w-[10%]">Rombel</th>
                   )}
-                  <th className="px-5 py-4 text-xs font-bold text-emerald-600 dark:text-emerald-400 print:text-black text-center uppercase tracking-wider">Hadir</th>
-                  <th className="px-5 py-4 text-xs font-bold text-amber-600 dark:text-amber-400 print:text-black text-center uppercase tracking-wider">Sakit</th>
-                  <th className="px-5 py-4 text-xs font-bold text-blue-600 dark:text-blue-400 print:text-black text-center uppercase tracking-wider">Izin</th>
-                  <th className="px-5 py-4 text-xs font-bold text-rose-600 dark:text-rose-400 print:text-black text-center uppercase tracking-wider">Alfa</th>
+                  <th className="px-5 py-4 text-xs font-bold text-emerald-600 dark:text-emerald-400 print:text-black text-center uppercase tracking-wider print:w-[5%]">Hadir</th>
+                  <th className="px-5 py-4 text-xs font-bold text-amber-600 dark:text-amber-400 print:text-black text-center uppercase tracking-wider print:w-[5%]">Sakit</th>
+                  <th className="px-5 py-4 text-xs font-bold text-blue-600 dark:text-blue-400 print:text-black text-center uppercase tracking-wider print:w-[5%]">Izin</th>
+                  <th className="px-5 py-4 text-xs font-bold text-purple-600 dark:text-purple-400 print:text-black text-center uppercase tracking-wider print:w-[6%]">Total</th>
+                  <th className="px-5 py-4 text-xs font-bold text-indigo-600 dark:text-indigo-400 print:text-black text-center uppercase tracking-wider print:w-[8%]">%</th>
+                  <th className="px-5 py-4 text-xs font-bold text-rose-600 dark:text-rose-400 print:text-black text-center uppercase tracking-wider print:w-[5%]">Alfa</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/5 print:divide-black/20">
@@ -328,31 +351,40 @@ export default function RekapPage() {
                   <>
                     {muridData.map((m, idx) => {
                       const r = rekapData[m.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
+                      const hadir = r.Hadir || 0;
+                      const sakit = r.Sakit || 0;
+                      const izin = r.Izin || 0;
+                      const alfa = r.Alfa || 0;
+                      const total = hadir + sakit + izin + alfa;
+                      const persentase = total > 0 ? ((hadir / total) * 100).toFixed(1) + '%' : '-';
+
                       return (
                         <tr key={m.id_user} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group print:hover:bg-transparent">
-                          <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 print:text-black print:px-3 print:py-2">{idx + 1}</td>
-                          <td className="px-5 py-3 text-sm text-slate-400 dark:text-slate-500 font-mono print:text-black print:px-3 print:py-2">{m.id_user}</td>
-                          <td className="px-5 py-3 text-sm text-slate-800 dark:text-white print:text-black font-semibold print:px-3 print:py-2">{m.nama}</td>
+                          <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 print:text-black print:px-2 print:py-2">{idx + 1}</td>
+                          <td className="px-5 py-3 text-sm text-slate-400 dark:text-slate-500 font-mono print:text-black print:px-2 print:py-2">{m.id_user}</td>
+                          <td className="px-5 py-3 text-sm text-slate-800 dark:text-white print:text-black font-semibold print:px-2 print:py-2 col-nama">{m.nama}</td>
                           {rombel === 'Semua' && (
-                            <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 print:text-black print:px-3 print:py-2">
+                            <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 print:text-black print:px-2 print:py-2">
                               <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-xs font-bold print:bg-transparent print:p-0">{m.rombel}</span>
                             </td>
                           )}
-                          <td className="px-5 py-3 text-sm text-emerald-600 dark:text-emerald-400 print:text-black text-center font-bold bg-emerald-50/30 dark:bg-emerald-500/5 print:bg-transparent print:px-3 print:py-2">{r.Hadir || '-'}</td>
-                          <td className="px-5 py-3 text-sm text-amber-600 dark:text-amber-400 print:text-black text-center font-bold bg-amber-50/30 dark:bg-amber-500/5 print:bg-transparent print:px-3 print:py-2">{r.Sakit || '-'}</td>
-                          <td className="px-5 py-3 text-sm text-blue-600 dark:text-blue-400 print:text-black text-center font-bold bg-blue-50/30 dark:bg-blue-500/5 print:bg-transparent print:px-3 print:py-2">{r.Izin || '-'}</td>
-                          <td className="px-5 py-3 text-sm text-rose-600 dark:text-rose-400 print:text-black text-center font-bold bg-rose-50/30 dark:bg-rose-500/5 print:bg-transparent print:px-3 print:py-2">{r.Alfa || '-'}</td>
+                          <td className="px-5 py-3 text-sm text-emerald-600 dark:text-emerald-400 print:text-black text-center font-bold bg-emerald-50/30 dark:bg-emerald-500/5 print:bg-transparent print:px-2 print:py-2">{hadir || '-'}</td>
+                          <td className="px-5 py-3 text-sm text-amber-600 dark:text-amber-400 print:text-black text-center font-bold bg-amber-50/30 dark:bg-amber-500/5 print:bg-transparent print:px-2 print:py-2">{sakit || '-'}</td>
+                          <td className="px-5 py-3 text-sm text-blue-600 dark:text-blue-400 print:text-black text-center font-bold bg-blue-50/30 dark:bg-blue-500/5 print:bg-transparent print:px-2 print:py-2">{izin || '-'}</td>
+                          <td className="px-5 py-3 text-sm text-purple-600 dark:text-purple-400 print:text-black text-center font-bold bg-purple-50/30 dark:bg-purple-500/5 print:bg-transparent print:px-2 print:py-2">{total || '-'}</td>
+                          <td className="px-5 py-3 text-sm text-indigo-600 dark:text-indigo-400 print:text-black text-center font-bold bg-indigo-50/30 dark:bg-indigo-500/5 print:bg-transparent print:px-2 print:py-2">{persentase}</td>
+                          <td className="px-5 py-3 text-sm text-rose-600 dark:text-rose-400 print:text-black text-center font-bold bg-rose-50/30 dark:bg-rose-500/5 print:bg-transparent print:px-2 print:py-2">{alfa || '-'}</td>
                         </tr>
                       );
                     })}
                     {/* Baris Tanda Tangan Menyatu dengan Tabel (Tanpa Border) */}
                     <tr className="print:table-row hidden print-no-border">
-                      <td colSpan={rombel === 'Semua' ? 8 : 7} className="pt-16 pb-8">
+                      <td colSpan={rombel === 'Semua' ? 10 : 9} className="pt-12 pb-8">
                         <div className="flex justify-between items-end px-12 text-center text-sm text-black w-full">
                           <div className="flex flex-col items-center">
                             <p>Disiapkan Oleh,</p>
                             <p className="font-bold uppercase mt-1">WALI KELAS {rombel === 'Semua' ? '...' : rombel},</p>
-                            <div className="mt-20 border-b border-black w-48 font-bold">Muhammad Ridwan, S.Pd.</div>
+                            <div className="mt-20 border-b border-black w-48 font-bold whitespace-normal break-words">{waliKelasName}</div>
                             <p className="mt-1">-</p>
                           </div>
                           <div className="flex flex-col items-center">
@@ -382,7 +414,13 @@ export default function RekapPage() {
           table { border-collapse: collapse; width: 100%; margin-top: 10px; page-break-inside: auto; }
           tr { page-break-inside: avoid; page-break-after: auto; }
           thead { display: table-header-group; }
-          th, td { border: 1px solid #000; padding: 6px 8px; color: #000 !important; font-size: 11px; }
+          
+          /* Kolom mengecil sesuai isi teks agar menghemat tempat, kecuali kolom nama */
+          th, td { border: 1px solid #000; padding: 4px 6px; color: #000 !important; font-size: 11px; white-space: nowrap; }
+          
+          /* Kolom Nama Murid akan melar dan wrap text */
+          .col-nama { white-space: normal !important; width: auto !important; word-wrap: break-word; }
+          
           th { background: #e2e8f0 !important; -webkit-print-color-adjust: exact; }
           
           /* Hilangkan border pada baris khusus TTD */
