@@ -65,7 +65,7 @@ export default function RekapPage() {
     // 4. Ambil data Wali Kelas
     let waliKelasData = null;
     if (rombel !== 'Semua') {
-      const { data: guru } = await supabase.from('master_user').select('nama').eq('role', 'Guru').eq('rombel', rombel).maybeSingle();
+      const { data: guru } = await supabase.from('master_user').select('nama').in('role', ['Wali Kelas', 'Guru']).eq('rombel', rombel).maybeSingle();
       if (guru) {
         waliKelasData = guru.nama;
       }
@@ -167,6 +167,7 @@ export default function RekapPage() {
               <p style="margin-top: 0;">-</p>
             </td>
             <td style="width: 50%; border: none;">
+              <p>Karangrejo, ${formatDateString(new Date().toISOString())}</p>
               <p>Mengetahui Kepala Madrasah,</p>
               <p><b>MI Miftahul Khoir 1 Karangrejo</b></p>
               <br><br><br>
@@ -384,6 +385,7 @@ export default function RekapPage() {
                             <p className="mt-1">-</p>
                           </div>
                           <div className="flex flex-col items-center">
+                            <p>Karangrejo, {formatDateString(new Date().toISOString())}</p>
                             <p>Mengetahui Kepala Madrasah,</p>
                             <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
                             <div className="mt-20 border-b border-black w-56 font-bold">Nur Su'ud, S.Pd.I.</div>
