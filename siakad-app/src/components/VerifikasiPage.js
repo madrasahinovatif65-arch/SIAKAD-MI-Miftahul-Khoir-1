@@ -82,7 +82,7 @@ export default function VerifikasiPage() {
 
     const { data: allGuru } = await supabase
       .from('master_user')
-      .select('id_user, nama, role, rombel')
+      .select('id_user, nama, role, rombel, rfid')
       .in('role', ['Wali Kelas', 'Guru Mapel'])
       .eq('status_aktif', 'Aktif')
       .order('nama');
@@ -102,6 +102,25 @@ export default function VerifikasiPage() {
       .select('*')
       .eq('tanggal', tanggal);
 
+    // Fetch raw logs for fallback
+    const startUTC = new Date(`${tanggal}T00:00:00+07:00`).toISOString();
+    const endUTC = new Date(`${tanggal}T23:59:59+07:00`).toISOString();
+    const { data: rawLogs } = await supabase.from('log_absensi')
+      .select('rfid_uid, waktu')
+      .gte('waktu', startUTC)
+      .lte('waktu', endUTC);
+
+    const rfidToTime = {};
+    (rawLogs || []).forEach(log => {
+      const wibTime = new Date(log.waktu).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
+      if (!rfidToTime[log.rfid_uid]) {
+        rfidToTime[log.rfid_uid] = { earliest: wibTime, latest: wibTime };
+      } else {
+        if (wibTime < rfidToTime[log.rfid_uid].earliest) rfidToTime[log.rfid_uid].earliest = wibTime;
+        if (wibTime > rfidToTime[log.rfid_uid].latest) rfidToTime[log.rfid_uid].latest = wibTime;
+      }
+    });
+
     const gpsMap = {};
     (gpsLogs || []).forEach(g => { gpsMap[g.id_guru] = g; });
     const nfcMap = {};
@@ -118,9 +137,18 @@ export default function VerifikasiPage() {
       let waktu_datang = null;
       let waktu_pulang = null;
 
+      const rawTimes = rfidToTime[guru.rfid];
+
       if (nfc) {
         if (nfc.jam_datang) waktu_datang = nfc.jam_datang;
         if (nfc.jam_pulang) waktu_pulang = nfc.jam_pulang;
+      }
+
+      if (rawTimes) {
+        waktu_datang = waktu_datang || rawTimes.earliest;
+        if (rawTimes.latest !== rawTimes.earliest) {
+          waktu_pulang = waktu_pulang || rawTimes.latest;
+        }
       }
       
       if (gps) {
