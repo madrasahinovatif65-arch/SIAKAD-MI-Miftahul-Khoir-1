@@ -39,13 +39,11 @@ const QUICK_MENU_CONFIG = {
     { label: 'Presensi', href: '/dashboard/presensi', icon: 'M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m8.9-4.414c.376.023.75.05 1.124.08 1.131.094 1.976 1.057 1.976 2.192V16.5A2.25 2.25 0 0 1 18 18.75h-2.25m-7.5-10.5H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V18.75m-7.5-10.5h6.375c.621 0 1.125.504 1.125 1.125v9.375m-8.25-3 1.5 1.5 3-3.75', color: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10' },
     { label: 'Jurnal', href: '/dashboard/jurnal', icon: 'M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25', color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' },
     { label: 'Rekap', href: '/dashboard/rekap', icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z', color: 'text-amber-500 bg-amber-50 dark:bg-amber-500/10' },
-    { label: 'Absen GPS', href: '/dashboard/absen-gps', icon: 'M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z', color: 'text-rose-500 bg-rose-50 dark:bg-rose-500/10' },
     { label: 'Riwayat', href: '/dashboard/riwayat-guru', icon: 'M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', color: 'text-blue-500 bg-blue-50 dark:bg-blue-500/10' },
     { label: 'E-Perpus', href: '/dashboard/eperpus', icon: 'M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25', color: 'text-cyan-500 bg-cyan-50 dark:bg-cyan-500/10' },
   ],
   'Guru Mapel': [
     { label: 'Jurnal', href: '/dashboard/jurnal', icon: 'M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25', color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' },
-    { label: 'Absen GPS', href: '/dashboard/absen-gps', icon: 'M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z', color: 'text-rose-500 bg-rose-50 dark:bg-rose-500/10' },
     { label: 'Riwayat', href: '/dashboard/riwayat-guru', icon: 'M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', color: 'text-blue-500 bg-blue-50 dark:bg-blue-500/10' },
     { label: 'E-Perpus', href: '/dashboard/eperpus', icon: 'M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25', color: 'text-cyan-500 bg-cyan-50 dark:bg-cyan-500/10' },
   ],
@@ -80,9 +78,14 @@ export default function DashboardHome() {
       const pct = total > 0 ? Math.round((h / total) * 100) : 0;
       return { muridStats: { hadir: h, izin: i, sakit: s, alpa: a, persentase: pct } };
     } else {
+      let muridQuery = supabase.from('master_user').select('id_user', { count: 'exact', head: true }).eq('role', 'Murid').eq('status_aktif', 'Aktif');
+      if (user.role === 'Wali Kelas' && user.rombel && user.rombel !== '-') {
+        muridQuery = muridQuery.eq('rombel', user.rombel);
+      }
+
       const [guruRes, muridRes, pendingRes, jurnalRes] = await Promise.all([
         supabase.from('master_user').select('id', { count: 'exact', head: true }).in('role', ['Wali Kelas', 'Guru Mapel']).eq('status_aktif', 'Aktif'),
-        supabase.from('master_user').select('id_user', { count: 'exact', head: true }).eq('role', 'Murid').eq('status_aktif', 'Aktif'),
+        muridQuery,
         supabase.from('log_gps_guru').select('id', { count: 'exact', head: true }).eq('tanggal', today).eq('status', 'Menunggu Verifikasi'),
         supabase.from('jurnal_guru').select('id', { count: 'exact', head: true }).gte('tanggal', monthStart).eq('id_guru', user.id_user),
       ]);
@@ -199,10 +202,14 @@ export default function DashboardHome() {
               </p>
             )}
           </div>
-          <div className="hidden md:flex w-16 h-16 bg-gradient-to-br from-emerald-100 to-teal-50 dark:from-emerald-900/40 dark:to-teal-900/20 rounded-2xl items-center justify-center border border-emerald-200/50 dark:border-emerald-500/20 shadow-inner">
-            <svg className="w-8 h-8 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.436 60.436 0 0 0-.491 6.347A48.627 48.627 0 0 1 12 20.904a48.627 48.627 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.57 50.57 0 0 0-2.658-.813A59.905 59.905 0 0 1 12 3.493a59.902 59.902 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
-            </svg>
+          <div className="hidden md:flex w-16 h-16 bg-gradient-to-br from-emerald-100 to-teal-50 dark:from-emerald-900/40 dark:to-teal-900/20 rounded-2xl items-center justify-center border border-emerald-200/50 dark:border-emerald-500/20 shadow-inner overflow-hidden relative">
+            {user.foto_profil ? (
+              <img src={user.foto_profil} alt={user.nama} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                {user.nama.charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -302,6 +309,29 @@ export default function DashboardHome() {
           })}
         </div>
       )}
+        
+        {(user.role === 'Wali Kelas' || user.role === 'Guru Mapel') && (
+          <div className="mt-6">
+            <Link href="/dashboard/absen-gps" className="flex items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-[2rem] p-6 lg:p-8 border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] group hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-rose-100 to-red-50 dark:from-rose-900/40 dark:to-red-900/20 rounded-2xl flex items-center justify-center border border-rose-200/50 dark:border-rose-500/20 shadow-inner group-hover:scale-110 transition-transform">
+                  <svg className="w-8 h-8 text-rose-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white">Absen GPS</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">Lakukan absensi kehadiran berbasis lokasi</p>
+                </div>
+              </div>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-50 dark:bg-slate-800 flex shrink-0 items-center justify-center group-hover:bg-rose-50 dark:group-hover:bg-rose-500/20 transition-colors">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400 group-hover:text-rose-500 transition-colors" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                </svg>
+              </div>
+            </Link>
+          </div>
+        )}
 
       {user.role === 'Admin' && chartData && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
