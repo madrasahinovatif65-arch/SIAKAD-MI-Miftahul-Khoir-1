@@ -64,6 +64,22 @@ export default function PresensiPage() {
     }
     return undefined;
   };
+
+  const formatTime = (timeStr) => {
+    if (!timeStr || timeStr === '-') return '-';
+    const match = timeStr.match(/\d{2}:\d{2}:\d{2}/);
+    if (match) return match[0];
+    return timeStr;
+  };
+
+  const isLate = (timeStr) => {
+    if (!timeStr || timeStr === '-') return false;
+    const match = timeStr.match(/\d{2}:\d{2}:\d{2}/);
+    if (match) {
+      return match[0] > '07:00:00';
+    }
+    return false;
+  };
   
   useEffect(() => {
     if (!rombel && rombelOptions.length > 0) {
@@ -100,8 +116,17 @@ export default function PresensiPage() {
           mergedAbsensi[m.id_user].catatan = mergedAbsensi[m.id_user].catatan.replace('NFC:', 'Tap NFC:');
         }
       }
-      else if (nfcMap[m.id_user]) mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: `Tap NFC: ${nfcMap[m.id_user].jam_datang || '-'}` };
-      else mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: '' };
+      else if (nfcMap[m.id_user]) {
+        const jam = nfcMap[m.id_user].jam_datang;
+        if (isLate(jam)) {
+          mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: 'Terlambat' };
+        } else {
+          mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: 'Tap NFC' };
+        }
+      }
+      else {
+        mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: '' };
+      }
     });
 
     return { isHoliday: false, holidayName: '', murid: murid || [], nfcMap, mergedAbsensi };
@@ -201,13 +226,12 @@ export default function PresensiPage() {
     }
   };
 
-  const statusOptions = ['Hadir', 'Sakit', 'Izin', 'Alfa', 'Dispen'];
+  const statusOptions = ['Hadir', 'Sakit', 'Izin', 'Alfa'];
   const statusColors = {
     Hadir: 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
     Sakit: 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
     Izin: 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20',
     Alfa: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20',
-    Dispen: 'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20',
   };
   const activeStatusColors = {
     Semua: 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 border-transparent shadow-md',
@@ -215,7 +239,6 @@ export default function PresensiPage() {
     Sakit: 'bg-amber-500 text-white border-transparent shadow-md shadow-amber-500/20',
     Izin: 'bg-blue-500 text-white border-transparent shadow-md shadow-blue-500/20',
     Alfa: 'bg-rose-500 text-white border-transparent shadow-md shadow-rose-500/20',
-    Dispen: 'bg-purple-500 text-white border-transparent shadow-md shadow-purple-500/20',
   };
 
   const summary = statusOptions.reduce((acc, s) => {
@@ -379,7 +402,7 @@ export default function PresensiPage() {
                     {nfcData[m.id_user] ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold shadow-sm">
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-                        {nfcData[m.id_user].jam_datang || 'Tap'}
+                        {formatTime(nfcData[m.id_user].jam_datang) || 'Tap'}
                       </span>
                     ) : (
                       <span className="text-slate-300 dark:text-slate-600 text-xs">-</span>
