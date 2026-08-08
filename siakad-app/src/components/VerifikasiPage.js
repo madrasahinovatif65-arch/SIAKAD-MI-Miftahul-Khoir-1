@@ -49,6 +49,15 @@ export default function VerifikasiPage() {
     return (data || []).map(d => d.tanggal);
   });
 
+  const { data: verifiedDates } = useSWR('verified_dates_guru', async () => {
+    const { data } = await supabase.from('verifikasi_guru').select('tanggal');
+    const uniqueDates = [...new Set((data || []).map(d => d.tanggal))];
+    return uniqueDates.map(d => {
+      const [y, m, day] = d.split('-');
+      return new Date(y, m - 1, day);
+    });
+  });
+
   const getDayClassName = (date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -355,6 +364,7 @@ export default function VerifikasiPage() {
               dateFormat="dd-MM-yyyy"
               locale="id"
               todayButton="Hari Ini"
+              highlightDates={verifiedDates || []}
               dayClassName={getDayClassName}
               className="pl-4 pr-10 py-2.5 h-[42px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm text-left font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm w-full z-50 relative"
               portalId="root-portal"
