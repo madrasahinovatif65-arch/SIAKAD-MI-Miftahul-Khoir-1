@@ -17,12 +17,18 @@ export default function AbsenGPSWidget() {
 
   const { data: todayStatus, mutate: reloadStatus } = useSWR(user ? `absen_gps_${user.id_user}` : null, async () => {
     const today = new Date().toISOString().split('T')[0];
-    const { data: nfcData } = await supabase.from('view_rekap_absensi_nfc').select('*').eq('tanggal', today).eq('id_user', user.id_user).single();
-    if (nfcData) return { type: 'nfc', data: nfcData, message: `Sudah absen via NFC (${nfcData.jam_datang || '-'}).` };
+    
+    // Cek Hari Libur
+    const { data: libur } = await supabase.from('master_libur').select('*').eq('tanggal', today).single();
+    if (libur) return { type: 'holiday', message: `Hari libur: ${libur.keterangan}. Absensi ditolak.` };
+
+    const todayDate = new Date();
+    if (todayDate.getDay() === 0) return { type: 'holiday', message: 'Hari Minggu. Absensi ditolak.' };
 
     const { data: gpsData } = await supabase.from('log_gps_guru').select('*').eq('tanggal', today).eq('id_guru', user.id_user).single();
     if (gpsData) return { type: 'already', data: gpsData, message: `Sudah absen GPS pukul ${gpsData.waktu} (${gpsData.status}).` };
-    return null;
+    
+    return { type: 'idle' };
   });
 
   useEffect(() => {
@@ -53,9 +59,38 @@ export default function AbsenGPSWidget() {
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const { latitude, longitude, accuracy } = pos.coords;
+        const { latitude, longitude } = pos.coords;
         const distance = calculateDistance(latitude, longitude, SCHOOL_LAT, SCHOOL_LNG);
-        setLocation({ latitude, longitude, accuracy, distance });
+        setLocation({ latitude, longitude, distance });
+        
+        // Cek Jam Pulang
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        const isFriday = now.getDay() === 5;
+        
+        let canAbsen = false;
+        let timeMessage = '';
+        if (isFriday) {
+           if (currentHour > 10 || (currentHour === 10 && currentMinute >= 30)) {
+             canAbsen = true;
+           } else {
+             timeMessage = 'Absen pulang hari Jumat baru bisa dilakukan mulai jam 10:30.';
+           }
+        } else {
+           if (currentHour >= 12) {
+             canAbsen = true;
+           } else {
+             timeMessage = 'Absen pulang baru bisa dilakukan mulai jam 12:00.';
+           }
+        }
+
+        if (!canAbsen) {
+          setStatus('error');
+          setMessage(timeMessage);
+          return;
+        }
+
         setStatus('ready');
         setMessage(distance <= RADIUS 
           ? `📍 Anda berada di dalam radius sekolah.`
@@ -88,7 +123,7 @@ export default function AbsenGPSWidget() {
       waktu,
       latitude: location.latitude,
       longitude: location.longitude,
-      akurasi: Math.round(location.accuracy),
+      akurasi: 0,
       jarak_meter: Math.round(location.distance),
       status: location.distance <= RADIUS ? 'Menunggu Verifikasi' : 'Di Luar Radius',
     }, { onConflict: 'tanggal,id_guru' });
@@ -105,7 +140,7 @@ export default function AbsenGPSWidget() {
 
   if (!user || (user.role !== 'Wali Kelas' && user.role !== 'Guru Mapel')) return null;
 
-  const isDone = status === 'nfc' || status === 'already' || status === 'done';
+  const isDone = status === 'holiday' || status === 'already' || status === 'done';
 
   return (
     <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-[2rem] p-6 lg:p-8 border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
@@ -126,18 +161,15 @@ export default function AbsenGPSWidget() {
           </div>
           <div>
             <h3 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white">
-              Absen Kehadiran {isDone ? 'Selesai' : 'GPS'}
+              Absen Kehadiran {isDone ? 'Selesai / Ditutup' : 'GPS'}
             </h3>
-            <p className={`text-sm mt-1 font-medium ${isDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
-              {message || 'Lakukan absensi kehadiran berbasis lokasi sekarang'}
+            <p className={`text-sm mt-1 font-medium ${isDone ? (status === 'holiday' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400') : 'text-slate-500 dark:text-slate-400'}`}>
+              {message || 'Lakukan absensi pulang berbasis lokasi sekarang'}
             </p>
-            {location && !isDone && (
+            {location && status === 'ready' && !isDone && (
               <div className="mt-3 flex items-center gap-2 text-[11px] sm:text-xs font-semibold flex-wrap">
                 <span className="bg-slate-100 dark:bg-white/5 px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
                   Jarak: <span className={location.distance <= RADIUS ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>{Math.round(location.distance)} meter</span>
-                </span>
-                <span className="bg-slate-100 dark:bg-white/5 px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
-                  Akurasi: {Math.round(location.accuracy)} meter
                 </span>
               </div>
             )}
