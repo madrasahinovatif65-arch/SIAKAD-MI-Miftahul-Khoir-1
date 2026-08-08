@@ -504,7 +504,7 @@ export default function PresensiPage() {
 
       {/* Save Button */}
       {!isHoliday && muridList.length > 0 && (
-        <div className="sticky bottom-4 z-20 flex justify-end">
+        <div className="fixed md:sticky bottom-0 md:bottom-4 left-0 right-0 w-full md:w-auto p-4 md:p-0 bg-white/90 md:bg-transparent dark:bg-slate-900/90 md:dark:bg-transparent backdrop-blur-md md:backdrop-blur-none border-t border-slate-200 dark:border-white/10 md:border-none z-50 md:z-20 flex justify-end">
           <button
             onClick={handleSave}
             disabled={saving}
