@@ -116,15 +116,14 @@ export default function RekapPage() {
           <thead>
             <tr style="background-color: #e2e8f0;">
               <th>No</th>
-              <th>NISN</th>
               <th style="text-align: left;">Nama Murid</th>
               ${rombel === 'Semua' ? '<th>Rombel</th>' : ''}
               <th>Hadir</th>
               <th>Sakit</th>
               <th>Izin</th>
+              <th>Alfa</th>
               <th>Total</th>
               <th>Persentase</th>
-              <th>Alfa</th>
             </tr>
           </thead>
           <tbody>
@@ -142,15 +141,14 @@ export default function RekapPage() {
       html += `
         <tr>
           <td>${idx + 1}</td>
-          <td>${m.id_user}</td>
           <td style="text-align: left;">${m.nama}</td>
           ${rombel === 'Semua' ? `<td>${m.rombel}</td>` : ''}
           <td>${hadir || '-'}</td>
           <td>${sakit || '-'}</td>
           <td>${izin || '-'}</td>
+          <td>${alfa || '-'}</td>
           <td>${total || '-'}</td>
           <td>${persentase}</td>
-          <td>${alfa || '-'}</td>
         </tr>
       `;
     });
@@ -325,7 +323,6 @@ export default function RekapPage() {
               <thead>
                 <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 print:bg-gray-200 print:border-black">
                   <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider print:w-[3%]">No</th>
-                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider print:w-[15%]">NISN</th>
                   <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider col-nama">Nama Murid</th>
                   {rombel === 'Semua' && (
                     <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider print:w-[10%]">Rombel</th>
@@ -333,9 +330,9 @@ export default function RekapPage() {
                   <th className="px-5 py-4 text-xs font-bold text-emerald-600 dark:text-emerald-400 print:text-black text-center uppercase tracking-wider print:w-[5%]">Hadir</th>
                   <th className="px-5 py-4 text-xs font-bold text-amber-600 dark:text-amber-400 print:text-black text-center uppercase tracking-wider print:w-[5%]">Sakit</th>
                   <th className="px-5 py-4 text-xs font-bold text-blue-600 dark:text-blue-400 print:text-black text-center uppercase tracking-wider print:w-[5%]">Izin</th>
+                  <th className="px-5 py-4 text-xs font-bold text-rose-600 dark:text-rose-400 print:text-black text-center uppercase tracking-wider print:w-[5%]">Alfa</th>
                   <th className="px-5 py-4 text-xs font-bold text-purple-600 dark:text-purple-400 print:text-black text-center uppercase tracking-wider print:w-[6%]">Total</th>
                   <th className="px-5 py-4 text-xs font-bold text-indigo-600 dark:text-indigo-400 print:text-black text-center uppercase tracking-wider print:w-[8%]">%</th>
-                  <th className="px-5 py-4 text-xs font-bold text-rose-600 dark:text-rose-400 print:text-black text-center uppercase tracking-wider print:w-[5%]">Alfa</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/5 print:divide-black/20">
@@ -361,7 +358,6 @@ export default function RekapPage() {
                       return (
                         <tr key={m.id_user} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group print:hover:bg-transparent">
                           <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 print:text-black print:px-2 print:py-2">{idx + 1}</td>
-                          <td className="px-5 py-3 text-sm text-slate-400 dark:text-slate-500 font-mono print:text-black print:px-2 print:py-2">{m.id_user}</td>
                           <td className="px-5 py-3 text-sm text-slate-800 dark:text-white print:text-black font-semibold print:px-2 print:py-2 col-nama">{m.nama}</td>
                           {rombel === 'Semua' && (
                             <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 print:text-black print:px-2 print:py-2">
@@ -371,15 +367,15 @@ export default function RekapPage() {
                           <td className="px-5 py-3 text-sm text-emerald-600 dark:text-emerald-400 print:text-black text-center font-bold bg-emerald-50/30 dark:bg-emerald-500/5 print:bg-transparent print:px-2 print:py-2">{hadir || '-'}</td>
                           <td className="px-5 py-3 text-sm text-amber-600 dark:text-amber-400 print:text-black text-center font-bold bg-amber-50/30 dark:bg-amber-500/5 print:bg-transparent print:px-2 print:py-2">{sakit || '-'}</td>
                           <td className="px-5 py-3 text-sm text-blue-600 dark:text-blue-400 print:text-black text-center font-bold bg-blue-50/30 dark:bg-blue-500/5 print:bg-transparent print:px-2 print:py-2">{izin || '-'}</td>
+                          <td className="px-5 py-3 text-sm text-rose-600 dark:text-rose-400 print:text-black text-center font-bold bg-rose-50/30 dark:bg-rose-500/5 print:bg-transparent print:px-2 print:py-2">{alfa || '-'}</td>
                           <td className="px-5 py-3 text-sm text-purple-600 dark:text-purple-400 print:text-black text-center font-bold bg-purple-50/30 dark:bg-purple-500/5 print:bg-transparent print:px-2 print:py-2">{total || '-'}</td>
                           <td className="px-5 py-3 text-sm text-indigo-600 dark:text-indigo-400 print:text-black text-center font-bold bg-indigo-50/30 dark:bg-indigo-500/5 print:bg-transparent print:px-2 print:py-2">{persentase}</td>
-                          <td className="px-5 py-3 text-sm text-rose-600 dark:text-rose-400 print:text-black text-center font-bold bg-rose-50/30 dark:bg-rose-500/5 print:bg-transparent print:px-2 print:py-2">{alfa || '-'}</td>
                         </tr>
                       );
                     })}
                     {/* Baris Tanda Tangan Menyatu dengan Tabel (Tanpa Border) */}
                     <tr className="print:table-row hidden print-no-border">
-                      <td colSpan={rombel === 'Semua' ? 10 : 9} className="pt-12 pb-8">
+                      <td colSpan={rombel === 'Semua' ? 9 : 8} className="pt-12 pb-8">
                         <div className="flex justify-between items-end px-12 text-center text-sm text-black w-full">
                           <div className="flex flex-col items-center">
                             <p>Disiapkan Oleh,</p>
