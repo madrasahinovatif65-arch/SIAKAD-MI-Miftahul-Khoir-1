@@ -319,20 +319,20 @@ export default function RekapPage() {
         {/* Tabel */}
         <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm print:border-none print:shadow-none print:rounded-none print:bg-transparent print:overflow-visible">
           <div className="overflow-x-auto print:overflow-visible">
-            <table className="w-full text-left border-collapse print:text-black print:bg-white print:table-fixed">
+            <table className="w-full text-left border-collapse print:text-black print:bg-white print:table-auto">
               <thead>
                 <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 print:bg-gray-200 print:border-black">
-                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider text-center print:w-[5%]">No</th>
+                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider text-center">No</th>
                   <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider col-nama">Nama Murid</th>
                   {rombel === 'Semua' && (
-                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider print:w-[10%]">Rombel</th>
+                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider">Rombel</th>
                   )}
-                  <th className="px-5 py-4 text-xs font-bold text-emerald-600 dark:text-emerald-400 print:text-black text-center uppercase tracking-wider print:w-[5%]">Hadir</th>
-                  <th className="px-5 py-4 text-xs font-bold text-amber-600 dark:text-amber-400 print:text-black text-center uppercase tracking-wider print:w-[5%]">Sakit</th>
-                  <th className="px-5 py-4 text-xs font-bold text-blue-600 dark:text-blue-400 print:text-black text-center uppercase tracking-wider print:w-[5%]">Izin</th>
-                  <th className="px-5 py-4 text-xs font-bold text-rose-600 dark:text-rose-400 print:text-black text-center uppercase tracking-wider print:w-[5%]">Alfa</th>
-                  <th className="px-5 py-4 text-xs font-bold text-purple-600 dark:text-purple-400 print:text-black text-center uppercase tracking-wider print:w-[6%]">Total</th>
-                  <th className="px-5 py-4 text-xs font-bold text-indigo-600 dark:text-indigo-400 print:text-black text-center uppercase tracking-wider print:w-[8%]">%</th>
+                  <th className="px-5 py-4 text-xs font-bold text-emerald-600 dark:text-emerald-400 print:text-black text-center uppercase tracking-wider">Hadir</th>
+                  <th className="px-5 py-4 text-xs font-bold text-amber-600 dark:text-amber-400 print:text-black text-center uppercase tracking-wider">Sakit</th>
+                  <th className="px-5 py-4 text-xs font-bold text-blue-600 dark:text-blue-400 print:text-black text-center uppercase tracking-wider">Izin</th>
+                  <th className="px-5 py-4 text-xs font-bold text-rose-600 dark:text-rose-400 print:text-black text-center uppercase tracking-wider">Alfa</th>
+                  <th className="px-5 py-4 text-xs font-bold text-purple-600 dark:text-purple-400 print:text-black text-center uppercase tracking-wider">Total</th>
+                  <th className="px-5 py-4 text-xs font-bold text-indigo-600 dark:text-indigo-400 print:text-black text-center uppercase tracking-wider">%</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/5 print:divide-black/20">
