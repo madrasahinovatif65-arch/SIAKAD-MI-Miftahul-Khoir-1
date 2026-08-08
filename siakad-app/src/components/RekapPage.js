@@ -115,7 +115,7 @@ export default function RekapPage() {
         <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; font-size: 10pt; text-align: center;">
           <thead>
             <tr style="background-color: #e2e8f0;">
-              <th>No</th>
+              <th style="width: 5%;">No</th>
               <th style="text-align: left;">Nama Murid</th>
               ${rombel === 'Semua' ? '<th>Rombel</th>' : ''}
               <th>Hadir</th>
@@ -322,7 +322,7 @@ export default function RekapPage() {
             <table className="w-full text-left border-collapse print:text-black print:bg-white print:table-fixed">
               <thead>
                 <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 print:bg-gray-200 print:border-black">
-                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider print:w-[3%]">No</th>
+                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider text-center print:w-[5%]">No</th>
                   <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider col-nama">Nama Murid</th>
                   {rombel === 'Semua' && (
                     <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider print:w-[10%]">Rombel</th>
@@ -357,7 +357,7 @@ export default function RekapPage() {
 
                       return (
                         <tr key={m.id_user} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group print:hover:bg-transparent">
-                          <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 print:text-black print:px-2 print:py-2">{idx + 1}</td>
+                          <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 print:text-black print:px-2 print:py-2 text-center">{idx + 1}</td>
                           <td className="px-5 py-3 text-sm text-slate-800 dark:text-white print:text-black font-semibold print:px-2 print:py-2 col-nama">{m.nama}</td>
                           {rombel === 'Semua' && (
                             <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 print:text-black print:px-2 print:py-2">
@@ -412,7 +412,7 @@ export default function RekapPage() {
           thead { display: table-header-group; }
           
           /* Kolom mengecil sesuai isi teks agar menghemat tempat, kecuali kolom nama */
-          th, td { border: 1px solid #000; padding: 4px 6px; color: #000 !important; font-size: 11px; white-space: nowrap; }
+          th, td { border: 1px solid #000; padding: 6px 10px; color: #000 !important; font-size: 11px; white-space: nowrap; }
           
           /* Kolom Nama Murid akan melar dan wrap text */
           .col-nama { white-space: normal !important; width: auto !important; word-wrap: break-word; }
