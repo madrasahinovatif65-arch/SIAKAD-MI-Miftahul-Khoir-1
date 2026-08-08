@@ -221,7 +221,7 @@ export default function RiwayatGuruPage() {
           </tbody>
         </table>
         
-        <br>
+        <br><br><br>
         <table style="width: 100%; text-align: center; border: none; font-size: 11pt;">
           <tr>
             <td style="width: 50%; border: none;">
@@ -484,7 +484,7 @@ export default function RiwayatGuruPage() {
                 {/* Baris Tanda Tangan Menyatu dengan Tabel (Tanpa Border) */}
                 {!loading && (
                   <tr className="print:table-row hidden print-no-border">
-                    <td colSpan={isAdmin ? 8 : 5} className="pt-6 pb-2">
+                    <td colSpan={isAdmin ? 8 : 5} className="pt-12 pb-2">
                       <div className="flex justify-between items-end px-12 text-center text-xs text-black w-full">
                         <div className="flex flex-col items-center">
                           <p className="text-transparent select-none">.</p>

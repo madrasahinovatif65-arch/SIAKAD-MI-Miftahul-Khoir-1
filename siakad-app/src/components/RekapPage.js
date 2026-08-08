@@ -471,7 +471,7 @@ export default function RekapPage() {
                         })}
                         {/* Baris Tanda Tangan Menyatu dengan Tabel (Tanpa Border) */}
                         <tr className="print:table-row print-no-border">
-                          <td colSpan={8} className="pt-6 pb-2">
+                          <td colSpan={8} className="pt-12 pb-2">
                             <div className="flex justify-between items-end px-12 text-center text-xs text-black w-full">
                               <div className="flex flex-col items-center">
                                 <p className="text-transparent select-none">.</p>
