@@ -161,20 +161,31 @@ export default function RiwayatGuruPage() {
           <th>Sakit</th>
           <th>Izin</th>
           <th>Alfa</th>
+          <th>Total</th>
+          <th>%</th>
         </tr>
       </thead><tbody>
       `;
       if (swrData?.guruList?.length > 0) {
         swrData.guruList.forEach((guru, idx) => {
           const r = swrData.rekapData[guru.id_user];
+          const hadir = r.Hadir || 0;
+          const sakit = r.Sakit || 0;
+          const izin = r.Izin || 0;
+          const alfa = r.Alfa || 0;
+          const total = hadir + sakit + izin + alfa;
+          const persen = total === 0 ? 0 : Math.round((hadir / total) * 100);
+          
           html += `
             <tr>
               <td style="width: 5%;">${idx + 1}</td>
               <td class="text-left">${guru.nama}</td>
-              <td>${r.Hadir || '-'}</td>
-              <td>${r.Sakit || '-'}</td>
-              <td>${r.Izin || '-'}</td>
-              <td>${r.Alfa || '-'}</td>
+              <td>${hadir || '-'}</td>
+              <td>${sakit || '-'}</td>
+              <td>${izin || '-'}</td>
+              <td>${alfa || '-'}</td>
+              <td>${total || '-'}</td>
+              <td>${persen > 0 ? persen + '%' : '-'}</td>
             </tr>
           `;
         });
@@ -399,12 +410,14 @@ export default function RiwayatGuruPage() {
               <thead>
                 {isAdmin ? (
                   <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 print:bg-gray-200 print:border-black/50">
-                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider">No</th>
+                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider text-center">No</th>
                     <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider col-nama">Nama Guru</th>
                     <th className="px-5 py-4 text-xs font-bold text-emerald-600 dark:text-emerald-400 print:text-black text-center uppercase tracking-wider">Hadir</th>
                     <th className="px-5 py-4 text-xs font-bold text-amber-600 dark:text-amber-400 print:text-black text-center uppercase tracking-wider">Sakit</th>
                     <th className="px-5 py-4 text-xs font-bold text-emerald-600 dark:text-emerald-400 print:text-black text-center uppercase tracking-wider">Izin</th>
                     <th className="px-5 py-4 text-xs font-bold text-red-600 dark:text-red-400 print:text-black text-center uppercase tracking-wider">Alfa</th>
+                    <th className="px-5 py-4 text-xs font-bold text-purple-600 dark:text-purple-400 print:text-black text-center uppercase tracking-wider">Total</th>
+                    <th className="px-5 py-4 text-xs font-bold text-indigo-600 dark:text-indigo-400 print:text-black text-center uppercase tracking-wider">%</th>
                   </tr>
                 ) : (
                   <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 print:bg-gray-200 print:border-black/50">
@@ -421,19 +434,28 @@ export default function RiwayatGuruPage() {
                   swrData.guruList.length > 0 ? (
                     swrData.guruList.map((guru, idx) => {
                       const r = swrData.rekapData[guru.id_user];
+                      const hadir = r.Hadir || 0;
+                      const sakit = r.Sakit || 0;
+                      const izin = r.Izin || 0;
+                      const alfa = r.Alfa || 0;
+                      const total = hadir + sakit + izin + alfa;
+                      const persen = total === 0 ? 0 : Math.round((hadir / total) * 100);
+                      
                       return (
                         <tr key={guru.id_user} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
-                          <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black">{idx + 1}</td>
-                          <td className="px-5 py-4 text-sm font-medium text-slate-900 dark:text-white print:text-black">{guru.nama}</td>
-                          <td className="px-5 py-4 text-sm text-center font-bold text-emerald-600 dark:text-emerald-400 print:text-black">{r.Hadir || '-'}</td>
-                          <td className="px-5 py-4 text-sm text-center font-bold text-amber-600 dark:text-amber-400 print:text-black">{r.Sakit || '-'}</td>
-                          <td className="px-5 py-4 text-sm text-center font-bold text-emerald-600 dark:text-emerald-400 print:text-black">{r.Izin || '-'}</td>
-                          <td className="px-5 py-4 text-sm text-center font-bold text-red-600 dark:text-red-400 print:text-black">{r.Alfa || '-'}</td>
+                          <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black text-center">{idx + 1}</td>
+                          <td className="px-5 py-4 text-sm font-medium text-slate-900 dark:text-white print:text-black col-nama">{guru.nama}</td>
+                          <td className="px-5 py-4 text-sm text-center font-bold text-emerald-600 dark:text-emerald-400 print:text-black">{hadir || '-'}</td>
+                          <td className="px-5 py-4 text-sm text-center font-bold text-amber-600 dark:text-amber-400 print:text-black">{sakit || '-'}</td>
+                          <td className="px-5 py-4 text-sm text-center font-bold text-emerald-600 dark:text-emerald-400 print:text-black">{izin || '-'}</td>
+                          <td className="px-5 py-4 text-sm text-center font-bold text-red-600 dark:text-red-400 print:text-black">{alfa || '-'}</td>
+                          <td className="px-5 py-4 text-sm text-center font-bold text-purple-600 dark:text-purple-400 print:text-black">{total || '-'}</td>
+                          <td className="px-5 py-4 text-sm text-center font-bold text-indigo-600 dark:text-indigo-400 print:text-black">{persen > 0 ? persen + '%' : '-'}</td>
                         </tr>
                       );
                     })
                   ) : (
-                    <tr><td colSpan="7" className="text-center py-12 text-slate-500 dark:text-slate-400">Belum ada data</td></tr>
+                    <tr><td colSpan="9" className="text-center py-12 text-slate-500 dark:text-slate-400">Belum ada data</td></tr>
                   )
                 ) : (
                   swrData?.history?.length > 0 ? (
@@ -461,7 +483,7 @@ export default function RiwayatGuruPage() {
                 {/* Baris Tanda Tangan Menyatu dengan Tabel (Tanpa Border) */}
                 {!loading && (
                   <tr className="print:table-row hidden print-no-border">
-                    <td colSpan={isAdmin ? 6 : 5} className="pt-6 pb-2">
+                    <td colSpan={isAdmin ? 8 : 5} className="pt-6 pb-2">
                       <div className="flex justify-between items-end px-12 text-center text-xs text-black w-full">
                         <div className="flex flex-col items-center">
                           <p className="text-transparent select-none">.</p>
