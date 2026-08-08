@@ -115,7 +115,37 @@ export default function VerifikasiPage() {
       const nfc = nfcMap[guru.id_user];
       const ver = verMap[guru.id_user];
 
-      let currentStatus = 'Hadir'; // default if they have NFC or GPS
+      let waktu_datang = null;
+      let waktu_pulang = null;
+
+      if (nfc) {
+        if (nfc.jam_datang) waktu_datang = nfc.jam_datang;
+        if (nfc.jam_pulang) waktu_pulang = nfc.jam_pulang;
+      }
+      
+      if (gps) {
+        // Asumsi: jika GPS > jam 10, itu jam pulang. Jika tidak, jam datang.
+        const jamGPS = parseInt(gps.waktu.split(':')[0], 10);
+        if (jamGPS >= 10) {
+          if (!waktu_pulang) waktu_pulang = gps.waktu;
+        } else {
+          if (!waktu_datang) waktu_datang = gps.waktu;
+        }
+      }
+
+      let isLate = false;
+      if (waktu_datang) {
+        const match = waktu_datang.match(/(\d{2})[:.](\d{2})/);
+        if (match) {
+          const h = parseInt(match[1], 10);
+          const m = parseInt(match[2], 10);
+          if (h > 7 || (h === 7 && m > 0)) {
+            isLate = true;
+          }
+        }
+      }
+
+      let currentStatus = 'Hadir'; // default
       let catatan = '';
       let metode = 'Otomatis';
       let waktu = '-';
@@ -125,16 +155,11 @@ export default function VerifikasiPage() {
         waktu = ver.waktu;
         metode = ver.metode;
         catatan = ver.catatan || '';
-      } else if (nfc) {
+      } else if (nfc || gps) {
         currentStatus = 'Hadir';
-        waktu = nfc.jam_datang || '-';
-        metode = 'NFC';
-        catatan = 'Tap NFC';
-      } else if (gps) {
-        currentStatus = gps.status === 'Di Luar Radius' ? 'Di Luar Radius' : 'Menunggu Verifikasi';
-        waktu = gps.waktu;
-        metode = 'GPS';
-        catatan = gps.jarak_meter ? `Jarak: ${gps.jarak_meter}m` : '';
+        metode = (nfc && gps) ? 'NFC+GPS' : (nfc ? 'NFC' : 'GPS');
+        catatan = isLate ? 'Terlambat' : (nfc ? 'Tap NFC' : 'Absen GPS');
+        waktu = waktu_datang || waktu_pulang || '-';
       } else {
         currentStatus = 'Hadir';
         catatan = '';
@@ -145,7 +170,10 @@ export default function VerifikasiPage() {
         status: currentStatus,
         catatan,
         waktu,
+        waktu_datang,
+        waktu_pulang,
         metode,
+        isLate,
         isNFC: !!nfc,
         isGPS: !!gps,
         isVerified: !!ver,
@@ -397,37 +425,52 @@ export default function VerifikasiPage() {
                   <td className="block md:table-cell px-4 py-3 md:px-5 md:py-3 border-b border-slate-50 dark:border-white/5 md:border-none">
                     <div className="flex justify-between items-start md:block">
                       <div>
-                        <div className="text-slate-800 dark:text-white font-medium">
-                          <span className="md:hidden mr-1.5 text-slate-400">{idx + 1}.</span>
+                        <div className="text-slate-800 dark:text-white font-medium flex flex-wrap items-center gap-2">
+                          <span className="md:hidden mr-1 text-slate-400">{idx + 1}.</span>
                           {guru.nama}
+                          {absensi[guru.id_user]?.isLate && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30">Terlambat</span>
+                          )}
                         </div>
                         <div className="text-slate-400 dark:text-slate-500 font-mono text-xs mt-0.5">{guru.role}</div>
                       </div>
-                      <div className="md:hidden mt-1 text-right">
-                        {absensi[guru.id_user]?.metode && absensi[guru.id_user]?.metode !== '-' ? (
-                          <span className="inline-flex flex-col items-end gap-0.5">
-                            <span className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold">
-                              {absensi[guru.id_user]?.metode}
-                            </span>
-                            <span className="text-xs text-slate-500 font-mono">{formatTime(absensi[guru.id_user]?.waktu)}</span>
-                          </span>
-                        ) : (
+                      <div className="md:hidden mt-1 text-right flex flex-col gap-1 items-end">
+                        {absensi[guru.id_user]?.waktu_datang && (
+                           <div className="flex items-center gap-1">
+                             <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">D</span>
+                             <span className="text-xs text-slate-500 font-mono">{formatTime(absensi[guru.id_user]?.waktu_datang)}</span>
+                           </div>
+                        )}
+                        {absensi[guru.id_user]?.waktu_pulang && (
+                           <div className="flex items-center gap-1">
+                             <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">P</span>
+                             <span className="text-xs text-slate-500 font-mono">{formatTime(absensi[guru.id_user]?.waktu_pulang)}</span>
+                           </div>
+                        )}
+                        {(!absensi[guru.id_user]?.waktu_datang && !absensi[guru.id_user]?.waktu_pulang) && (
                           <span className="text-slate-300 dark:text-slate-600 text-[10px] border border-slate-100 dark:border-white/5 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5">-</span>
                         )}
                       </div>
                     </div>
                   </td>
                   <td className="hidden md:table-cell px-5 py-3">
-                    {absensi[guru.id_user]?.metode && absensi[guru.id_user]?.metode !== '-' ? (
-                      <div className="flex flex-col gap-1">
-                        <span className="inline-flex items-center w-max gap-1 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold shadow-sm">
-                          {absensi[guru.id_user]?.metode}
-                        </span>
-                        <span className="text-xs font-mono text-slate-500 dark:text-slate-400">{formatTime(absensi[guru.id_user]?.waktu)}</span>
-                      </div>
-                    ) : (
-                      <span className="text-slate-300 dark:text-slate-600 text-xs">-</span>
-                    )}
+                    <div className="flex flex-col gap-1">
+                      {absensi[guru.id_user]?.waktu_datang && (
+                         <div className="flex items-center gap-1.5">
+                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">D</span>
+                           <span className="text-xs font-mono text-slate-500 dark:text-slate-400">{formatTime(absensi[guru.id_user]?.waktu_datang)}</span>
+                         </div>
+                      )}
+                      {absensi[guru.id_user]?.waktu_pulang && (
+                         <div className="flex items-center gap-1.5">
+                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">P</span>
+                           <span className="text-xs font-mono text-slate-500 dark:text-slate-400">{formatTime(absensi[guru.id_user]?.waktu_pulang)}</span>
+                         </div>
+                      )}
+                      {(!absensi[guru.id_user]?.waktu_datang && !absensi[guru.id_user]?.waktu_pulang) && (
+                        <span className="text-slate-300 dark:text-slate-600 text-xs">-</span>
+                      )}
+                    </div>
                   </td>
                   <td className="block md:table-cell px-4 py-3 md:px-5 md:py-3 border-b border-slate-50 dark:border-white/5 md:border-none">
                     <div className="flex flex-col gap-2">
