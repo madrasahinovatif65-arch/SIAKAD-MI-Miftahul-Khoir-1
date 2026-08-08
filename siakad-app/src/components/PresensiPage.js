@@ -422,7 +422,7 @@ export default function PresensiPage() {
                 <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">Nama</th>
                 <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">NFC</th>
                 <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider text-center">Status</th>
-                <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">Catatan</th>
+                <th className="px-5 py-4 text-slate-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider hidden md:table-cell">Catatan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
@@ -432,6 +432,15 @@ export default function PresensiPage() {
                   <td className="px-5 py-3">
                     <div className="text-slate-800 dark:text-white font-medium">{m.nama}</div>
                     <div className="text-slate-400 dark:text-slate-500 font-mono text-xs mt-0.5">{m.id_user}</div>
+                    <div className="mt-2 md:hidden">
+                      <input
+                        type="text"
+                        value={absensi[m.id_user]?.catatan || ''}
+                        onChange={e => handleCatatanChange(m.id_user, e.target.value)}
+                        placeholder="Catatan..."
+                        className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-white/10 rounded-lg text-slate-700 dark:text-white/80 text-xs py-1.5 px-2.5 focus:outline-none focus:border-emerald-500 transition-colors"
+                      />
+                    </div>
                   </td>
                   <td className="px-5 py-3">
                     {nfcData[m.id_user] ? (
@@ -461,7 +470,7 @@ export default function PresensiPage() {
                       ))}
                     </div>
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="px-5 py-3 hidden md:table-cell">
                     <input
                       type="text"
                       value={absensi[m.id_user]?.catatan || ''}
