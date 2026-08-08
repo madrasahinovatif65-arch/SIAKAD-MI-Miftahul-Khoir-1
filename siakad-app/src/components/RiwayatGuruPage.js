@@ -16,7 +16,7 @@ export default function RiwayatGuruPage() {
     if (isAdmin) {
       // Admin: lihat semua guru
       const { data: verData } = await supabase
-        .from('verifikasi_gps_guru')
+        .from('verifikasi_guru')
         .select('*')
         .gte('tanggal', startDate)
         .lte('tanggal', endDate)
@@ -25,7 +25,7 @@ export default function RiwayatGuruPage() {
     } else {
       // Guru: lihat riwayat sendiri
       const { data: verData } = await supabase
-        .from('verifikasi_gps_guru')
+        .from('verifikasi_guru')
         .select('*')
         .eq('id_guru', user.id_user)
         .gte('tanggal', startDate)
