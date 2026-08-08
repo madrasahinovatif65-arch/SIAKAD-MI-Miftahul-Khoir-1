@@ -315,6 +315,7 @@ export default function PresensiPage() {
               }}
               dateFormat="dd-MM-yyyy"
               locale="id"
+              todayButton="Hari Ini"
               highlightDates={verifiedDates || []}
               dayClassName={getDayClassName}
               className="pl-4 pr-10 py-2.5 h-[42px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm text-center font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm w-full z-50 relative"
@@ -573,6 +574,7 @@ export default function PresensiPage() {
                   onChange={(update) => setDateRange(update)}
                   dateFormat="dd-MM-yyyy"
                   locale="id"
+                  todayButton="Hari Ini"
                   dayClassName={getDayClassName}
                   placeholderText="Pilih tgl mulai - akhir"
                   className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm text-center font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm"
