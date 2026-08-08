@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import useSWR from 'swr';
 import Link from 'next/link';
+import AbsenGPSWidget from '@/components/AbsenGPSWidget';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -310,28 +311,7 @@ export default function DashboardHome() {
         </div>
       )}
         
-        {(user.role === 'Wali Kelas' || user.role === 'Guru Mapel') && (
-          <div className="mt-6">
-            <Link href="/dashboard/absen-gps" className="flex items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-[2rem] p-6 lg:p-8 border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] group hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-rose-100 to-red-50 dark:from-rose-900/40 dark:to-red-900/20 rounded-2xl flex items-center justify-center border border-rose-200/50 dark:border-rose-500/20 shadow-inner group-hover:scale-110 transition-transform">
-                  <svg className="w-8 h-8 text-rose-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white">Absen GPS</h3>
-                  <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">Lakukan absensi kehadiran berbasis lokasi</p>
-                </div>
-              </div>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-50 dark:bg-slate-800 flex shrink-0 items-center justify-center group-hover:bg-rose-50 dark:group-hover:bg-rose-500/20 transition-colors">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400 group-hover:text-rose-500 transition-colors" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                </svg>
-              </div>
-            </Link>
-          </div>
-        )}
+        <AbsenGPSWidget />
 
       {user.role === 'Admin' && chartData && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
