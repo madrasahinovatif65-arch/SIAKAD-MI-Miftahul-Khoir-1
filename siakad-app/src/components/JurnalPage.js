@@ -4,7 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import useSWR from 'swr';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { id } from 'date-fns/locale/id';
 
+registerLocale('id', id);
 export default function JurnalPage() {
   const { user } = useAuth();
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().split('T')[0]);
@@ -160,8 +164,22 @@ export default function JurnalPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="space-y-2">
               <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Tanggal</label>
-              <input type="date" value={tanggal} onChange={e => setTanggal(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm" />
+              <DatePicker
+                selected={new Date(tanggal)}
+                onChange={(date) => {
+                  if (date) {
+                    const y = date.getFullYear();
+                    const m = String(date.getMonth() + 1).padStart(2, '0');
+                    const d = String(date.getDate()).padStart(2, '0');
+                    setTanggal(`${y}-${m}-${d}`);
+                  }
+                }}
+                dateFormat="dd-MM-yyyy"
+                locale="id"
+                todayButton="Hari Ini"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm"
+                portalId="root-portal"
+              />
             </div>
             <div className="space-y-2">
               <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Jam Pelajaran</label>

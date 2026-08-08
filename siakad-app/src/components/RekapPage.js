@@ -4,7 +4,11 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import useSWR from 'swr';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { id } from 'date-fns/locale/id';
 
+registerLocale('id', id);
 export default function RekapPage() {
   const { user } = useAuth();
   const [tglMulai, setTglMulai] = useState(() => {
@@ -116,18 +120,38 @@ export default function RekapPage() {
       <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-4 sm:p-6 shadow-sm print:hidden">
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-4 w-full">
           <div className="flex items-center gap-2 flex-1 sm:flex-none">
-            <input
-              type="date"
-              value={tglMulai}
-              onChange={e => setTglMulai(e.target.value)}
+            <DatePicker
+              selected={new Date(tglMulai)}
+              onChange={(date) => {
+                if (date) {
+                  const y = date.getFullYear();
+                  const m = String(date.getMonth() + 1).padStart(2, '0');
+                  const d = String(date.getDate()).padStart(2, '0');
+                  setTglMulai(`${y}-${m}-${d}`);
+                }
+              }}
+              dateFormat="dd-MM-yyyy"
+              locale="id"
+              todayButton="Hari Ini"
               className="w-full sm:w-auto px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm"
+              portalId="root-portal"
             />
             <span className="text-slate-500 dark:text-slate-400 font-medium">s/d</span>
-            <input
-              type="date"
-              value={tglAkhir}
-              onChange={e => setTglAkhir(e.target.value)}
+            <DatePicker
+              selected={new Date(tglAkhir)}
+              onChange={(date) => {
+                if (date) {
+                  const y = date.getFullYear();
+                  const m = String(date.getMonth() + 1).padStart(2, '0');
+                  const d = String(date.getDate()).padStart(2, '0');
+                  setTglAkhir(`${y}-${m}-${d}`);
+                }
+              }}
+              dateFormat="dd-MM-yyyy"
+              locale="id"
+              todayButton="Hari Ini"
               className="w-full sm:w-auto px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm"
+              portalId="root-portal"
             />
           </div>
           {user?.role === 'Admin' && (
