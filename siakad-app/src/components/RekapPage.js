@@ -68,18 +68,103 @@ export default function RekapPage() {
   const muridData = swrData?.muridData || [];
   const rekapData = swrData?.rekapData || {};
 
-  const handleExportExcel = () => {
-    let csv = 'NISN,Nama Murid,Rombel,Hadir,Sakit,Izin,Alfa\\n';
-    muridData.forEach(m => {
+  const formatDateString = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+  };
+
+  const handleExportWord = () => {
+    let html = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+      <head><meta charset="utf-8"><title>Rekapitulasi Presensi</title></head>
+      <body style="font-family: Arial, sans-serif;">
+        
+        <table style="width: 100%; border-bottom: 3px solid black; margin-bottom: 20px; border-collapse: collapse;">
+          <tr>
+            <td style="width: 15%; text-align: left; vertical-align: middle;">
+              <!-- Placeholder untuk logo jika diperlukan, karena URL relatif tidak akan ter-load di Word -->
+            </td>
+            <td style="width: 85%; text-align: center; vertical-align: middle;">
+              <h3 style="margin: 0; font-size: 16pt;">Yayasan NU Miftakhul Khoir Damarjati</h3>
+              <h2 style="margin: 0; font-size: 20pt; color: #15803d;">MI Miftahul Khoir 1 Karangrejo</h2>
+              <p style="margin: 5px 0 0 0; font-size: 9pt;">NPSN: 60716857 | Jl. Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo, Kec. Purwosari, Kabupaten Pasuruan</p>
+            </td>
+          </tr>
+        </table>
+        
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h3 style="margin: 0; font-size: 14pt;">Laporan Rekapitulasi Presensi Bulanan</h3>
+          <p style="margin: 5px 0;">Periode: ${formatDateString(tglMulai)} s.d. ${formatDateString(tglAkhir)}</p>
+          <p style="margin: 0;">Kelas/Rombel: <b>${rombel}</b></p>
+        </div>
+
+        <h4 style="color: #166534; font-size: 11pt; margin-bottom: 10px;">1. REKAPITULASI KEHADIRAN SISWA</h4>
+
+        <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; font-size: 10pt; text-align: center;">
+          <thead>
+            <tr style="background-color: #e2e8f0;">
+              <th>No</th>
+              <th>NISN</th>
+              <th style="text-align: left;">Nama Murid</th>
+              ${rombel === 'Semua' ? '<th>Rombel</th>' : ''}
+              <th>Hadir</th>
+              <th>Sakit</th>
+              <th>Izin</th>
+              <th>Alfa</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    muridData.forEach((m, idx) => {
       const r = rekapData[m.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
-      csv += `"${m.id_user}","${m.nama}","${m.rombel}",${r.Hadir},${r.Sakit},${r.Izin},${r.Alfa}\\n`;
+      html += `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${m.id_user}</td>
+          <td style="text-align: left;">${m.nama}</td>
+          ${rombel === 'Semua' ? `<td>${m.rombel}</td>` : ''}
+          <td>${r.Hadir || '-'}</td>
+          <td>${r.Sakit || '-'}</td>
+          <td>${r.Izin || '-'}</td>
+          <td>${r.Alfa || '-'}</td>
+        </tr>
+      `;
     });
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    html += `
+          </tbody>
+        </table>
+        <br><br><br>
+        <table style="width: 100%; text-align: center; border: none; font-size: 11pt;">
+          <tr>
+            <td style="width: 50%; border: none;">
+              <p>Disiapkan Oleh,</p>
+              <p><b>WALI KELAS ${rombel === 'Semua' ? '...' : rombel}</b></p>
+              <br><br><br>
+              <p><b><u>Muhammad Ridwan, S.Pd.</u></b></p>
+              <p style="margin-top: 0;">-</p>
+            </td>
+            <td style="width: 50%; border: none;">
+              <p>Mengetahui Kepala Madrasah,</p>
+              <p><b>MI Miftahul Khoir 1 Karangrejo</b></p>
+              <br><br><br>
+              <p><b><u>Nur Su'ud, S.Pd.I.</u></b></p>
+              <p style="margin-top: 0;">-</p>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob(['\\ufeff', html], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `Rekap_Absensi_${rombel}_${tglMulai}_sd_${tglAkhir}.csv`);
+    link.setAttribute('download', `Rekap_Absensi_${rombel}_${tglMulai}_sd_${tglAkhir}.doc`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -87,13 +172,6 @@ export default function RekapPage() {
 
   const handlePrint = () => {
     window.print();
-  };
-
-  const formatDateString = (dateStr) => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
   };
 
   return (
@@ -106,19 +184,19 @@ export default function RekapPage() {
           </div>
           
           <div className="flex flex-wrap gap-2">
-            <button onClick={handleExportExcel}
-              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-xl text-sm font-semibold transition-all shadow-sm">
+            <button onClick={handleExportWord}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 rounded-xl text-sm font-semibold transition-all shadow-sm">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
               </svg>
-              Export Excel
+              Export Word
             </button>
             <button onClick={handlePrint}
-              className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 rounded-xl text-sm font-semibold transition-all shadow-sm">
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-xl text-sm font-semibold transition-all shadow-sm">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0v3.396c0 .63.508 1.141 1.141 1.141h8.218c.633 0 1.141-.51 1.141-1.141V8.25Z" />
               </svg>
-              Print
+              Print Cetak
             </button>
           </div>
         </div>
@@ -194,7 +272,7 @@ export default function RekapPage() {
 
       <div className="print-container">
         {/* Header Print */}
-        <div className="hidden print:block mb-8">
+        <div className="hidden print:block mb-6 pt-2">
           <div className="flex items-center gap-6 mb-4 border-b-[3px] border-black pb-4 relative">
             <img src="/logo.png" alt="Logo" className="w-24 h-24 object-contain" />
             <div className="flex-1 text-center">
@@ -205,7 +283,7 @@ export default function RekapPage() {
             <div className="absolute bottom-0 left-0 w-full border-b border-black mt-1"></div>
           </div>
           
-          <div className="text-center mt-6 mb-8">
+          <div className="text-center mt-6 mb-6">
             <h3 className="text-lg font-bold text-slate-800">Laporan Rekapitulasi Presensi Bulanan</h3>
             <p className="text-sm text-slate-600 mt-1">Periode: {formatDateString(tglMulai)} s.d. {formatDateString(tglAkhir)}</p>
             <p className="text-sm text-slate-600 mt-0.5">Kelas/Rombel: <span className="font-bold text-green-700">{rombel}</span></p>
@@ -247,44 +325,49 @@ export default function RekapPage() {
                     <td colSpan={10} className="p-8 text-center text-slate-500 dark:text-slate-400 font-medium">Tidak ada data murid di rentang tanggal & rombel ini.</td>
                   </tr>
                 ) : (
-                  muridData.map((m, idx) => {
-                    const r = rekapData[m.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
-                    return (
-                      <tr key={m.id_user} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group print:hover:bg-transparent">
-                        <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 print:text-black">{idx + 1}</td>
-                        <td className="px-5 py-3 text-sm text-slate-400 dark:text-slate-500 font-mono print:text-black">{m.id_user}</td>
-                        <td className="px-5 py-3 text-sm text-slate-800 dark:text-white print:text-black font-semibold">{m.nama}</td>
-                        {rombel === 'Semua' && (
-                          <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 print:text-black">
-                            <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-xs font-bold print:bg-transparent print:p-0">{m.rombel}</span>
-                          </td>
-                        )}
-                        <td className="px-5 py-3 text-sm text-emerald-600 dark:text-emerald-400 print:text-black text-center font-bold bg-emerald-50/30 dark:bg-emerald-500/5 print:bg-transparent">{r.Hadir || '-'}</td>
-                        <td className="px-5 py-3 text-sm text-amber-600 dark:text-amber-400 print:text-black text-center font-bold bg-amber-50/30 dark:bg-amber-500/5 print:bg-transparent">{r.Sakit || '-'}</td>
-                        <td className="px-5 py-3 text-sm text-blue-600 dark:text-blue-400 print:text-black text-center font-bold bg-blue-50/30 dark:bg-blue-500/5 print:bg-transparent">{r.Izin || '-'}</td>
-                        <td className="px-5 py-3 text-sm text-rose-600 dark:text-rose-400 print:text-black text-center font-bold bg-rose-50/30 dark:bg-rose-500/5 print:bg-transparent">{r.Alfa || '-'}</td>
-                      </tr>
-                    );
-                  })
+                  <>
+                    {muridData.map((m, idx) => {
+                      const r = rekapData[m.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
+                      return (
+                        <tr key={m.id_user} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group print:hover:bg-transparent">
+                          <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 print:text-black print:px-3 print:py-2">{idx + 1}</td>
+                          <td className="px-5 py-3 text-sm text-slate-400 dark:text-slate-500 font-mono print:text-black print:px-3 print:py-2">{m.id_user}</td>
+                          <td className="px-5 py-3 text-sm text-slate-800 dark:text-white print:text-black font-semibold print:px-3 print:py-2">{m.nama}</td>
+                          {rombel === 'Semua' && (
+                            <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 print:text-black print:px-3 print:py-2">
+                              <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-xs font-bold print:bg-transparent print:p-0">{m.rombel}</span>
+                            </td>
+                          )}
+                          <td className="px-5 py-3 text-sm text-emerald-600 dark:text-emerald-400 print:text-black text-center font-bold bg-emerald-50/30 dark:bg-emerald-500/5 print:bg-transparent print:px-3 print:py-2">{r.Hadir || '-'}</td>
+                          <td className="px-5 py-3 text-sm text-amber-600 dark:text-amber-400 print:text-black text-center font-bold bg-amber-50/30 dark:bg-amber-500/5 print:bg-transparent print:px-3 print:py-2">{r.Sakit || '-'}</td>
+                          <td className="px-5 py-3 text-sm text-blue-600 dark:text-blue-400 print:text-black text-center font-bold bg-blue-50/30 dark:bg-blue-500/5 print:bg-transparent print:px-3 print:py-2">{r.Izin || '-'}</td>
+                          <td className="px-5 py-3 text-sm text-rose-600 dark:text-rose-400 print:text-black text-center font-bold bg-rose-50/30 dark:bg-rose-500/5 print:bg-transparent print:px-3 print:py-2">{r.Alfa || '-'}</td>
+                        </tr>
+                      );
+                    })}
+                    {/* Baris Tanda Tangan Menyatu dengan Tabel (Tanpa Border) */}
+                    <tr className="print:table-row hidden print-no-border">
+                      <td colSpan={rombel === 'Semua' ? 8 : 7} className="pt-16 pb-8">
+                        <div className="flex justify-between items-end px-12 text-center text-sm text-black w-full">
+                          <div className="flex flex-col items-center">
+                            <p>Disiapkan Oleh,</p>
+                            <p className="font-bold uppercase mt-1">WALI KELAS {rombel === 'Semua' ? '...' : rombel},</p>
+                            <div className="mt-20 border-b border-black w-48 font-bold">Muhammad Ridwan, S.Pd.</div>
+                            <p className="mt-1">-</p>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <p>Mengetahui Kepala Madrasah,</p>
+                            <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
+                            <div className="mt-20 border-b border-black w-56 font-bold">Nur Su'ud, S.Pd.I.</div>
+                            <p className="mt-1">-</p>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  </>
                 )}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        {/* Footer Print */}
-        <div className="hidden print:flex justify-between items-end mt-16 pt-8 px-12 text-center text-sm text-black">
-          <div className="flex flex-col items-center">
-            <p>Disiapkan Oleh,</p>
-            <p className="font-bold uppercase mt-1">WALI KELAS {rombel === 'Semua' ? '...' : rombel},</p>
-            <div className="mt-20 border-b border-black w-48 font-bold">Muhammad Ridwan, S.Pd.</div>
-            <p className="mt-1">-</p>
-          </div>
-          <div className="flex flex-col items-center">
-            <p>Mengetahui Kepala Madrasah,</p>
-            <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
-            <div className="mt-20 border-b border-black w-56 font-bold">Nur Su`ud, S.Pd.I.</div>
-            <p className="mt-1">-</p>
           </div>
         </div>
       </div>
@@ -295,12 +378,16 @@ export default function RekapPage() {
           body { background: white; -webkit-print-color-adjust: exact; }
           body * { visibility: hidden; }
           .print-container, .print-container * { visibility: visible; }
-          .print-container { position: relative; left: 0; top: 0; width: 100%; margin-top: -10px; }
+          .print-container { position: relative; left: 0; top: 0; width: 100%; }
           table { border-collapse: collapse; width: 100%; margin-top: 10px; page-break-inside: auto; }
           tr { page-break-inside: avoid; page-break-after: auto; }
           thead { display: table-header-group; }
           th, td { border: 1px solid #000; padding: 6px 8px; color: #000 !important; font-size: 11px; }
           th { background: #e2e8f0 !important; -webkit-print-color-adjust: exact; }
+          
+          /* Hilangkan border pada baris khusus TTD */
+          .print-no-border, .print-no-border td { border: none !important; }
+
           .print\\:hidden { display: none !important; }
         }
       `}} />
