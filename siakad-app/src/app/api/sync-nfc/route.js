@@ -51,6 +51,28 @@ export async function POST(request) {
     const existingMap = {};
     (existingAbsen || []).forEach(a => { existingMap[a.nisn] = a; });
 
+    const startUTC = new Date(`${targetDate}T00:00:00+07:00`).toISOString();
+    const endUTC = new Date(`${targetDate}T23:59:59+07:00`).toISOString();
+    const { data: rawLogs } = await supabase.from('log_absensi')
+      .select('rfid_uid, waktu')
+      .gte('waktu', startUTC)
+      .lte('waktu', endUTC);
+
+    const rfidToTime = {};
+    (rawLogs || []).forEach(log => {
+      const wibTime = new Date(log.waktu).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
+      if (!rfidToTime[log.rfid_uid] || wibTime < rfidToTime[log.rfid_uid]) {
+        rfidToTime[log.rfid_uid] = wibTime;
+      }
+    });
+
+    const nfcMapData = {};
+    (nfc || []).forEach(n => {
+      const m = murid.find(x => x.id_user === n.id_user);
+      const rawTime = m && rfidToTime[m.rfid_uid] ? rfidToTime[m.rfid_uid] : null;
+      nfcMapData[n.id_user] = rawTime || n.jam_datang || n.jam_pulang;
+    });
+
     // 4. Siapkan data baru (Insert Only)
     const toInsert = [];
     let added = 0;
@@ -60,14 +82,26 @@ export async function POST(request) {
       if (existingMap[m.id_user]) {
         skipped++; // Sudah ada, jangan ditimpa (mungkin hasil edit guru)
       } else {
+        const jam = nfcMapData[m.id_user];
+        const isTap = !!jam;
+        if (isTap) added++; // Only add if they tapped. The original sync-nfc might add them as absent? No, it says "Hadir (Otomatis)".
+        // Wait, original sync-nfc inserted EVERY active student!
         added++;
-        const isTap = !!nfcMap[m.id_user];
+        
+        let catatan = isTap ? 'Tap NFC Mandiri' : 'Hadir (Otomatis)';
+        if (isTap && jam) {
+          const match = jam.match(/\d{2}:\d{2}:\d{2}/);
+          const matchShort = jam.match(/\d{2}:\d{2}/);
+          if ((match && match[0] > '07:00:00') || (matchShort && matchShort[0] > '07:00')) {
+            catatan = 'Terlambat';
+          }
+        }
         toInsert.push({
           tanggal: targetDate,
           nisn: m.id_user,
           rombel: m.rombel,
           status: 'Hadir', // Default selalu hadir (R3 Sinkronisasi)
-          catatan: isTap ? 'Tap NFC Mandiri' : 'Hadir (Otomatis)',
+          catatan: catatan,
           pencatat: 'System',
           metode: isTap ? 'NFC' : 'Otomatis'
         });

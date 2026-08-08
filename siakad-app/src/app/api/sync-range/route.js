@@ -72,39 +72,59 @@ export async function POST(request) {
       .gte('tanggal', tglMulai)
       .lte('tanggal', tglAkhir);
       
-    // Buat Set berisi key 'tanggal_nisn'
-    const nfcSet = new Set((nfcData || []).map(n => `${n.tanggal}_${n.id_user}`));
+    const startUTC = new Date(`${tglMulai}T00:00:00+07:00`).toISOString();
+    const endUTC = new Date(`${tglAkhir}T23:59:59+07:00`).toISOString();
+    const { data: rawLogs } = await supabase.from('log_absensi')
+      .select('rfid_uid, waktu')
+      .gte('waktu', startUTC)
+      .lte('waktu', endUTC);
+
+    const rfidToTime = {};
+    (rawLogs || []).forEach(log => {
+      const wibTime = new Date(log.waktu).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
+      if (!rfidToTime[log.rfid_uid] || wibTime < rfidToTime[log.rfid_uid]) {
+        rfidToTime[log.rfid_uid] = wibTime;
+      }
+    });
+
+    const nfcMapData = {};
+    (nfcData || []).forEach(n => {
+      const m = murid.find(x => x.id_user === n.id_user);
+      const rawTime = m && rfidToTime[m.rfid_uid] ? rfidToTime[m.rfid_uid] : null;
+      nfcMapData[`${n.tanggal}_${n.id_user}`] = rawTime || n.jam_datang || n.jam_pulang;
+    });
 
     // 5. Siapkan array untuk bulk insert
     const toInsert = [];
     let added = 0;
     let skipped = 0;
 
-    // Lakukan iterasi setiap hari dari start sampai end
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       const currentDateString = d.toISOString().split('T')[0];
-
-      // Lewati hari Minggu
       if (d.getDay() === 0) continue;
-      
-      // Lewati hari Libur
       if (liburSet.has(currentDateString)) continue;
 
-      // Iterasi semua murid di kelas ini
       for (const m of murid) {
         const key = `${currentDateString}_${m.id_user}`;
-        
-        // Jika belum ada di data_absensi
         if (existingSet.has(key)) {
           skipped++;
         } else {
-          const isTap = nfcSet.has(key);
+          const jam = nfcMapData[key];
+          const isTap = !!jam;
+          let catatan = isTap ? 'Tap NFC' : 'Hadir (Verifikasi Rentang)';
+          if (isTap && jam) {
+            const match = jam.match(/\d{2}:\d{2}:\d{2}/);
+            const matchShort = jam.match(/\d{2}:\d{2}/);
+            if ((match && match[0] > '07:00:00') || (matchShort && matchShort[0] > '07:00')) {
+              catatan = 'Terlambat';
+            }
+          }
           toInsert.push({
             tanggal: currentDateString,
             nisn: m.id_user,
             rombel: m.rombel,
             status: 'Hadir',
-            catatan: isTap ? 'Tap NFC' : 'Hadir (Verifikasi Rentang)',
+            catatan: catatan,
             pencatat: 'Wali Kelas / Guru',
             metode: isTap ? 'NFC' : 'Otomatis'
           });

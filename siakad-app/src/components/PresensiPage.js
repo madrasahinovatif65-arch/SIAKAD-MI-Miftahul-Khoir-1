@@ -69,15 +69,17 @@ export default function PresensiPage() {
     if (!timeStr || timeStr === '-') return '-';
     const match = timeStr.match(/\d{2}:\d{2}:\d{2}/);
     if (match) return match[0];
+    const matchShort = timeStr.match(/\d{2}:\d{2}/);
+    if (matchShort) return matchShort[0];
     return timeStr;
   };
 
   const isLate = (timeStr) => {
     if (!timeStr || timeStr === '-') return false;
     const match = timeStr.match(/\d{2}:\d{2}:\d{2}/);
-    if (match) {
-      return match[0] > '07:00:00';
-    }
+    if (match) return match[0] > '07:00:00';
+    const matchShort = timeStr.match(/\d{2}:\d{2}/);
+    if (matchShort) return matchShort[0] > '07:00';
     return false;
   };
   
@@ -103,8 +105,33 @@ export default function PresensiPage() {
     const { data: nfc } = await supabase.from('view_rekap_absensi_nfc').select('*').eq('tanggal', tanggal).eq('rombel', rombel);
     const { data: existing } = await supabase.from('data_absensi').select('*').eq('tanggal', tanggal).eq('rombel', rombel);
 
+    const startUTC = new Date(`${tanggal}T00:00:00+07:00`).toISOString();
+    const endUTC = new Date(`${tanggal}T23:59:59+07:00`).toISOString();
+    
+    const { data: rawLogs } = await supabase.from('log_absensi')
+      .select('rfid_uid, waktu')
+      .gte('waktu', startUTC)
+      .lte('waktu', endUTC);
+
+    const rfidToTime = {};
+    (rawLogs || []).forEach(log => {
+      const wibTime = new Date(log.waktu).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
+      if (!rfidToTime[log.rfid_uid] || wibTime < rfidToTime[log.rfid_uid]) {
+        rfidToTime[log.rfid_uid] = wibTime; // get earliest tap
+      }
+    });
+
     const nfcMap = {};
-    (nfc || []).forEach(n => { nfcMap[n.id_user] = n; });
+    (nfc || []).forEach(n => {
+      // Cari rfid_uid dari data murid
+      const m = (murid || []).find(x => x.id_user === n.id_user);
+      const rawTime = m && rfidToTime[m.rfid_uid] ? rfidToTime[m.rfid_uid] : null;
+      
+      nfcMap[n.id_user] = {
+        ...n,
+        jam_datang: rawTime || n.jam_datang || n.jam_pulang // override with rawTime if available
+      };
+    });
     const absensiMap = {};
     (existing || []).forEach(a => { absensiMap[a.nisn] = { status: a.status, catatan: a.catatan || '' }; });
 
@@ -117,7 +144,7 @@ export default function PresensiPage() {
         }
       }
       else if (nfcMap[m.id_user]) {
-        const jam = nfcMap[m.id_user].jam_datang;
+        const jam = nfcMap[m.id_user].jam_datang || nfcMap[m.id_user].jam_pulang;
         if (isLate(jam)) {
           mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: 'Terlambat' };
         } else {
@@ -402,7 +429,7 @@ export default function PresensiPage() {
                     {nfcData[m.id_user] ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold shadow-sm">
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-                        {formatTime(nfcData[m.id_user].jam_datang) || 'Tap'}
+                        {formatTime(nfcData[m.id_user].jam_datang || nfcData[m.id_user].jam_pulang) || 'Tap'}
                       </span>
                     ) : (
                       <span className="text-slate-300 dark:text-slate-600 text-xs">-</span>
