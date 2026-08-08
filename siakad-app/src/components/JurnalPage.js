@@ -78,8 +78,20 @@ export default function JurnalPage() {
   });
 
   const jamOptions = masterData?.jam || [];
-  const mapelOptions = masterData?.mapel || [];
-  const rombelOptions = masterData?.rombel || [];
+  
+  const mapelOptions = user?.role === 'Guru Mapel' && user?.mapel && user.mapel !== '-'
+    ? (masterData?.mapel || []).filter(m => user.mapel.includes(m.nama_mapel))
+    : (masterData?.mapel || []);
+    
+  const rombelOptions = user?.role === 'Wali Kelas' && user?.rombel && user.rombel !== '-'
+    ? [user.rombel]
+    : (masterData?.rombel || []);
+
+  useEffect(() => {
+    if (!mapel && mapelOptions.length === 1) {
+      setMapel(mapelOptions[0].nama_mapel);
+    }
+  }, [mapel, mapelOptions]);
 
   useEffect(() => {
     if (!jamPelajaran && jamOptions.length > 0) {
