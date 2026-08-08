@@ -178,6 +178,7 @@ export default function JurnalPage() {
                   dateFormat="dd-MM-yyyy"
                   locale="id"
                   todayButton="Hari Ini"
+                  wrapperClassName="w-full"
                   className="w-full pl-4 pr-10 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm text-center font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm relative z-50"
                   portalId="root-portal"
                 />
