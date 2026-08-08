@@ -530,7 +530,7 @@ export default function RiwayatGuruPage() {
           .col-nama { white-space: normal !important; width: auto !important; word-wrap: break-word; }
           
           /* Hilangkan border khusus untuk baris tanda tangan */
-          tr.print-no-border > td { border: none !important; padding: 0 !important; }
+          tr.print-no-border > td { border: none !important; }
         }
       `}} />
     </div>
