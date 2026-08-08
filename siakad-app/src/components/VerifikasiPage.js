@@ -186,7 +186,7 @@ export default function VerifikasiPage() {
       } else if (nfc || gps) {
         currentStatus = 'Hadir';
         metode = (nfc && gps) ? 'NFC+GPS' : (nfc ? 'NFC' : 'GPS');
-        catatan = isLate ? 'Terlambat' : (nfc ? 'Tap NFC' : 'Absen GPS');
+        catatan = isLate ? 'Terlambat' : 'Absen Mandiri';
         waktu = waktu_datang || waktu_pulang || '-';
       } else {
         currentStatus = 'Hadir';
@@ -456,9 +456,6 @@ export default function VerifikasiPage() {
                         <div className="text-slate-800 dark:text-white font-medium flex flex-wrap items-center gap-2">
                           <span className="md:hidden mr-1 text-slate-400">{idx + 1}.</span>
                           {guru.nama}
-                          {absensi[guru.id_user]?.isLate && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30">Terlambat</span>
-                          )}
                         </div>
                         <div className="text-slate-400 dark:text-slate-500 font-mono text-xs mt-0.5">{guru.role}</div>
                       </div>
