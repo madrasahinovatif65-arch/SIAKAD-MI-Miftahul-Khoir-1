@@ -108,7 +108,7 @@ export default function AbsenGPSWidget() {
   const isDone = status === 'nfc' || status === 'already' || status === 'done';
 
   return (
-    <div className="mt-6 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-[2rem] p-6 lg:p-8 border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+    <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-[2rem] p-6 lg:p-8 border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         
         {/* Kiri: Info & Status */}

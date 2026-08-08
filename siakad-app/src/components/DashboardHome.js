@@ -215,6 +215,8 @@ export default function DashboardHome() {
         </div>
       </div>
 
+      <AbsenGPSWidget />
+
       {/* Quick Menu Section */}
       <div className="md:hidden">
         <h3 className="text-slate-800 dark:text-white font-bold mb-3 flex items-center gap-2 px-1">
@@ -310,8 +312,6 @@ export default function DashboardHome() {
           })}
         </div>
       )}
-        
-        <AbsenGPSWidget />
 
       {user.role === 'Admin' && chartData && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
