@@ -88,10 +88,10 @@ export default function RekapPage() {
   const getDynamicPadding = () => {
     const count = muridData.length;
     if (count === 0) return '6px';
-    if (count <= 15) return '12px 6px';
-    if (count <= 25) return '8px 6px';
-    if (count <= 35) return '4px 6px';
-    return '2px 6px';
+    if (count <= 20) return '8px 6px';
+    if (count <= 25) return '6px 6px';
+    if (count <= 28) return '5px 6px';
+    return '4px 6px';
   };
 
   const handleExportWord = () => {
@@ -179,7 +179,7 @@ export default function RekapPage() {
               <p>Karangrejo, ${formatDateString(new Date().toISOString())}</p>
               <p>Mengetahui Kepala Madrasah,</p>
               <p><b>MI Miftahul Khoir 1 Karangrejo</b></p>
-              <br><br><br>
+              <br><br><br><br>
               <p><b><u>Nur Su'ud, S.Pd.I.</u></b></p>
               <p style="margin-top: 0;">-</p>
             </td>
@@ -397,7 +397,7 @@ export default function RekapPage() {
                             <p>Karangrejo, {formatDateString(new Date().toISOString())}</p>
                             <p>Mengetahui Kepala Madrasah,</p>
                             <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
-                            <div className="mt-10 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">Nur Su'ud, S.Pd.I.</div>
+                            <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">Nur Su'ud, S.Pd.I.</div>
                             <p className="mt-1">-</p>
                           </div>
                         </div>
