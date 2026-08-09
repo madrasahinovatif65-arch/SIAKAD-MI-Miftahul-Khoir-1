@@ -17,6 +17,7 @@ export default function JurnalPage() {
   const [rombel, setRombel] = useState(user?.rombel !== '-' ? user?.rombel : '');
   const [mapel, setMapel] = useState('');
   const [materi, setMateri] = useState('');
+  const [catatan, setCatatan] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [isHoliday, setIsHoliday] = useState(false);
@@ -134,7 +135,8 @@ export default function JurnalPage() {
     setTanggal(j.tanggal);
     setRombel(j.rombel);
     setMapel(j.mata_pelajaran);
-    setMateri(j.materi_catatan !== '-' ? j.materi_catatan : '');
+    setMateri(j.materi && j.materi !== '-' ? j.materi : '');
+    setCatatan(j.catatan && j.catatan !== '-' ? j.catatan : '');
     
     if (j.jam_pelajaran) {
       if (j.jam_pelajaran.includes('s/d')) {
@@ -196,7 +198,8 @@ export default function JurnalPage() {
       id_guru: user.id_user,
       rombel,
       mata_pelajaran: mapel,
-      materi_catatan: materi || '-',
+      materi: materi || '-',
+      catatan: catatan || '-',
     };
 
     let error;
@@ -238,6 +241,7 @@ export default function JurnalPage() {
     } else {
       setMessage({ type: 'success', text: editId ? 'Jurnal & Absensi Mapel berhasil diperbarui!' : 'Jurnal & Absensi Mapel berhasil disimpan!' });
       setMateri('');
+      setCatatan('');
       setEditId(null);
       mutateRiwayat();
     }
@@ -382,8 +386,13 @@ export default function JurnalPage() {
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Materi / Catatan</label>
+            <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Materi Yang Diajarkan</label>
             <textarea value={materi} onChange={e => setMateri(e.target.value)} rows={3} placeholder="Tuliskan materi yang diajarkan dengan detail..."
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm resize-none" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Catatan Khusus (Opsional)</label>
+            <textarea value={catatan} onChange={e => setCatatan(e.target.value)} rows={2} placeholder="Tuliskan insiden, dinamika kelas, atau catatan khusus lainnya..."
               className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm resize-none" />
           </div>
 
@@ -512,8 +521,13 @@ export default function JurnalPage() {
                     </button>
                   )}
                 </div>
-                {j.materi_catatan && j.materi_catatan !== '-' && (
-                  <p className="text-slate-600 dark:text-slate-400 text-sm pl-2 pt-1 border-t border-slate-100 dark:border-white/5">{j.materi_catatan}</p>
+                {j.materi && j.materi !== '-' && (
+                  <div className="pl-2 pt-1 border-t border-slate-100 dark:border-white/5 space-y-1">
+                    <p className="text-slate-600 dark:text-slate-300 text-sm"><span className="font-semibold text-xs text-slate-400 uppercase tracking-wider block mb-0.5">Materi:</span> {j.materi}</p>
+                    {j.catatan && j.catatan !== '-' && (
+                       <p className="text-slate-500 dark:text-slate-400 text-sm mt-1.5 pt-1.5 border-t border-dashed border-slate-100 dark:border-white/5"><span className="font-semibold text-xs text-slate-400 uppercase tracking-wider block mb-0.5">Catatan:</span> {j.catatan}</p>
+                    )}
+                  </div>
                 )}
               </div>
             ))}

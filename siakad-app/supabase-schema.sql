@@ -107,7 +107,8 @@ CREATE TABLE IF NOT EXISTS jurnal_guru (
   id_guru TEXT NOT NULL REFERENCES master_user(id_user) ON DELETE CASCADE,
   rombel TEXT NOT NULL,
   mata_pelajaran TEXT NOT NULL,
-  materi_catatan TEXT DEFAULT '-',
+  materi TEXT DEFAULT '-',
+  catatan TEXT DEFAULT '-',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
