@@ -41,20 +41,17 @@ export default function JurnalPage() {
   const [absensiMapel, setAbsensiMapel] = useState({});
   const [isAbsenModalOpen, setIsAbsenModalOpen] = useState(false);
 
-  const [filterTglMulai, setFilterTglMulai] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
-  });
+  const [filterTglMulai, setFilterTglMulai] = useState(() => new Date().toISOString().split('T')[0]);
   const [filterTglAkhir, setFilterTglAkhir] = useState(() => new Date().toISOString().split('T')[0]);
   const [filterRombel, setFilterRombel] = useState('Semua');
 
   const { data: siswaData, isLoading: loadingSiswa } = useSWR(rombel && tanggal ? `siswa_absen_${rombel}_${tanggal}` : null, async () => {
     // Ambil murid
     const { data: murid } = await supabase.from('master_user').select('id_user, nama').eq('role', 'Murid').eq('rombel', rombel).order('nama');
-    
+
     // Ambil absen harian pagi ini
     const { data: absenHarian } = await supabase.from('data_absensi').select('nisn, status').eq('tanggal', tanggal).eq('rombel', rombel);
-    
+
     const absenMap = {};
     (absenHarian || []).forEach(a => absenMap[a.nisn] = a.status);
 
@@ -74,29 +71,29 @@ export default function JurnalPage() {
       });
 
       if (editId && editAbsensiMapel) {
-         editAbsensiMapel.forEach(a => draft[a.nisn] = a.status);
-         setAbsensiMapel(draft);
+        editAbsensiMapel.forEach(a => draft[a.nisn] = a.status);
+        setAbsensiMapel(draft);
       } else if (!editId) {
-         // Auto fill
-         siswaData.murid.forEach(m => {
-           draft[m.id_user] = siswaData.absenMap[m.id_user] || 'Hadir';
-         });
-         setAbsensiMapel(draft);
+        // Auto fill
+        siswaData.murid.forEach(m => {
+          draft[m.id_user] = siswaData.absenMap[m.id_user] || 'Hadir';
+        });
+        setAbsensiMapel(draft);
       }
     }
   }, [siswaData, editId, editAbsensiMapel]);
 
   const handleStatusChange = (id_user, status) => {
-  setAbsensiMapel(prev => ({ ...prev, [id_user]: status }));
-};
+    setAbsensiMapel(prev => ({ ...prev, [id_user]: status }));
+  };
 
-// Rekap Absen summary counts
-const rekapAbsen = {
-  Hadir: Object.values(absensiMapel).filter(s => s === 'Hadir').length,
-  Sakit: Object.values(absensiMapel).filter(s => s === 'Sakit').length,
-  Izin: Object.values(absensiMapel).filter(s => s === 'Izin').length,
-  Alfa: Object.values(absensiMapel).filter(s => s === 'Alfa').length,
-};
+  // Rekap Absen summary counts
+  const rekapAbsen = {
+    Hadir: Object.values(absensiMapel).filter(s => s === 'Hadir').length,
+    Sakit: Object.values(absensiMapel).filter(s => s === 'Sakit').length,
+    Izin: Object.values(absensiMapel).filter(s => s === 'Izin').length,
+    Alfa: Object.values(absensiMapel).filter(s => s === 'Alfa').length,
+  };
 
   const { data: masterData } = useSWR('master_jurnal', async () => {
     const [jamRes, mapelRes, rombelRes] = await Promise.all([
@@ -109,11 +106,11 @@ const rekapAbsen = {
   });
 
   const jamOptions = masterData?.jam || [];
-  
+
   const mapelOptions = user?.role === 'Guru Mapel' && user?.mapel && user.mapel !== '-'
     ? (masterData?.mapel || []).filter(m => user.mapel.includes(m.nama_mapel))
     : (masterData?.mapel || []);
-    
+
   const rombelOptions = user?.role === 'Wali Kelas' && user?.rombel && user.rombel !== '-'
     ? [user.rombel]
     : (masterData?.rombel || []);
@@ -142,9 +139,9 @@ const rekapAbsen = {
     if (user.role === 'Admin' && filterRombel !== 'Semua') {
       query = query.eq('rombel', filterRombel);
     } else if (user.role !== 'Admin' && filterTglMulai === '' && filterTglAkhir === '') {
-       query = query.limit(20);
+      query = query.limit(20);
     }
-    
+
     const { data } = await query;
     return data || [];
   });
@@ -177,7 +174,7 @@ const rekapAbsen = {
     setMapel(j.mata_pelajaran);
     setMateri(j.materi && j.materi !== '-' ? j.materi : '');
     setCatatan(j.catatan && j.catatan !== '-' ? j.catatan : '');
-    
+
     if (j.jam_pelajaran) {
       if (j.jam_pelajaran.includes('s/d')) {
         const match = j.jam_pelajaran.match(/^(.*?)\s+s\/d\s+(.*?)\s+\(/);
@@ -205,7 +202,7 @@ const rekapAbsen = {
         }
       }
     }
-    
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -367,7 +364,7 @@ const rekapAbsen = {
         finalJamPelajaran = `${jamObjMulai.nama_jam} s/d ${jamObjSelesai.nama_jam} (${jamObjMulai.waktu_mulai}-${jamObjMulai.waktu_selesai})`;
       }
     }
-    
+
     const payload = {
       tanggal,
       jam_pelajaran: finalJamPelajaran,
@@ -394,20 +391,20 @@ const rekapAbsen = {
       if (editId) {
         await supabase.from('data_absensi_mapel').delete().eq('id_jurnal', editId);
       }
-      
+
       const mapelPayload = [];
       Object.entries(absensiMapel).forEach(([nisn, status]) => {
-         if (status !== 'Hadir') {
-           mapelPayload.push({
-             id_jurnal: jurnalId,
-             nisn,
-             status,
-             catatan: '-'
-           });
-         }
+        if (status !== 'Hadir') {
+          mapelPayload.push({
+            id_jurnal: jurnalId,
+            nisn,
+            status,
+            catatan: '-'
+          });
+        }
       });
       if (mapelPayload.length > 0) {
-         await supabase.from('data_absensi_mapel').insert(mapelPayload);
+        await supabase.from('data_absensi_mapel').insert(mapelPayload);
       }
     }
 
@@ -576,12 +573,12 @@ const rekapAbsen = {
           {rombel && siswaData && !isHoliday && (
             <div className="space-y-3 mt-6">
               <h3 className="text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Absensi Kelas (Mapel)</h3>
-              
+
               {/* Card Rekap Absen */}
-              <div 
-                  onClick={() => setIsAbsenModalOpen(true)}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl p-4 sm:p-5 shadow-sm cursor-pointer hover:border-emerald-500/50 dark:hover:border-emerald-500/50 transition-all flex justify-between items-center group"
-                ><div>
+              <div
+                onClick={() => setIsAbsenModalOpen(true)}
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl p-4 sm:p-5 shadow-sm cursor-pointer hover:border-emerald-500/50 dark:hover:border-emerald-500/50 transition-all flex justify-between items-center group"
+              ><div>
                   <h4 className="text-sm font-bold text-slate-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Rekap Kehadiran</h4>
                   <div className="flex gap-3 sm:gap-4 mt-2 text-xs font-medium">
                     <span className="text-emerald-600 dark:text-emerald-400">Hadir: {rekapAbsen.Hadir}</span>
@@ -599,20 +596,19 @@ const rekapAbsen = {
 
               {/* Tabel Detail Absen (Collapsible) */}
               <AbsenModal
-                  isOpen={isAbsenModalOpen}
-                  onClose={() => setIsAbsenModalOpen(false)}
-                  rekapAbsen={rekapAbsen}
-                  siswaData={siswaData}
-                  absensiMapel={absensiMapel}
-                  handleStatusChange={handleStatusChange}
-                />
+                isOpen={isAbsenModalOpen}
+                onClose={() => setIsAbsenModalOpen(false)}
+                rekapAbsen={rekapAbsen}
+                siswaData={siswaData}
+                absensiMapel={absensiMapel}
+                handleStatusChange={handleStatusChange}
+              />
             </div>
           )}
 
           {message && (
-            <div className={`px-4 py-3 rounded-2xl text-sm font-medium shadow-sm animate-in fade-in slide-in-from-top-2 mb-6 ${
-              message.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-300' : 'bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-300'
-            }`}>{message.text}</div>
+            <div className={`px-4 py-3 rounded-2xl text-sm font-medium shadow-sm animate-in fade-in slide-in-from-top-2 mb-6 ${message.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-300' : 'bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-300'
+              }`}>{message.text}</div>
           )}
 
 
@@ -623,7 +619,7 @@ const rekapAbsen = {
       <div className="print:hidden">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
           <h3 className="text-lg font-bold text-slate-800 dark:text-white tracking-tight">Riwayat Jurnal</h3>
-          
+
           <div className="flex flex-wrap gap-2">
             <button onClick={handleExportWord}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 rounded-xl text-xs font-semibold transition-all shadow-sm">
@@ -640,7 +636,7 @@ const rekapAbsen = {
               Print Cetak
             </button>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full md:w-auto">
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <div className="relative w-full sm:w-auto">
@@ -691,7 +687,7 @@ const rekapAbsen = {
                 </svg>
               </div>
             </div>
-            
+
             {user?.role === 'Admin' && (
               <div className="relative w-full sm:w-auto">
                 <select value={filterRombel} onChange={e => setFilterRombel(e.target.value)}
@@ -725,7 +721,7 @@ const rekapAbsen = {
                 <div className="flex items-start justify-between pl-2">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-slate-900 dark:text-white font-bold text-sm">{j.tanggal}</span>
+                      <span className="text-slate-900 dark:text-white font-bold text-sm">{j.tanggal.split('-').reverse().join('-')}</span>
                       <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-md text-[10px] font-bold tracking-wider">{(j.jam_pelajaran || '').replace(/\s*\(.*\)/, '')}</span>
                       {user.role === 'Admin' && j.master_user?.nama && (
                         <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-md text-[10px] font-bold tracking-wider">
@@ -748,7 +744,7 @@ const rekapAbsen = {
                   <div className="pl-2 pt-1 border-t border-slate-100 dark:border-white/5 space-y-1">
                     <p className="text-slate-600 dark:text-slate-300 text-sm"><span className="font-semibold text-xs text-slate-400 uppercase tracking-wider block mb-0.5">Materi:</span> {j.materi}</p>
                     {j.catatan && j.catatan !== '-' && (
-                       <p className="text-slate-500 dark:text-slate-400 text-sm mt-1.5 pt-1.5 border-t border-dashed border-slate-100 dark:border-white/5"><span className="font-semibold text-xs text-slate-400 uppercase tracking-wider block mb-0.5">Catatan:</span> {j.catatan}</p>
+                      <p className="text-slate-500 dark:text-slate-400 text-sm mt-1.5 pt-1.5 border-t border-dashed border-slate-100 dark:border-white/5"><span className="font-semibold text-xs text-slate-400 uppercase tracking-wider block mb-0.5">Catatan:</span> {j.catatan}</p>
                     )}
                   </div>
                 )}
@@ -845,7 +841,7 @@ const rekapAbsen = {
                       ))}
                     </tbody>
                   </table>
-                  
+
                   {/* Tanda Tangan */}
                   <div className="flex justify-between items-end mt-12 px-8 text-center text-xs text-black w-full">
                     <div className="flex flex-col items-center">
@@ -873,7 +869,7 @@ const rekapAbsen = {
       {user?.role !== 'Admin' && !isHoliday && (
         <div className="fixed bottom-6 right-4 sm:right-8 z-[80] flex justify-end pointer-events-none print:hidden">
           <button onClick={handleSave} disabled={saving}
-              className="pointer-events-auto flex items-center gap-3 px-6 py-4 bg-emerald-600/90 backdrop-blur-sm rounded-full shadow-2xl hover:bg-emerald-500/90 transition-all active:scale-95 disabled:opacity-50 disabled:transform-none disabled:shadow-none text-white font-bold">
+            className="pointer-events-auto flex items-center gap-3 px-6 py-4 bg-emerald-600/90 backdrop-blur-sm rounded-full shadow-2xl hover:bg-emerald-500/90 transition-all active:scale-95 disabled:opacity-50 disabled:transform-none disabled:shadow-none text-white font-bold">
             {saving ? (
               <>
                 <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -894,7 +890,8 @@ const rekapAbsen = {
         </div>
       )}
 
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @media print {
           :root { color-scheme: light !important; }
           @page { size: 215mm 330mm portrait; margin: 10mm 10mm 10mm 15mm; background: white !important; }
