@@ -5,7 +5,6 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
-import Header from '@/components/layout/Header';
 
 export default function DashboardLayout({ children }) {
   const { user, loading } = useAuth();
@@ -36,9 +35,7 @@ export default function DashboardLayout({ children }) {
         <Sidebar />
       </div>
       <div className="flex flex-col flex-1 w-full relative print:block">
-        <div className="print:hidden">
-          <Header />
-        </div>
+
         <main className="flex-1 w-full overflow-y-auto print:overflow-visible pb-[140px] lg:pb-8 print:pb-0">
           <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full relative z-10 print:max-w-none print:p-0">
             {children}
