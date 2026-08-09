@@ -872,29 +872,26 @@ export default function JurnalPage() {
                           <td className="text-[9px] print:text-black print:px-1 print:py-1.5 col-materi">{j.catatan || '-'}</td>
                         </tr>
                       ))}
-                      {/* Tanda Tangan */}
-                      <tr className="print:table-row print-no-border">
-                        <td colSpan={user?.role === 'Admin' ? 7 : 6} className="pt-12 pb-2">
-                          <div className="flex w-full text-center text-xs text-black">
-                            <div className="w-1/2 flex flex-col items-center">
-                              <p className="text-transparent select-none">.</p>
-                              <p>Dibuat Oleh,</p>
-                              <p className="font-bold uppercase mt-1">{roleLabel},</p>
-                              <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">{user?.nama || '-'}</div>
-                              <p className="mt-1">-</p>
-                            </div>
-                            <div className="w-1/2 flex flex-col items-center">
-                              <p>Karangrejo, {formatDateString(new Date().toISOString())}</p>
-                              <p>Mengetahui Kepala Madrasah,</p>
-                              <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
-                              <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">Nur Su&apos;ud, S.Pd.I.</div>
-                              <p className="mt-1">-</p>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
                     </tbody>
                   </table>
+                  
+                  {/* Tanda Tangan */}
+                  <div className="flex justify-between items-end mt-12 px-8 text-center text-xs text-black w-full">
+                    <div className="flex flex-col items-center">
+                      <p className="text-transparent select-none">.</p>
+                      <p>Dibuat Oleh,</p>
+                      <p className="font-bold uppercase mt-1">{roleLabel},</p>
+                      <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">{user?.nama || '-'}</div>
+                      <p className="mt-1">-</p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <p>Karangrejo, {formatDateString(new Date().toISOString())}</p>
+                      <p>Mengetahui Kepala Madrasah,</p>
+                      <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
+                      <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">Nur Su&apos;ud, S.Pd.I.</div>
+                      <p className="mt-1">-</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             );
@@ -904,8 +901,9 @@ export default function JurnalPage() {
 
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
-          @page { size: 215mm 330mm portrait; margin: 10mm 10mm 10mm 15mm; }
-          body, html { background: white !important; background-color: white !important; -webkit-print-color-adjust: exact; }
+          :root { color-scheme: light !important; }
+          @page { size: 215mm 330mm portrait; margin: 10mm 10mm 10mm 15mm; background: white !important; }
+          body, html { background: white !important; background-color: white !important; color: black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .page-break-after { page-break-after: always; }
           table { border-collapse: collapse; width: 100%; margin-top: 10px; page-break-inside: auto; }
           tr { page-break-inside: avoid; page-break-after: auto; }
