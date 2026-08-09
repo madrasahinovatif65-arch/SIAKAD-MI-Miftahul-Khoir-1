@@ -153,3 +153,13 @@ html, body {
   background-color: #065f46 !important;
 }
 
+/* Mobile Responsive DatePicker */
+@media (max-width: 640px) {
+  .react-datepicker-popper {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 99999 !important;
+  }
+}
