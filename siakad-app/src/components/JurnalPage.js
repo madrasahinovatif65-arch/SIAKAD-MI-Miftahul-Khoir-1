@@ -1,8 +1,21 @@
 'use client';
 
+// Utility to fetch logo as base64
+const getBase64FromUrl = async (url) => {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import logo from '@/public/logo.png';
 import useSWR from 'swr';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -108,7 +121,7 @@ export default function JurnalPage() {
   }, [jamOptions, jamMulai]);
 
   const { data: riwayatData, isLoading: loadingRiwayat, mutate: mutateRiwayat } = useSWR(user ? `jurnal_riwayat_${user.id_user}_${filterTglMulai}_${filterTglAkhir}_${filterRombel}` : null, async () => {
-    let query = supabase.from('jurnal_guru').select('*, master_user(nama)').order('tanggal', { ascending: false }).order('jam_pelajaran');
+    let query = supabase.from('jurnal_guru').select('*, master_user(nama)').order('tanggal', { ascending: true }).order('jam_pelajaran');
     if (user.role !== 'Admin') {
       query = query.eq('id_guru', user.id_user);
     }
@@ -196,19 +209,26 @@ export default function JurnalPage() {
     return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
   };
 
-  const handleExportWord = () => {
+  const handleExportWord = async () => {
     const guruName = user?.nama || user?.id_user || '-';
+    const logoBase64 = await getBase64FromUrl(logo);
+    const roleLabel = user.role === 'Admin' ? 'Kepala Madrasah' : user.role === 'Wali Kelas' ? 'Wali Kelas' : user.role === 'Guru Mapel' ? 'Guru Mata Pelajaran' : 'Staf TU';
     let html = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
-        <meta charset="utf-8">
-        <title>Jurnal Mengajar</title>
-        <style>@page { size: 215mm 330mm; margin: 1.0cm 1.0cm 1.0cm 1.5cm; }</style>
-      </head>
+         <meta charset="utf-8">
+         <title>Jurnal Mengajar</title>
+         <style>
+           @page { size: 215mm 330mm; margin: 1cm 1cm 1cm 1.5cm; }
+           .header-logo { width: 50px; height: auto; margin-right: 10px; vertical-align: middle; }
+         </style>
+       </head>
       <body style="font-family: Arial, sans-serif;">
         <table style="width: 100%; border-bottom: 3px solid black; margin-bottom: 20px; border-collapse: collapse;">
           <tr>
-            <td style="width: 15%; text-align: left; vertical-align: middle;"></td>
+            <td style="width: 15%; text-align: left; vertical-align: middle;">
+              <img src="${logoBase64}" class="header-logo" alt="Logo" />
+            </td>
             <td style="width: 85%; text-align: center; vertical-align: middle;">
               <h3 style="margin: 0; font-size: 16pt;">Yayasan NU Miftakhul Khoir Damarjati</h3>
               <h2 style="margin: 0; font-size: 20pt; color: #15803d;">MI Miftahul Khoir 1 Karangrejo</h2>
@@ -222,7 +242,7 @@ export default function JurnalPage() {
           ${user.role === 'Admin' && filterRombel !== 'Semua' ? `<p style="margin: 0;">Kelas/Rombel: <b>${filterRombel}</b></p>` : ''}
           ${user.role !== 'Admin' ? `<p style="margin: 0;">Guru: <b>${guruName}</b></p>` : ''}
         </div>
-        <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; font-size: 9pt; text-align: center;">
+        <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; font-size: 9pt; text-align: center; table-layout: auto;">
           <thead>
             <tr style="background-color: #e2e8f0;">
               <th style="width: 4%;">No</th>
@@ -237,7 +257,9 @@ export default function JurnalPage() {
           </thead>
           <tbody>
     `;
-    riwayat.forEach((j, idx) => {
+    const maxEntries = 8;
+    const exportData = riwayat.slice(0, maxEntries);
+    exportData.forEach((j, idx) => {
       html += `
         <tr>
           <td>${idx + 1}</td>
@@ -259,8 +281,8 @@ export default function JurnalPage() {
           <tr>
             <td style="width: 50%; border: none;">
               <p style="color: transparent;">.</p>
-              <p>Dibuat Oleh,</p>
-              <p><b>${user.role === 'Admin' ? 'KEPALA MADRASAH' : guruName.toUpperCase()}</b></p>
+              <p style="margin: 5px 0;">Dibuat Oleh,</p>
+              <p><b>${roleLabel}</b></p>
               <br><br><br><br>
               <p><b><u>${guruName}</u></b></p>
               <p style="margin-top: 0;">-</p>
@@ -303,7 +325,7 @@ export default function JurnalPage() {
       if (jamObjMulai.id_jam === jamObjSelesai.id_jam) {
         finalJamPelajaran = `${jamObjMulai.nama_jam} (${jamObjMulai.waktu_mulai}-${jamObjMulai.waktu_selesai})`;
       } else {
-        finalJamPelajaran = `${jamObjMulai.nama_jam} s/d ${jamObjSelesai.nama_jam} (${jamObjMulai.waktu_mulai}-${jamObjSelesai.waktu_selesai})`;
+        finalJamPelajaran = `${jamObjMulai.nama_jam} s/d ${jamObjSelesai.nama_jam} (${jamObjMulai.waktu_mulai}-${jamObjMulai.waktu_selesai})`;
       }
     }
     
@@ -363,7 +385,7 @@ export default function JurnalPage() {
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 print-container-jurnal">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">Jurnal Mengajar</h2>
