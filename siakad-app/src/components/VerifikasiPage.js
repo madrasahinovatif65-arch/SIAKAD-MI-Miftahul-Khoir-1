@@ -108,7 +108,6 @@ export default function VerifikasiPage() {
     const rows = guruList.map(guru => ({
       tanggal,
       id_guru: guru.id_user,
-      nama_guru: guru.nama,
       status: absensi[guru.id_user]?.status || 'Hadir',
       catatan: absensi[guru.id_user]?.catatan || '-',
       waktu: absensi[guru.id_user]?.waktu || '-',

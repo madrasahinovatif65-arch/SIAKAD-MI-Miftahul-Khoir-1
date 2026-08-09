@@ -122,7 +122,6 @@ export async function POST(request) {
           toInsert.push({
             tanggal: currentDateString,
             id_guru: guru.id_user,
-            nama_guru: guru.nama,
             waktu: waktu,
             status: status,
             catatan: catatan,
