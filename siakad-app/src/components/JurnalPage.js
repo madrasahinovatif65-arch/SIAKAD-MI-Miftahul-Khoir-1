@@ -43,8 +43,15 @@ export default function JurnalPage() {
   const [absensiMapel, setAbsensiMapel] = useState({});
   const [isAbsenModalOpen, setIsAbsenModalOpen] = useState(false);
 
-  const [filterTglMulai, setFilterTglMulai] = useState(() => new Date().toISOString().split('T')[0]);
-  const [filterTglAkhir, setFilterTglAkhir] = useState(() => new Date().toISOString().split('T')[0]);
+  const [filterTglMulai, setFilterTglMulai] = useState(() => {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    return new Date(firstDay.getTime() - (firstDay.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+  });
+  const [filterTglAkhir, setFilterTglAkhir] = useState(() => {
+    const today = new Date();
+    return new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+  });
   const [filterRombel, setFilterRombel] = useState('Semua');
 
   const { data: siswaData, isLoading: loadingSiswa } = useSWR(rombel && tanggal ? `siswa_absen_${rombel}_${tanggal}` : null, async () => {
