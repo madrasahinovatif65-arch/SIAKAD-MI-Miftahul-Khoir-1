@@ -212,7 +212,8 @@ export default function JurnalPage() {
   const handleExportWord = async () => {
     const guruName = user?.nama || user?.id_user || '-';
     const logoBase64 = await getBase64FromUrl(logo);
-    const roleLabel = user?.role === 'Admin' ? 'Kepala Madrasah' : user?.role === 'Wali Kelas' ? `Wali Kelas ${user?.rombel !== '-' && user?.rombel ? user.rombel : ''}`.trim() : user?.role === 'Guru Mapel' ? 'Guru Mata Pelajaran' : 'Staf TU';
+    const rombelNameExport = user?.rombel !== '-' && user?.rombel ? user.rombel.replace(/^Kelas /i, '') : '';
+    const roleLabel = user?.role === 'Admin' ? 'Kepala Madrasah' : user?.role === 'Wali Kelas' ? `Wali Kelas ${rombelNameExport}`.trim() : user?.role === 'Guru Mapel' ? 'Guru Mata Pelajaran' : 'Staf TU';
     const groupedRiwayat = riwayat.reduce((acc, curr) => {
       if (!acc[curr.tanggal]) acc[curr.tanggal] = [];
       acc[curr.tanggal].push(curr);
@@ -776,7 +777,7 @@ export default function JurnalPage() {
 
       {/* Container Khusus Print Jurnal */}
       {/* Container Khusus Print Jurnal */}
-      <div className="hidden print:block w-full">
+      <div className="hidden print:block w-full print:bg-white print:text-black">
         {(() => {
           const groupedRiwayat = riwayat.reduce((acc, curr) => {
             if (!acc[curr.tanggal]) acc[curr.tanggal] = [];
@@ -791,7 +792,8 @@ export default function JurnalPage() {
 
           return printDates.map((date, dateIdx) => {
             const items = groupedRiwayat[date];
-            const roleLabel = user?.role === 'Admin' ? 'Kepala Madrasah' : user?.role === 'Wali Kelas' ? `Wali Kelas ${user?.rombel !== '-' && user?.rombel ? user.rombel : ''}`.trim() : user?.role === 'Guru Mapel' ? 'Guru Mata Pelajaran' : 'Staf TU';
+            const rombelNamePrint = user?.rombel !== '-' && user?.rombel ? user.rombel.replace(/^Kelas /i, '') : '';
+            const roleLabel = user?.role === 'Admin' ? 'Kepala Madrasah' : user?.role === 'Wali Kelas' ? `Wali Kelas ${rombelNamePrint}`.trim() : user?.role === 'Guru Mapel' ? 'Guru Mata Pelajaran' : 'Staf TU';
             return (
               <div key={date} className={`w-full ${dateIdx < printDates.length - 1 ? 'page-break-after' : ''}`}>
                 {/* Header Print */}
