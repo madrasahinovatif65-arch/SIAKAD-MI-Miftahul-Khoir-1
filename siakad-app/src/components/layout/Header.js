@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/components/EyeCareMode';
+import Link from 'next/link';
 
 export default function Header() {
   const { user } = useAuth();
@@ -29,7 +30,7 @@ export default function Header() {
     <header className="sticky top-0 z-30 lg:hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 px-4 py-3 shadow-sm">
       <div className="flex items-center justify-between">
         {/* Kiri: Foto Profil User atau Inisial */}
-        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-emerald-500/30 flex items-center justify-center bg-slate-100 dark:bg-slate-800 shadow-sm flex-shrink-0">
+        <Link href="/dashboard/profil" className="w-10 h-10 rounded-full overflow-hidden border-2 border-emerald-500/30 flex items-center justify-center bg-slate-100 dark:bg-slate-800 shadow-sm flex-shrink-0 hover:border-emerald-500 transition-colors">
           {user?.foto ? (
             <img src={user.foto} alt="Profil" className="w-full h-full object-cover" />
           ) : (
@@ -37,16 +38,28 @@ export default function Header() {
               {getInitials(user?.nama)}
             </span>
           )}
-        </div>
+        </Link>
         
         {/* Tengah: Logo dan Nama */}
-        <div className="flex items-center gap-2 justify-center absolute left-1/2 -translate-x-1/2">
+        <Link href="/dashboard" className="flex items-center gap-2 justify-center absolute left-1/2 -translate-x-1/2 hover:scale-105 transition-transform">
           <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain drop-shadow-[0_0_5px_rgba(52,211,148,0.5)]" />
           <h1 className="text-base font-bold text-slate-800 dark:text-white tracking-tight">INOVATIF+</h1>
-        </div>
+        </Link>
         
-        {/* Kanan: Theme Toggle */}
-        <div className="flex-shrink-0">
+        {/* Kanan: Notifikasi & Theme Toggle */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Link
+            href="/dashboard/notifikasi"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-slate-700 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors shadow-sm relative"
+            title="Notifikasi"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+            </svg>
+            {/* Indikator unread dummy */}
+            <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border border-white dark:border-slate-800" />
+          </Link>
+
           {mounted && (
             <button
               onClick={toggleMode}

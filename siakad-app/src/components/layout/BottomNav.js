@@ -28,14 +28,6 @@ export default function BottomNav() {
   const showNav = isProfilActive || isBerandaActive || isNotifActive;
   if (!showNav) return null;
 
-  // Helper to get initials
-  const getInitials = (name) => {
-    if (!name) return 'MI';
-    const parts = name.split(' ');
-    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-    return name.substring(0, 2).toUpperCase();
-  };
-
   return (
     <nav className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] sm:w-[85%] md:w-[75%] max-w-2xl z-50">
       <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border border-white/40 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-black/50 rounded-full px-4 sm:px-10 py-2.5 grid grid-cols-3 items-center relative">
@@ -45,22 +37,14 @@ export default function BottomNav() {
           <Link 
             href="/dashboard/profil"
             className={`flex flex-col items-center gap-1 transition-all duration-300 active:scale-95 ${
-              isProfilActive ? 'opacity-100' : 'opacity-70 hover:opacity-100'
+              isProfilActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400 hover:text-emerald-500'
             }`}
           >
             <div className="relative">
-              <div className={`w-7 h-7 rounded-full overflow-hidden flex items-center justify-center shadow-sm flex-shrink-0 transition-all ${
-                isProfilActive ? 'border-2 border-emerald-500' : 'border-2 border-slate-200 dark:border-slate-700'
-              } bg-slate-100 dark:bg-slate-800`}>
-                {user?.foto ? (
-                  <img src={user.foto} alt="Profil" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">{getInitials(user?.nama)}</span>
-                )}
-              </div>
-              {isProfilActive && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse border-2 border-white dark:border-slate-900" />}
+              <NavIcon d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" className={isProfilActive ? 'w-6 h-6 stroke-[2.5px]' : 'w-6 h-6'} />
+              {isProfilActive && <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />}
             </div>
-            <span className={`text-[10px] font-semibold tracking-wide ${isProfilActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>Profil</span>
+            <span className="text-[10px] font-semibold tracking-wide">Akun</span>
           </Link>
         </div>
 
@@ -68,9 +52,12 @@ export default function BottomNav() {
         <div className="relative -top-6 flex justify-center w-full">
           <Link 
             href="/dashboard"
-            className="flex flex-col items-center justify-center w-[60px] h-[60px] rounded-full bg-white dark:bg-slate-800 shadow-lg shadow-emerald-500/30 hover:scale-105 active:scale-95 transition-all duration-300 border-[4px] border-slate-50 dark:border-slate-950 flex-shrink-0"
+            className="flex flex-col items-center justify-center w-[60px] h-[60px] rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 dark:from-emerald-600 dark:to-teal-700 shadow-lg shadow-emerald-500/30 text-white hover:scale-105 active:scale-95 transition-all duration-300 border-[4px] border-slate-50 dark:border-slate-950"
           >
-            <img src="/logo.png" alt="Dashboard" className="w-8 h-8 object-contain drop-shadow-[0_0_5px_rgba(52,211,148,0.5)]" />
+            <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z" />
+              <path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625a1.875 1.875 0 01-1.875-1.875v-6.198a2.29 2.29 0 00.091-.086L12 5.43z" />
+            </svg>
           </Link>
         </div>
 
