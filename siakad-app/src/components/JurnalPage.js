@@ -15,7 +15,7 @@ const getBase64FromUrl = async (url) => {
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import logo from '../../public/logo.png';
+
 import useSWR from 'swr';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -211,7 +211,7 @@ export default function JurnalPage() {
 
   const handleExportWord = async () => {
     const guruName = user?.nama || user?.id_user || '-';
-    const logoBase64 = await getBase64FromUrl(logo);
+    const logoBase64 = await getBase64FromUrl('/logo.png');
     const rombelNameExport = user?.rombel !== '-' && user?.rombel ? user.rombel.replace(/^Kelas /i, '') : '';
     const roleLabel = user?.role === 'Admin' ? 'Kepala Madrasah' : user?.role === 'Wali Kelas' ? `Wali Kelas ${rombelNameExport}`.trim() : user?.role === 'Guru Mapel' ? 'Guru Mata Pelajaran' : 'Staf TU';
     const groupedRiwayat = riwayat.reduce((acc, curr) => {
@@ -273,12 +273,12 @@ export default function JurnalPage() {
             <tr style="background-color: #e2e8f0;">
               <th style="width: 4%;">No</th>
               <th style="width: 10%;">Tanggal</th>
-              <th style="width: 14%;">Jam</th>
+              <th style="width: 8%;">Jam</th>
               ${user.role === 'Admin' ? '<th style="width: 12%;">Guru</th>' : ''}
               <th style="width: 8%;">Rombel</th>
               <th style="width: 12%;">Mapel</th>
-              <th style="text-align: left;">Materi</th>
-              <th style="text-align: left;">Catatan</th>
+              <th style="text-align: left; width: 23%;">Materi</th>
+              <th style="text-align: left; width: 23%;">Catatan</th>
             </tr>
           </thead>
           <tbody>
@@ -288,7 +288,7 @@ export default function JurnalPage() {
           <tr>
             <td>${idx + 1}</td>
             <td style="font-size: 8pt;">${j.tanggal}</td>
-            <td style="font-size: 8pt;">${j.jam_pelajaran || '-'}</td>
+            <td style="font-size: 8pt;">${(j.jam_pelajaran || '-').replace(/\s*\(.*\)/, '')}</td>
             ${user.role === 'Admin' ? `<td>${j.master_user?.nama || '-'}</td>` : ''}
             <td>${j.rombel}</td>
             <td>${j.mata_pelajaran}</td>
@@ -755,7 +755,7 @@ export default function JurnalPage() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="text-slate-900 dark:text-white font-bold text-sm">{j.tanggal}</span>
-                      <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-md text-[10px] font-bold tracking-wider">{j.jam_pelajaran}</span>
+                      <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-md text-[10px] font-bold tracking-wider">{(j.jam_pelajaran || '').replace(/\s*\(.*\)/, '')}</span>
                       {user.role === 'Admin' && j.master_user?.nama && (
                         <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-md text-[10px] font-bold tracking-wider">
                           {j.master_user.nama}
@@ -862,7 +862,7 @@ export default function JurnalPage() {
                         <tr key={j.id} className="print:hover:bg-transparent">
                           <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{idx + 1}</td>
                           <td className="text-[8px] print:text-black print:px-1 print:py-1.5 text-center whitespace-nowrap">{formatDateString(j.tanggal)}</td>
-                          <td className="text-[8px] print:text-black print:px-1 print:py-1.5 text-center">{j.jam_pelajaran || '-'}</td>
+                          <td className="text-[8px] print:text-black print:px-1 print:py-1.5 text-center">{(j.jam_pelajaran || '-').replace(/\s*\(.*\)/, '')}</td>
                           {user?.role === 'Admin' && (
                             <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{j.master_user?.nama || '-'}</td>
                           )}
