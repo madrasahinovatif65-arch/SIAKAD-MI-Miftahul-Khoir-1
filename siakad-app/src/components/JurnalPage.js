@@ -157,6 +157,15 @@ export default function JurnalPage() {
 
   const riwayat = riwayatData || [];
 
+  const { data: rombelCounts } = useSWR('rombel_counts', async () => {
+    const { data: murid } = await supabase.from('master_user').select('rombel').eq('role', 'Murid');
+    const counts = {};
+    murid?.forEach(m => {
+      counts[m.rombel] = (counts[m.rombel] || 0) + 1;
+    });
+    return counts;
+  });
+
   const [incompleteDates, setIncompleteDates] = useState([]);
   const [missingJournalDates, setMissingJournalDates] = useState([]);
 
@@ -423,11 +432,11 @@ export default function JurnalPage() {
             <td style="text-align: left;">${j.materi || '-'}</td>
             <td style="text-align: center;">
               ${(() => {
-                const s = j.data_absensi_mapel?.filter(a => a.status === 'Sakit').length || 0;
-                const i = j.data_absensi_mapel?.filter(a => a.status === 'Izin').length || 0;
-                const a = j.data_absensi_mapel?.filter(a => a.status === 'Alpa').length || 0;
-                if (s === 0 && i === 0 && a === 0) return 'Nihil';
-                return `S:${s} I:${i} A:${a}`;
+                const totalSiswa = rombelCounts?.[j.rombel] || 1;
+                const absenCount = j.data_absensi_mapel?.length || 0;
+                const hadirCount = Math.max(0, totalSiswa - absenCount);
+                const persentase = totalSiswa > 0 ? Math.round((hadirCount / totalSiswa) * 100) : 100;
+                return `${persentase}%`;
               })()}
             </td>
           </tr>
@@ -489,7 +498,7 @@ export default function JurnalPage() {
       if (jamObjMulai.id_jam === jamObjSelesai.id_jam) {
         finalJamPelajaran = `${jamObjMulai.nama_jam} (${jamObjMulai.waktu_mulai}-${jamObjMulai.waktu_selesai})`;
       } else {
-        finalJamPelajaran = `${jamObjMulai.nama_jam} s/d ${jamObjSelesai.nama_jam} (${jamObjMulai.waktu_mulai}-${jamObjMulai.waktu_selesai})`;
+        finalJamPelajaran = `${jamObjMulai.nama_jam} s/d ${jamObjSelesai.nama_jam} (${jamObjMulai.waktu_mulai}-${jamObjSelesai.waktu_selesai})`;
       }
     }
 
@@ -972,11 +981,11 @@ export default function JurnalPage() {
                           <td className="text-[9px] print:text-black print:px-1 print:py-1.5 col-materi">{j.materi || '-'}</td>
                           <td className="text-[9px] print:text-black print:px-1 print:py-1.5 col-materi text-center">
                             {(() => {
-                              const s = j.data_absensi_mapel?.filter(a => a.status === 'Sakit').length || 0;
-                              const i = j.data_absensi_mapel?.filter(a => a.status === 'Izin').length || 0;
-                              const a = j.data_absensi_mapel?.filter(a => a.status === 'Alpa').length || 0;
-                              if (s === 0 && i === 0 && a === 0) return 'Nihil';
-                              return `S:${s} I:${i} A:${a}`;
+                              const totalSiswa = rombelCounts?.[j.rombel] || 1;
+                              const absenCount = j.data_absensi_mapel?.length || 0;
+                              const hadirCount = Math.max(0, totalSiswa - absenCount);
+                              const persentase = totalSiswa > 0 ? Math.round((hadirCount / totalSiswa) * 100) : 100;
+                              return `${persentase}%`;
                             })()}
                           </td>
                         </tr>
