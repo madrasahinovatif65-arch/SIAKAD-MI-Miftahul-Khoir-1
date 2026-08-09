@@ -41,7 +41,7 @@ export default function EyeCareMode({ children }) {
       {children}
       {mounted && isEyeCare && (
         <div 
-          className="fixed inset-0 z-[9998] pointer-events-none transition-all duration-700 ease-in-out" 
+          className="fixed inset-0 z-[9998] pointer-events-none transition-all duration-700 ease-in-out print:hidden" 
           style={{ 
             backgroundColor: 'rgba(255, 170, 0, 0.03)',
             mixBlendMode: 'multiply',
