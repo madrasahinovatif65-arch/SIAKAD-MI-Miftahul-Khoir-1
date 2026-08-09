@@ -875,15 +875,15 @@ export default function JurnalPage() {
                       {/* Tanda Tangan */}
                       <tr className="print:table-row print-no-border">
                         <td colSpan={user?.role === 'Admin' ? 7 : 6} className="pt-12 pb-2">
-                          <div className="flex justify-between items-end px-12 text-center text-xs text-black w-full">
-                            <div className="flex flex-col items-center">
+                          <div className="flex w-full text-center text-xs text-black">
+                            <div className="w-1/2 flex flex-col items-center">
                               <p className="text-transparent select-none">.</p>
                               <p>Dibuat Oleh,</p>
                               <p className="font-bold uppercase mt-1">{roleLabel},</p>
                               <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">{user?.nama || '-'}</div>
                               <p className="mt-1">-</p>
                             </div>
-                            <div className="flex flex-col items-center">
+                            <div className="w-1/2 flex flex-col items-center">
                               <p>Karangrejo, {formatDateString(new Date().toISOString())}</p>
                               <p>Mengetahui Kepala Madrasah,</p>
                               <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
@@ -905,7 +905,7 @@ export default function JurnalPage() {
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           @page { size: 215mm 330mm portrait; margin: 10mm 10mm 10mm 15mm; }
-          body { background: white; -webkit-print-color-adjust: exact; }
+          body, html { background: white !important; background-color: white !important; -webkit-print-color-adjust: exact; }
           .page-break-after { page-break-after: always; }
           table { border-collapse: collapse; width: 100%; margin-top: 10px; page-break-inside: auto; }
           tr { page-break-inside: avoid; page-break-after: auto; }
