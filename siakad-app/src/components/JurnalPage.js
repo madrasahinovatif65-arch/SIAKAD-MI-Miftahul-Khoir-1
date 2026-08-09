@@ -12,7 +12,6 @@ registerLocale('id', id);
 export default function JurnalPage() {
   const { user } = useAuth();
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().split('T')[0]);
-  const [jamPelajaran, setJamPelajaran] = useState('');
   const [jamMulai, setJamMulai] = useState('');
   const [jamSelesai, setJamSelesai] = useState('');
   const [rombel, setRombel] = useState(user?.rombel !== '-' ? user?.rombel : '');
@@ -78,8 +77,6 @@ export default function JurnalPage() {
   });
 
   const jamOptions = masterData?.jam || [];
-  const waktuMulaiOptions = [...new Set(jamOptions.map(j => j.waktu_mulai).filter(Boolean))].sort();
-  const waktuSelesaiOptions = [...new Set(jamOptions.map(j => j.waktu_selesai).filter(Boolean))].sort();
   
   const mapelOptions = user?.role === 'Guru Mapel' && user?.mapel && user.mapel !== '-'
     ? (masterData?.mapel || []).filter(m => user.mapel.includes(m.nama_mapel))
@@ -96,12 +93,11 @@ export default function JurnalPage() {
   }, [mapel, mapelOptions]);
 
   useEffect(() => {
-    if (!jamPelajaran && jamOptions.length > 0) {
-      setJamPelajaran(jamOptions[0].id_jam);
-      setJamMulai(jamOptions[0].waktu_mulai);
-      setJamSelesai(jamOptions[0].waktu_selesai);
+    if (!jamMulai && jamOptions.length > 0) {
+      setJamMulai(jamOptions[0].id_jam);
+      setJamSelesai(jamOptions[0].id_jam);
     }
-  }, [jamOptions, jamPelajaran]);
+  }, [jamOptions, jamMulai]);
 
   const { data: riwayatData, isLoading: loadingRiwayat, mutate: mutateRiwayat } = useSWR(user ? `jurnal_riwayat_${user.id_user}` : null, async () => {
     let query = supabase.from('jurnal_guru').select('*, master_user(nama)').order('tanggal', { ascending: false }).order('jam_pelajaran').limit(20);
@@ -140,18 +136,31 @@ export default function JurnalPage() {
     setMapel(j.mata_pelajaran);
     setMateri(j.materi_catatan !== '-' ? j.materi_catatan : '');
     
-    // Attempt to match jam_pelajaran ID by finding it in jamOptions
-    const jamId = jamOptions.find(opt => j.jam_pelajaran.includes(opt.nama_jam))?.id_jam;
-    if (jamId) {
-      setJamPelajaran(jamId);
-      const match = j.jam_pelajaran.match(/\((.*?)-(.*?)\)/);
-      if (match) {
-        setJamMulai(match[1]);
-        setJamSelesai(match[2]);
+    if (j.jam_pelajaran) {
+      if (j.jam_pelajaran.includes('s/d')) {
+        const match = j.jam_pelajaran.match(/^(.*?)\s+s\/d\s+(.*?)\s+\(/);
+        if (match) {
+          const jamId1 = jamOptions.find(opt => opt.nama_jam === match[1])?.id_jam;
+          const jamId2 = jamOptions.find(opt => opt.nama_jam === match[2])?.id_jam;
+          if (jamId1) setJamMulai(jamId1);
+          if (jamId2) setJamSelesai(jamId2);
+        }
       } else {
-        const jamObj = jamOptions.find(opt => opt.id_jam === jamId);
-        setJamMulai(jamObj?.waktu_mulai || '');
-        setJamSelesai(jamObj?.waktu_selesai || '');
+        const match = j.jam_pelajaran.match(/^(.*?)\s+\(/);
+        if (match) {
+          const jamId = jamOptions.find(opt => opt.nama_jam === match[1])?.id_jam;
+          if (jamId) {
+            setJamMulai(jamId);
+            setJamSelesai(jamId);
+          }
+        } else {
+          // fallback
+          const jamId = jamOptions.find(opt => j.jam_pelajaran.includes(opt.nama_jam))?.id_jam;
+          if (jamId) {
+            setJamMulai(jamId);
+            setJamSelesai(jamId);
+          }
+        }
       }
     }
     
@@ -170,10 +179,20 @@ export default function JurnalPage() {
     setSaving(true);
     setMessage(null);
 
-    const jamObj = jamOptions.find(j => j.id_jam === jamPelajaran);
+    const jamObjMulai = jamOptions.find(j => j.id_jam === jamMulai);
+    const jamObjSelesai = jamOptions.find(j => j.id_jam === jamSelesai);
+    let finalJamPelajaran = '';
+    if (jamObjMulai && jamObjSelesai) {
+      if (jamObjMulai.id_jam === jamObjSelesai.id_jam) {
+        finalJamPelajaran = `${jamObjMulai.nama_jam} (${jamObjMulai.waktu_mulai}-${jamObjMulai.waktu_selesai})`;
+      } else {
+        finalJamPelajaran = `${jamObjMulai.nama_jam} s/d ${jamObjSelesai.nama_jam} (${jamObjMulai.waktu_mulai}-${jamObjSelesai.waktu_selesai})`;
+      }
+    }
+    
     const payload = {
       tanggal,
-      jam_pelajaran: jamObj ? `${jamObj.nama_jam} (${jamMulai || jamObj.waktu_mulai}-${jamSelesai || jamObj.waktu_selesai})` : jamPelajaran,
+      jam_pelajaran: finalJamPelajaran,
       id_guru: user.id_user,
       rombel,
       mata_pelajaran: mapel,
@@ -285,40 +304,21 @@ export default function JurnalPage() {
                 </svg>
               </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Jam Pelajaran</label>
-              <div className="relative">
-                <select value={jamPelajaran} onChange={e => {
-                    setJamPelajaran(e.target.value);
-                    const j = jamOptions.find(o => o.id_jam === e.target.value);
-                    if (j) {
-                      setJamMulai(j.waktu_mulai);
-                      setJamSelesai(j.waktu_selesai);
-                    }
-                  }}
-                  style={{ backgroundImage: 'none' }}
-                  className="appearance-none w-full pl-4 pr-10 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
-                  {jamOptions.map(j => (
-                    <option key={j.id_jam} value={j.id_jam} className="bg-white dark:bg-slate-900">
-                      {j.nama_jam}
-                    </option>
-                  ))}
-                </select>
-                <svg className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                </svg>
-              </div>
-            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Jam Mulai</label>
+                <label className="text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                  </svg>
+                  Jam Mulai
+                </label>
                 <div className="relative">
                   <select value={jamMulai} onChange={e => setJamMulai(e.target.value)}
                     style={{ backgroundImage: 'none' }}
                     className="appearance-none w-full pl-3 pr-8 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
-                    <option value="" className="bg-white dark:bg-slate-900 text-slate-400">Pilih</option>
-                    {waktuMulaiOptions.map(w => (
-                      <option key={w} value={w} className="bg-white dark:bg-slate-900">{w}</option>
+                    <option value="" className="bg-white dark:bg-slate-900 text-slate-400">Mulai...</option>
+                    {jamOptions.map(w => (
+                      <option key={w.id_jam} value={w.id_jam} className="bg-white dark:bg-slate-900">{w.nama_jam} ({w.waktu_mulai} - {w.waktu_selesai})</option>
                     ))}
                   </select>
                   <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -327,14 +327,19 @@ export default function JurnalPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Jam Selesai</label>
+                <label className="text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                  </svg>
+                  Jam Selesai
+                </label>
                 <div className="relative">
                   <select value={jamSelesai} onChange={e => setJamSelesai(e.target.value)}
                     style={{ backgroundImage: 'none' }}
                     className="appearance-none w-full pl-3 pr-8 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
-                    <option value="" className="bg-white dark:bg-slate-900 text-slate-400">Pilih</option>
-                    {waktuSelesaiOptions.map(w => (
-                      <option key={w} value={w} className="bg-white dark:bg-slate-900">{w}</option>
+                    <option value="" className="bg-white dark:bg-slate-900 text-slate-400">Selesai...</option>
+                    {jamOptions.map(w => (
+                      <option key={w.id_jam} value={w.id_jam} className="bg-white dark:bg-slate-900">{w.nama_jam} ({w.waktu_mulai} - {w.waktu_selesai})</option>
                     ))}
                   </select>
                   <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
