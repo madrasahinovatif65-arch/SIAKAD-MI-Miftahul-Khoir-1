@@ -78,6 +78,8 @@ export default function JurnalPage() {
   });
 
   const jamOptions = masterData?.jam || [];
+  const waktuMulaiOptions = [...new Set(jamOptions.map(j => j.waktu_mulai).filter(Boolean))].sort();
+  const waktuSelesaiOptions = [...new Set(jamOptions.map(j => j.waktu_selesai).filter(Boolean))].sort();
   
   const mapelOptions = user?.role === 'Guru Mapel' && user?.mapel && user.mapel !== '-'
     ? (masterData?.mapel || []).filter(m => user.mapel.includes(m.nama_mapel))
@@ -308,11 +310,33 @@ export default function JurnalPage() {
                   </svg>
                 </div>
                 <div className="flex gap-2">
-                  <input type="time" value={jamMulai} onChange={e => setJamMulai(e.target.value)}
-                    className="w-24 pl-3 pr-2 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm" />
+                  <div className="relative">
+                    <select value={jamMulai} onChange={e => setJamMulai(e.target.value)}
+                      style={{ backgroundImage: 'none' }}
+                      className="appearance-none w-24 pl-3 pr-8 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
+                      <option value="" className="bg-white dark:bg-slate-900 text-slate-400">Pilih</option>
+                      {waktuMulaiOptions.map(w => (
+                        <option key={w} value={w} className="bg-white dark:bg-slate-900">{w}</option>
+                      ))}
+                    </select>
+                    <svg className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                    </svg>
+                  </div>
                   <span className="self-center text-slate-400 font-bold">-</span>
-                  <input type="time" value={jamSelesai} onChange={e => setJamSelesai(e.target.value)}
-                    className="w-24 pl-3 pr-2 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm" />
+                  <div className="relative">
+                    <select value={jamSelesai} onChange={e => setJamSelesai(e.target.value)}
+                      style={{ backgroundImage: 'none' }}
+                      className="appearance-none w-24 pl-3 pr-8 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
+                      <option value="" className="bg-white dark:bg-slate-900 text-slate-400">Pilih</option>
+                      {waktuSelesaiOptions.map(w => (
+                        <option key={w} value={w} className="bg-white dark:bg-slate-900">{w}</option>
+                      ))}
+                    </select>
+                    <svg className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>
