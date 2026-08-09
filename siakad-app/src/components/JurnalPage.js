@@ -53,6 +53,7 @@ export default function JurnalPage() {
     return new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
   });
   const [filterRombel, setFilterRombel] = useState('Semua');
+  const [filterMapel, setFilterMapel] = useState('Semua');
 
   const { data: siswaData, isLoading: loadingSiswa } = useSWR(rombel && tanggal ? `siswa_absen_${rombel}_${tanggal}` : null, async () => {
     // Ambil murid
@@ -137,7 +138,7 @@ export default function JurnalPage() {
     }
   }, [jamOptions, jamMulai]);
 
-  const { data: riwayatData, isLoading: loadingRiwayat, mutate: mutateRiwayat } = useSWR(user ? `jurnal_riwayat_${user.id_user}_${filterTglMulai}_${filterTglAkhir}_${filterRombel}` : null, async () => {
+  const { data: riwayatData, isLoading: loadingRiwayat, mutate: mutateRiwayat } = useSWR(user ? `jurnal_riwayat_${user.id_user}_${filterTglMulai}_${filterTglAkhir}_${filterRombel}_${filterMapel}` : null, async () => {
     let query = supabase.from('jurnal_guru').select('*, master_user(nama), data_absensi_mapel(status)').order('tanggal', { ascending: true }).order('jam_pelajaran');
     if (user.role === 'Wali Kelas') {
       query = query.eq('rombel', user.rombel);
@@ -149,7 +150,11 @@ export default function JurnalPage() {
     }
     if (user.role === 'Admin' && filterRombel !== 'Semua') {
       query = query.eq('rombel', filterRombel);
-    } else if (user.role !== 'Admin' && filterTglMulai === '' && filterTglAkhir === '') {
+    }
+    if (user.role === 'Guru Mapel' && filterMapel !== 'Semua') {
+      query = query.eq('mata_pelajaran', filterMapel);
+    }
+    if (user.role !== 'Admin' && filterTglMulai === '' && filterTglAkhir === '') {
       query = query.limit(20);
     }
 
@@ -406,7 +411,7 @@ export default function JurnalPage() {
         </table>
         <div style="text-align: center; margin-bottom: 20px;">
           <h3 style="margin: 0; font-size: 14pt; color: #15803d; font-weight: bold;">
-            Rekapitulasi Jurnal Pembelajaran Guru - ${user?.role === 'Wali Kelas' ? user.rombel : (user?.role === 'Admin' && filterRombel !== 'Semua' ? filterRombel : (user?.role === 'Guru Mapel' && [...new Set(exportData.map(d => d.mata_pelajaran))].length === 1 ? exportData[0].mata_pelajaran : 'Semua Mapel'))}
+            Rekapitulasi Jurnal Pembelajaran Guru - ${user?.role === 'Wali Kelas' ? user.rombel : (user?.role === 'Admin' && filterRombel !== 'Semua' ? filterRombel : (user?.role === 'Guru Mapel' ? (filterMapel !== 'Semua' ? filterMapel : 'Semua Mapel') : 'Semua Mapel'))}
           </h3>
           <p style="margin: 5px 0;">Tanggal: ${dateText}</p>
         </div>
@@ -415,8 +420,8 @@ export default function JurnalPage() {
             <tr style="background-color: #e2e8f0;">
               <th style="width: 4%;">No</th>
               <th style="width: 14%;">Waktu</th>
-              <th style="width: 8%;">Rombel</th>
-              <th style="width: 28%;">Mata Pelajaran</th>
+              ${user?.role !== 'Wali Kelas' ? '<th style="width: 8%;">Rombel</th>' : ''}
+              ${user?.role !== 'Guru Mapel' ? '<th style="width: 28%;">Mata Pelajaran</th>' : ''}
               <th style="text-align: left; width: 23%;">Materi</th>
               <th style="text-align: center; width: 23%;">Kehadiran</th>
             </tr>
@@ -431,11 +436,11 @@ export default function JurnalPage() {
               <div style="font-weight: bold;">${j.tanggal}</div>
               <div style="margin-top: 3px;">${(j.jam_pelajaran || '-').replace(/\s*\(.*\)/, '')}</div>
             </td>
-            <td>${j.rombel}</td>
-            <td>
+            ${user?.role !== 'Wali Kelas' ? `<td>${j.rombel}</td>` : ''}
+            ${user?.role !== 'Guru Mapel' ? `<td>
               <div style="font-weight: bold;">${j.mata_pelajaran}</div>
               <div style="margin-top: 3px; font-size: 8pt;">Guru : ${j.master_user?.nama || '-'}</div>
-            </td>
+            </td>` : ''}
             <td style="text-align: left;">${j.materi || '-'}</td>
             <td style="text-align: center;">
               ${(() => {
@@ -848,6 +853,21 @@ export default function JurnalPage() {
                 </svg>
               </div>
             )}
+            {user?.role === 'Guru Mapel' && (
+              <div className="relative w-full sm:w-auto">
+                <select value={filterMapel} onChange={e => setFilterMapel(e.target.value)}
+                  style={{ backgroundImage: 'none' }}
+                  className="appearance-none w-full sm:w-36 pl-4 pr-8 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
+                  <option value="Semua" className="bg-white dark:bg-slate-900 text-slate-400">Semua Mapel</option>
+                  {(mapelOptions || []).map(m => (
+                    <option key={m.id_mapel} value={m.nama_mapel} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{m.nama_mapel}</option>
+                  ))}
+                </select>
+                <svg className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </div>
+            )}
           </div>
         </div>
         {loadingRiwayat ? (
@@ -905,7 +925,6 @@ export default function JurnalPage() {
       </div>
 
       {/* Container Khusus Print Jurnal */}
-      {/* Container Khusus Print Jurnal */}
       <div className="hidden print:block w-full print:bg-white print:text-black">
         {(() => {
           const groupedRiwayat = riwayat.reduce((acc, curr) => {
@@ -946,7 +965,7 @@ export default function JurnalPage() {
                     <div className="absolute bottom-0 left-0 w-full border-b border-black mt-0.5"></div>
                   </div>
                   <div className="text-center mt-3 mb-3">
-                    <h3 className="text-base font-bold text-green-700">Rekapitulasi Jurnal Pembelajaran Guru - {user?.role === 'Wali Kelas' ? user.rombel : (user?.role === 'Admin' && filterRombel !== 'Semua' ? filterRombel : (user?.role === 'Guru Mapel' && [...new Set(items.map(d => d.mata_pelajaran))].length === 1 ? items[0].mata_pelajaran : 'Semua Mapel'))}</h3>
+                    <h3 className="text-base font-bold text-green-700">Rekapitulasi Jurnal Pembelajaran Guru - {user?.role === 'Wali Kelas' ? user.rombel : (user?.role === 'Admin' && filterRombel !== 'Semua' ? filterRombel : (user?.role === 'Guru Mapel' ? (filterMapel !== 'Semua' ? filterMapel : 'Semua Mapel') : 'Semua Mapel'))}</h3>
                     <p className="text-xs text-slate-600 mt-0.5">Tanggal: {dateText}</p>
                   </div>
                 </div>
@@ -958,8 +977,12 @@ export default function JurnalPage() {
                       <tr className="print:bg-gray-200 print:border-black">
                         <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">No</th>
                         <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Waktu</th>
-                        <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Rombel</th>
-                        <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Mata Pelajaran</th>
+                        {user?.role !== 'Wali Kelas' && (
+                          <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Rombel</th>
+                        )}
+                        {user?.role !== 'Guru Mapel' && (
+                          <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Mata Pelajaran</th>
+                        )}
                         <th className="text-xs font-bold print:text-black uppercase tracking-wider col-materi">Materi</th>
                         <th className="text-xs font-bold print:text-black uppercase tracking-wider col-materi text-center">Kehadiran</th>
                       </tr>
@@ -972,11 +995,15 @@ export default function JurnalPage() {
                             <div className="font-bold">{formatDateString(j.tanggal)}</div>
                             <div className="mt-0.5">{(j.jam_pelajaran || '-').replace(/\s*\(.*\)/, '')}</div>
                           </td>
-                          <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{j.rombel}</td>
-                          <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">
-                            <div className="font-bold">{j.mata_pelajaran}</div>
-                            <div className="mt-0.5 text-[8px]">Guru : {j.master_user?.nama || '-'}</div>
-                          </td>
+                          {user?.role !== 'Wali Kelas' && (
+                            <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{j.rombel}</td>
+                          )}
+                          {user?.role !== 'Guru Mapel' && (
+                            <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">
+                              <div className="font-bold">{j.mata_pelajaran}</div>
+                              <div className="mt-0.5 text-[8px]">Guru : {j.master_user?.nama || '-'}</div>
+                            </td>
+                          )}
                           <td className="text-[9px] print:text-black print:px-1 print:py-1.5 col-materi">{j.materi || '-'}</td>
                           <td className="text-[9px] print:text-black print:px-1 print:py-1.5 col-materi text-center">
                             {(() => {
