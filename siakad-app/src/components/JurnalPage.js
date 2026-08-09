@@ -138,7 +138,7 @@ export default function JurnalPage() {
   }, [jamOptions, jamMulai]);
 
   const { data: riwayatData, isLoading: loadingRiwayat, mutate: mutateRiwayat } = useSWR(user ? `jurnal_riwayat_${user.id_user}_${filterTglMulai}_${filterTglAkhir}_${filterRombel}` : null, async () => {
-    let query = supabase.from('jurnal_guru').select('*, master_user(nama)').order('tanggal', { ascending: true }).order('jam_pelajaran');
+    let query = supabase.from('jurnal_guru').select('*, master_user(nama), data_absensi_mapel(status)').order('tanggal', { ascending: true }).order('jam_pelajaran');
     if (user.role !== 'Admin') {
       query = query.eq('id_guru', user.id_user);
     }
@@ -406,7 +406,7 @@ export default function JurnalPage() {
               <th style="width: 8%;">Rombel</th>
               <th style="width: 12%;">Mapel</th>
               <th style="text-align: left; width: 23%;">Materi</th>
-              <th style="text-align: left; width: 23%;">Catatan</th>
+              <th style="text-align: center; width: 23%;">Kehadiran</th>
             </tr>
           </thead>
           <tbody>
@@ -421,7 +421,15 @@ export default function JurnalPage() {
             <td>${j.rombel}</td>
             <td>${j.mata_pelajaran}</td>
             <td style="text-align: left;">${j.materi || '-'}</td>
-            <td style="text-align: left;">${j.catatan || '-'}</td>
+            <td style="text-align: center;">
+              ${(() => {
+                const s = j.data_absensi_mapel?.filter(a => a.status === 'Sakit').length || 0;
+                const i = j.data_absensi_mapel?.filter(a => a.status === 'Izin').length || 0;
+                const a = j.data_absensi_mapel?.filter(a => a.status === 'Alpa').length || 0;
+                if (s === 0 && i === 0 && a === 0) return 'Nihil';
+                return `S:${s} I:${i} A:${a}`;
+              })()}
+            </td>
           </tr>
         `;
       });
@@ -947,7 +955,7 @@ export default function JurnalPage() {
                         <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Rombel</th>
                         <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Mapel</th>
                         <th className="text-xs font-bold print:text-black uppercase tracking-wider col-materi">Materi</th>
-                        <th className="text-xs font-bold print:text-black uppercase tracking-wider col-materi">Catatan</th>
+                        <th className="text-xs font-bold print:text-black uppercase tracking-wider col-materi text-center">Kehadiran</th>
                       </tr>
                     </thead>
                     <tbody className="print:divide-black/20">
@@ -962,7 +970,15 @@ export default function JurnalPage() {
                           <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{j.rombel}</td>
                           <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{j.mata_pelajaran}</td>
                           <td className="text-[9px] print:text-black print:px-1 print:py-1.5 col-materi">{j.materi || '-'}</td>
-                          <td className="text-[9px] print:text-black print:px-1 print:py-1.5 col-materi">{j.catatan || '-'}</td>
+                          <td className="text-[9px] print:text-black print:px-1 print:py-1.5 col-materi text-center">
+                            {(() => {
+                              const s = j.data_absensi_mapel?.filter(a => a.status === 'Sakit').length || 0;
+                              const i = j.data_absensi_mapel?.filter(a => a.status === 'Izin').length || 0;
+                              const a = j.data_absensi_mapel?.filter(a => a.status === 'Alpa').length || 0;
+                              if (s === 0 && i === 0 && a === 0) return 'Nihil';
+                              return `S:${s} I:${i} A:${a}`;
+                            })()}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
