@@ -163,29 +163,29 @@ export default function JurnalPage() {
       query = query.eq('id_guru', user.id_user);
     }
     const { data: jurnalData } = await query;
-    
+
     // Fetch libur
     const { data: liburData } = await supabase.from('master_libur').select('tanggal').gte('tanggal', startDateStr).lte('tanggal', todayStr);
-    
-    return { 
-      jurnal: jurnalData || [], 
-      libur: (liburData || []).map(l => l.tanggal) 
+
+    return {
+      jurnal: jurnalData || [],
+      libur: (liburData || []).map(l => l.tanggal)
     };
   });
 
   useEffect(() => {
     if (!indicatorData) return;
-    
+
     const { jurnal, libur } = indicatorData;
-    
+
     const grouped = {};
     jurnal.forEach(j => {
       if (!grouped[j.tanggal]) grouped[j.tanggal] = new Set();
-      
+
       if (j.jam_pelajaran) {
         const matchRange = j.jam_pelajaran.match(/Jam ke-(\d+)\s+s\/d\s+Jam ke-(\d+)/i);
         const matchSingle = j.jam_pelajaran.match(/Jam ke-(\d+)/i);
-        
+
         if (matchRange) {
           const start = parseInt(matchRange[1], 10);
           const end = parseInt(matchRange[2], 10);
@@ -210,34 +210,34 @@ export default function JurnalPage() {
       }
       if (!isComplete) incomplete.push(date);
     });
-    
+
     setIncompleteDates(incomplete);
 
-    // Missing Journal Dates (Dari awal bulan ini hingga hari ini)
+    // Missing Journal Dates (Dari awal bulan lalu hingga hari ini)
     const missing = [];
     const today = new Date();
     const todayNormalized = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const currentDate = new Date(today.getFullYear(), today.getMonth(), 1);
-    
+    const currentDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+
     while (currentDate <= todayNormalized) {
       const dateStr = new Date(currentDate.getTime() - (currentDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
       const isSunday = currentDate.getDay() === 0;
       const isHoliday = libur.includes(dateStr);
       const hasJournal = grouped[dateStr] !== undefined;
-      
+
       if (!isSunday && !isHoliday && !hasJournal) {
         missing.push(dateStr);
       }
       currentDate.setDate(currentDate.getDate() + 1);
     }
-    
+
     setMissingJournalDates(missing);
   }, [indicatorData]);
 
   const getDayClassName = (date) => {
     const d = new Date(date);
     const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-    
+
     if (missingJournalDates.includes(localDate)) {
       return '!bg-rose-100 dark:!bg-rose-500/20 !text-rose-700 font-bold';
     }
