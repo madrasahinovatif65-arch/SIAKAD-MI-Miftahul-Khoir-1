@@ -99,19 +99,27 @@ CREATE TABLE IF NOT EXISTS data_nfc_murid (
   UNIQUE(tanggal, nisn)
 );
 
--- 2c. Jurnal Guru (pengganti sheet Jurnal_Guru)
--- Kolom asli: Timestamp, Tanggal, Jam_Pelajaran, Nama_Guru, Rombel, Mata_Pelajaran, Materi_Catatan, Kehadiran_Siswa
+-- 2c. Jurnal Guru
 CREATE TABLE IF NOT EXISTS jurnal_guru (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   tanggal DATE NOT NULL,
   jam_pelajaran TEXT NOT NULL,
-  id_guru TEXT NOT NULL,                 -- Referensi ke master_user.id_user
-  nama_guru TEXT NOT NULL,
+  id_guru TEXT NOT NULL REFERENCES master_user(id_user) ON DELETE CASCADE,
   rombel TEXT NOT NULL,
   mata_pelajaran TEXT NOT NULL,
-  materi_catatan TEXT DEFAULT '',
-  kehadiran_siswa JSONB DEFAULT '[]',    -- Array JSON siswa dan statusnya
+  materi_catatan TEXT DEFAULT '-',
   created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2c-2. Data Absensi Mapel (Terkait Jurnal Guru)
+CREATE TABLE IF NOT EXISTS data_absensi_mapel (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  id_jurnal UUID NOT NULL REFERENCES jurnal_guru(id) ON DELETE CASCADE,
+  nisn TEXT NOT NULL REFERENCES master_user(id_user) ON DELETE CASCADE,
+  status TEXT NOT NULL CHECK (status IN ('Hadir', 'Sakit', 'Izin', 'Alfa', 'Dispen')),
+  catatan TEXT DEFAULT '-',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(id_jurnal, nisn)
 );
 
 -- 2d. Log GPS Guru (pengganti sheet Log_GPS)
