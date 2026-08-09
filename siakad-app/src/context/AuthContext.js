@@ -92,7 +92,7 @@ export function AuthProvider({ children }) {
       });
 
       if (authError || !authData.user) {
-        return { success: false, message: 'Kredensial tidak valid' };
+        return { success: false, message: 'ID atau PIN salah. Silakan scan kartu Anda.' };
       }
 
       await fetchUserData(authData.user.id);
