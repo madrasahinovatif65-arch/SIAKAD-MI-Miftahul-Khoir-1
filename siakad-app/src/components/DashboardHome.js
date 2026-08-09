@@ -204,8 +204,8 @@ export default function DashboardHome() {
             )}
           </div>
           <div className="hidden md:flex w-16 h-16 bg-gradient-to-br from-emerald-100 to-teal-50 dark:from-emerald-900/40 dark:to-teal-900/20 rounded-2xl items-center justify-center border border-emerald-200/50 dark:border-emerald-500/20 shadow-inner overflow-hidden relative">
-            {user.foto_profil ? (
-              <img src={user.foto_profil} alt={user.nama} className="w-full h-full object-cover" />
+            {user?.foto ? (
+              <img src={user.foto} alt={user.nama} className="w-full h-full object-cover" />
             ) : (
               <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                 {user.nama.charAt(0).toUpperCase()}
