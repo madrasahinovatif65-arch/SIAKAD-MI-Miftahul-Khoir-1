@@ -215,11 +215,17 @@ export default function JurnalPage() {
     const rombelNameExport = user?.rombel !== '-' && user?.rombel ? user.rombel.replace(/^Kelas /i, '') : '';
     const roleLabel = user?.role === 'Admin' ? 'Kepala Madrasah' : user?.role === 'Wali Kelas' ? `Wali Kelas ${rombelNameExport}`.trim() : user?.role === 'Guru Mapel' ? 'Guru Mata Pelajaran' : 'Staf TU';
     const groupedRiwayat = riwayat.reduce((acc, curr) => {
-      if (!acc[curr.tanggal]) acc[curr.tanggal] = [];
-      acc[curr.tanggal].push(curr);
+      const d = new Date(curr.tanggal);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(d);
+      monday.setDate(diff);
+      const weekKey = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+      if (!acc[weekKey]) acc[weekKey] = [];
+      acc[weekKey].push(curr);
       return acc;
     }, {});
-    const printDates = Object.keys(groupedRiwayat).sort();
+    const printWeeks = Object.keys(groupedRiwayat).sort();
 
     let html = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
@@ -234,10 +240,15 @@ export default function JurnalPage() {
       <body style="font-family: Arial, sans-serif;">
     `;
 
-    printDates.forEach((date, dateIdx) => {
-      if (dateIdx > 0) {
+    printWeeks.forEach((weekKey, weekIdx) => {
+      if (weekIdx > 0) {
         html += `<br clear=all style="mso-special-character:line-break;page-break-before:always">`;
       }
+      const exportData = groupedRiwayat[weekKey];
+      const firstDate = exportData[0].tanggal;
+      const lastDate = exportData[exportData.length - 1].tanggal;
+      const dateText = firstDate === lastDate ? formatDateString(firstDate) : `${formatDateString(firstDate)} s.d. ${formatDateString(lastDate)}`;
+
       html += `
         <table style="width: 100%; border-bottom: 3px solid black; margin-bottom: 20px; border-collapse: collapse;">
           <tr>
@@ -253,7 +264,7 @@ export default function JurnalPage() {
         </table>
         <div style="text-align: center; margin-bottom: 20px;">
           <h3 style="margin: 0; font-size: 14pt;">Laporan Jurnal Mengajar</h3>
-          <p style="margin: 5px 0;">Tanggal: ${formatDateString(date)}</p>
+          <p style="margin: 5px 0;">Tanggal: ${dateText}</p>
           ${user.role === 'Admin' && filterRombel !== 'Semua' ? `<p style="margin: 0;">Kelas/Rombel: <b>${filterRombel}</b></p>` : ''}
           ${user.role !== 'Admin' ? `<p style="margin: 0;">Guru: <b>${guruName}</b></p>` : ''}
         </div>
@@ -261,6 +272,7 @@ export default function JurnalPage() {
           <thead>
             <tr style="background-color: #e2e8f0;">
               <th style="width: 4%;">No</th>
+              <th style="width: 10%;">Tanggal</th>
               <th style="width: 14%;">Jam</th>
               ${user.role === 'Admin' ? '<th style="width: 12%;">Guru</th>' : ''}
               <th style="width: 8%;">Rombel</th>
@@ -271,11 +283,11 @@ export default function JurnalPage() {
           </thead>
           <tbody>
       `;
-      const exportData = groupedRiwayat[date];
       exportData.forEach((j, idx) => {
         html += `
           <tr>
             <td>${idx + 1}</td>
+            <td style="font-size: 8pt;">${j.tanggal}</td>
             <td style="font-size: 8pt;">${j.jam_pelajaran || '-'}</td>
             ${user.role === 'Admin' ? `<td>${j.master_user?.nama || '-'}</td>` : ''}
             <td>${j.rombel}</td>
@@ -780,22 +792,31 @@ export default function JurnalPage() {
       <div className="hidden print:block w-full print:bg-white print:text-black">
         {(() => {
           const groupedRiwayat = riwayat.reduce((acc, curr) => {
-            if (!acc[curr.tanggal]) acc[curr.tanggal] = [];
-            acc[curr.tanggal].push(curr);
+            const d = new Date(curr.tanggal);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            const monday = new Date(d);
+            monday.setDate(diff);
+            const weekKey = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+            if (!acc[weekKey]) acc[weekKey] = [];
+            acc[weekKey].push(curr);
             return acc;
           }, {});
-          const printDates = Object.keys(groupedRiwayat).sort();
+          const printWeeks = Object.keys(groupedRiwayat).sort();
 
-          if (printDates.length === 0) {
+          if (printWeeks.length === 0) {
             return <div className="p-8 text-center text-slate-500 font-medium">Tidak ada data jurnal di rentang tanggal ini.</div>;
           }
 
-          return printDates.map((date, dateIdx) => {
-            const items = groupedRiwayat[date];
+          return printWeeks.map((weekKey, weekIdx) => {
+            const items = groupedRiwayat[weekKey];
+            const firstDate = items[0].tanggal;
+            const lastDate = items[items.length - 1].tanggal;
+            const dateText = firstDate === lastDate ? formatDateString(firstDate) : `${formatDateString(firstDate)} s.d. ${formatDateString(lastDate)}`;
             const rombelNamePrint = user?.rombel !== '-' && user?.rombel ? user.rombel.replace(/^Kelas /i, '') : '';
             const roleLabel = user?.role === 'Admin' ? 'Kepala Madrasah' : user?.role === 'Wali Kelas' ? `Wali Kelas ${rombelNamePrint}`.trim() : user?.role === 'Guru Mapel' ? 'Guru Mata Pelajaran' : 'Staf TU';
             return (
-              <div key={date} className={`w-full ${dateIdx < printDates.length - 1 ? 'page-break-after' : ''}`}>
+              <div key={weekKey} className={`w-full ${weekIdx < printWeeks.length - 1 ? 'page-break-after' : ''}`}>
                 {/* Header Print */}
                 <div className="mb-4">
                   <div className="flex items-center gap-4 mb-2 border-b-[3px] border-black pb-2 relative">
@@ -809,7 +830,7 @@ export default function JurnalPage() {
                   </div>
                   <div className="text-center mt-3 mb-3">
                     <h3 className="text-base font-bold text-slate-800">Laporan Jurnal Mengajar</h3>
-                    <p className="text-xs text-slate-600 mt-0.5">Tanggal: {formatDateString(date)}</p>
+                    <p className="text-xs text-slate-600 mt-0.5">Tanggal: {dateText}</p>
                     {user?.role === 'Admin' && filterRombel !== 'Semua' && (
                       <p className="text-xs text-slate-600 mt-0.5">Kelas/Rombel: <span className="font-bold text-green-700">{filterRombel}</span></p>
                     )}
@@ -825,6 +846,7 @@ export default function JurnalPage() {
                     <thead>
                       <tr className="print:bg-gray-200 print:border-black">
                         <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">No</th>
+                        <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Tanggal</th>
                         <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Jam</th>
                         {user?.role === 'Admin' && (
                           <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Guru</th>
@@ -839,6 +861,7 @@ export default function JurnalPage() {
                       {items.map((j, idx) => (
                         <tr key={j.id} className="print:hover:bg-transparent">
                           <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{idx + 1}</td>
+                          <td className="text-[8px] print:text-black print:px-1 print:py-1.5 text-center whitespace-nowrap">{formatDateString(j.tanggal)}</td>
                           <td className="text-[8px] print:text-black print:px-1 print:py-1.5 text-center">{j.jam_pelajaran || '-'}</td>
                           {user?.role === 'Admin' && (
                             <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{j.master_user?.nama || '-'}</td>
