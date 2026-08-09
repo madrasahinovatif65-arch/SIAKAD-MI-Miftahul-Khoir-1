@@ -400,20 +400,18 @@ export default function JurnalPage() {
           </tr>
         </table>
         <div style="text-align: center; margin-bottom: 20px;">
-          <h3 style="margin: 0; font-size: 14pt;">Laporan Jurnal Mengajar</h3>
+          <h3 style="margin: 0; font-size: 14pt; color: #15803d; font-weight: bold;">
+            Rekapitulasi Jurnal Pembelajaran Guru - ${user?.role === 'Wali Kelas' ? user.rombel : (user?.role === 'Admin' && filterRombel !== 'Semua' ? filterRombel : (user?.role === 'Guru Mapel' && [...new Set(exportData.map(d => d.mata_pelajaran))].length === 1 ? exportData[0].mata_pelajaran : 'Semua Mapel'))}
+          </h3>
           <p style="margin: 5px 0;">Tanggal: ${dateText}</p>
-          ${user.role === 'Admin' && filterRombel !== 'Semua' ? `<p style="margin: 0;">Kelas/Rombel: <b>${filterRombel}</b></p>` : ''}
-          ${user.role !== 'Admin' ? `<p style="margin: 0;">Guru: <b>${guruName}</b></p>` : ''}
         </div>
         <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; font-size: 9pt; text-align: center; table-layout: auto;">
           <thead>
             <tr style="background-color: #e2e8f0;">
               <th style="width: 4%;">No</th>
-              <th style="width: 10%;">Tanggal</th>
-              <th style="width: 8%;">Jam</th>
-              ${user.role === 'Admin' ? '<th style="width: 12%;">Guru</th>' : ''}
+              <th style="width: 14%;">Waktu</th>
               <th style="width: 8%;">Rombel</th>
-              <th style="width: 12%;">Mapel</th>
+              <th style="width: 28%;">Mata Pelajaran</th>
               <th style="text-align: left; width: 23%;">Materi</th>
               <th style="text-align: center; width: 23%;">Kehadiran</th>
             </tr>
@@ -424,11 +422,15 @@ export default function JurnalPage() {
         html += `
           <tr>
             <td>${idx + 1}</td>
-            <td style="font-size: 8pt;">${j.tanggal}</td>
-            <td style="font-size: 8pt;">${(j.jam_pelajaran || '-').replace(/\s*\(.*\)/, '')}</td>
-            ${user.role === 'Admin' ? `<td>${j.master_user?.nama || '-'}</td>` : ''}
+            <td style="font-size: 8pt;">
+              <div style="font-weight: bold;">${j.tanggal}</div>
+              <div style="margin-top: 3px;">${(j.jam_pelajaran || '-').replace(/\s*\(.*\)/, '')}</div>
+            </td>
             <td>${j.rombel}</td>
-            <td>${j.mata_pelajaran}</td>
+            <td>
+              <div style="font-weight: bold;">${j.mata_pelajaran}</div>
+              <div style="margin-top: 3px; font-size: 8pt;">Guru : ${j.master_user?.nama || '-'}</div>
+            </td>
             <td style="text-align: left;">${j.materi || '-'}</td>
             <td style="text-align: center;">
               ${(() => {
@@ -939,14 +941,8 @@ export default function JurnalPage() {
                     <div className="absolute bottom-0 left-0 w-full border-b border-black mt-0.5"></div>
                   </div>
                   <div className="text-center mt-3 mb-3">
-                    <h3 className="text-base font-bold text-slate-800">Laporan Jurnal Mengajar</h3>
+                    <h3 className="text-base font-bold text-green-700">Rekapitulasi Jurnal Pembelajaran Guru - {user?.role === 'Wali Kelas' ? user.rombel : (user?.role === 'Admin' && filterRombel !== 'Semua' ? filterRombel : (user?.role === 'Guru Mapel' && [...new Set(items.map(d => d.mata_pelajaran))].length === 1 ? items[0].mata_pelajaran : 'Semua Mapel'))}</h3>
                     <p className="text-xs text-slate-600 mt-0.5">Tanggal: {dateText}</p>
-                    {user?.role === 'Admin' && filterRombel !== 'Semua' && (
-                      <p className="text-xs text-slate-600 mt-0.5">Kelas/Rombel: <span className="font-bold text-green-700">{filterRombel}</span></p>
-                    )}
-                    {user?.role !== 'Admin' && (
-                      <p className="text-xs text-slate-600 mt-0.5">Guru: <span className="font-bold text-green-700">{user?.nama || '-'}</span></p>
-                    )}
                   </div>
                 </div>
 
@@ -956,13 +952,9 @@ export default function JurnalPage() {
                     <thead>
                       <tr className="print:bg-gray-200 print:border-black">
                         <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">No</th>
-                        <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Tanggal</th>
-                        <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Jam</th>
-                        {user?.role === 'Admin' && (
-                          <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Guru</th>
-                        )}
+                        <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Waktu</th>
                         <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Rombel</th>
-                        <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Mapel</th>
+                        <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Mata Pelajaran</th>
                         <th className="text-xs font-bold print:text-black uppercase tracking-wider col-materi">Materi</th>
                         <th className="text-xs font-bold print:text-black uppercase tracking-wider col-materi text-center">Kehadiran</th>
                       </tr>
@@ -971,13 +963,15 @@ export default function JurnalPage() {
                       {items.map((j, idx) => (
                         <tr key={j.id} className="print:hover:bg-transparent">
                           <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{idx + 1}</td>
-                          <td className="text-[8px] print:text-black print:px-1 print:py-1.5 text-center whitespace-nowrap">{formatDateString(j.tanggal)}</td>
-                          <td className="text-[8px] print:text-black print:px-1 print:py-1.5 text-center">{(j.jam_pelajaran || '-').replace(/\s*\(.*\)/, '')}</td>
-                          {user?.role === 'Admin' && (
-                            <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{j.master_user?.nama || '-'}</td>
-                          )}
+                          <td className="text-[8px] print:text-black print:px-1 print:py-1.5 text-center whitespace-nowrap">
+                            <div className="font-bold">{formatDateString(j.tanggal)}</div>
+                            <div className="mt-0.5">{(j.jam_pelajaran || '-').replace(/\s*\(.*\)/, '')}</div>
+                          </td>
                           <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{j.rombel}</td>
-                          <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{j.mata_pelajaran}</td>
+                          <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">
+                            <div className="font-bold">{j.mata_pelajaran}</div>
+                            <div className="mt-0.5 text-[8px]">Guru : {j.master_user?.nama || '-'}</div>
+                          </td>
                           <td className="text-[9px] print:text-black print:px-1 print:py-1.5 col-materi">{j.materi || '-'}</td>
                           <td className="text-[9px] print:text-black print:px-1 print:py-1.5 col-materi text-center">
                             {(() => {
