@@ -17,13 +17,40 @@ export default function PullToRefresh({ children }) {
     if (!isTouchDevice) return;
 
     const handleTouchStart = (e) => {
-      if (window.scrollY === 0) {
+      let node = e.target;
+      let isScrolled = false;
+      while (node && node !== document.documentElement) {
+        if (node.scrollTop > 0) {
+          isScrolled = true;
+          break;
+        }
+        node = node.parentNode;
+      }
+      
+      if (!isScrolled && window.scrollY <= 0) {
         setStartY(e.touches[0].clientY);
+      } else {
+        setStartY(0);
       }
     };
 
     const handleTouchMove = (e) => {
-      if (window.scrollY === 0 && startY > 0) {
+      if (startY > 0) {
+        let node = e.target;
+        let isScrolled = false;
+        while (node && node !== document.documentElement) {
+          if (node.scrollTop > 0) {
+            isScrolled = true;
+            break;
+          }
+          node = node.parentNode;
+        }
+
+        if (isScrolled || window.scrollY > 0) {
+          setStartY(0);
+          return;
+        }
+
         const y = e.touches[0].clientY;
         if (y > startY) {
           const distance = y - startY;
