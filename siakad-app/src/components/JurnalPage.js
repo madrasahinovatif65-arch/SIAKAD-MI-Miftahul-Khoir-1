@@ -20,10 +20,10 @@ import useSWR from 'swr';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { id } from 'date-fns/locale/id';
+import AbsenModal from './AbsenModal';
 
 registerLocale('id', id);
-import { SaveIcon } from '@heroicons/react/24/solid';
-import AbsenModal from './AbsenModal';
+
 export default function JurnalPage() {
   const { user } = useAuth();
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().split('T')[0]);
@@ -421,16 +421,7 @@ const rekapAbsen = {
       setEditId(null);
       mutateRiwayat();
     }
-    }
   };
-
-  const rekapAbsen = { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
-  if (siswaData?.murid) {
-    siswaData.murid.forEach(m => {
-      const st = absensiMapel[m.id_user] || 'Hadir';
-      if (rekapAbsen[st] !== undefined) rekapAbsen[st]++;
-    });
-  }
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
