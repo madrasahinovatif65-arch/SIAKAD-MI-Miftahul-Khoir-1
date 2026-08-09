@@ -212,7 +212,14 @@ export default function JurnalPage() {
   const handleExportWord = async () => {
     const guruName = user?.nama || user?.id_user || '-';
     const logoBase64 = await getBase64FromUrl(logo);
-    const roleLabel = user.role === 'Admin' ? 'Kepala Madrasah' : user.role === 'Wali Kelas' ? 'Wali Kelas' : user.role === 'Guru Mapel' ? 'Guru Mata Pelajaran' : 'Staf TU';
+    const roleLabel = user?.role === 'Admin' ? 'Kepala Madrasah' : user?.role === 'Wali Kelas' ? `Wali Kelas ${user?.rombel !== '-' && user?.rombel ? user.rombel : ''}`.trim() : user?.role === 'Guru Mapel' ? 'Guru Mata Pelajaran' : 'Staf TU';
+    const groupedRiwayat = riwayat.reduce((acc, curr) => {
+      if (!acc[curr.tanggal]) acc[curr.tanggal] = [];
+      acc[curr.tanggal].push(curr);
+      return acc;
+    }, {});
+    const printDates = Object.keys(groupedRiwayat).sort();
+
     let html = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
@@ -224,6 +231,13 @@ export default function JurnalPage() {
          </style>
        </head>
       <body style="font-family: Arial, sans-serif;">
+    `;
+
+    printDates.forEach((date, dateIdx) => {
+      if (dateIdx > 0) {
+        html += `<br clear=all style="mso-special-character:line-break;page-break-before:always">`;
+      }
+      html += `
         <table style="width: 100%; border-bottom: 3px solid black; margin-bottom: 20px; border-collapse: collapse;">
           <tr>
             <td style="width: 15%; text-align: left; vertical-align: middle;">
@@ -238,7 +252,7 @@ export default function JurnalPage() {
         </table>
         <div style="text-align: center; margin-bottom: 20px;">
           <h3 style="margin: 0; font-size: 14pt;">Laporan Jurnal Mengajar</h3>
-          <p style="margin: 5px 0;">Periode: ${formatDateString(filterTglMulai)} s.d. ${formatDateString(filterTglAkhir)}</p>
+          <p style="margin: 5px 0;">Tanggal: ${formatDateString(date)}</p>
           ${user.role === 'Admin' && filterRombel !== 'Semua' ? `<p style="margin: 0;">Kelas/Rombel: <b>${filterRombel}</b></p>` : ''}
           ${user.role !== 'Admin' ? `<p style="margin: 0;">Guru: <b>${guruName}</b></p>` : ''}
         </div>
@@ -246,7 +260,6 @@ export default function JurnalPage() {
           <thead>
             <tr style="background-color: #e2e8f0;">
               <th style="width: 4%;">No</th>
-              <th style="width: 10%;">Tanggal</th>
               <th style="width: 14%;">Jam</th>
               ${user.role === 'Admin' ? '<th style="width: 12%;">Guru</th>' : ''}
               <th style="width: 8%;">Rombel</th>
@@ -256,24 +269,22 @@ export default function JurnalPage() {
             </tr>
           </thead>
           <tbody>
-    `;
-    const maxEntries = 8;
-    const exportData = riwayat.slice(0, maxEntries);
-    exportData.forEach((j, idx) => {
-      html += `
-        <tr>
-          <td>${idx + 1}</td>
-          <td>${formatDateString(j.tanggal)}</td>
-          <td style="font-size: 8pt;">${j.jam_pelajaran || '-'}</td>
-          ${user.role === 'Admin' ? `<td>${j.master_user?.nama || '-'}</td>` : ''}
-          <td>${j.rombel}</td>
-          <td>${j.mata_pelajaran}</td>
-          <td style="text-align: left;">${j.materi || '-'}</td>
-          <td style="text-align: left;">${j.catatan || '-'}</td>
-        </tr>
       `;
-    });
-    html += `
+      const exportData = groupedRiwayat[date];
+      exportData.forEach((j, idx) => {
+        html += `
+          <tr>
+            <td>${idx + 1}</td>
+            <td style="font-size: 8pt;">${j.jam_pelajaran || '-'}</td>
+            ${user.role === 'Admin' ? `<td>${j.master_user?.nama || '-'}</td>` : ''}
+            <td>${j.rombel}</td>
+            <td>${j.mata_pelajaran}</td>
+            <td style="text-align: left;">${j.materi || '-'}</td>
+            <td style="text-align: left;">${j.catatan || '-'}</td>
+          </tr>
+        `;
+      });
+      html += `
           </tbody>
         </table>
         <br><br><br>
@@ -297,6 +308,10 @@ export default function JurnalPage() {
             </td>
           </tr>
         </table>
+      `;
+    });
+
+    html += `
       </body>
       </html>
     `;
@@ -385,7 +400,7 @@ export default function JurnalPage() {
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 print-container-jurnal">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">Jurnal Mengajar</h2>
@@ -621,7 +636,7 @@ export default function JurnalPage() {
       )}
 
       {/* Riwayat */}
-      <div>
+      <div className="print:hidden">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
           <h3 className="text-lg font-bold text-slate-800 dark:text-white tracking-tight">Riwayat Jurnal</h3>
           
@@ -760,103 +775,112 @@ export default function JurnalPage() {
       </div>
 
       {/* Container Khusus Print Jurnal */}
-      <div className="print-container-jurnal hidden print:block">
-        {/* Header Print */}
-        <div className="mb-4">
-          <div className="flex items-center gap-4 mb-2 border-b-[3px] border-black pb-2 relative">
-            <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain" />
-            <div className="flex-1 text-center">
-              <h3 className="text-lg font-bold text-slate-800 tracking-tight">Yayasan NU Miftakhul Khoir Damarjati</h3>
-              <h2 className="text-2xl font-bold text-green-700 tracking-tight mt-0.5">MI Miftahul Khoir 1 Karangrejo</h2>
-              <p className="text-[10px] text-slate-600 mt-1 tracking-wide font-medium">NPSN: 60716857 | Jl. Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo, Kec. Purwosari, Kabupaten Pasuruan</p>
-            </div>
-            <div className="absolute bottom-0 left-0 w-full border-b border-black mt-0.5"></div>
-          </div>
-          <div className="text-center mt-3 mb-3">
-            <h3 className="text-base font-bold text-slate-800">Laporan Jurnal Mengajar</h3>
-            <p className="text-xs text-slate-600 mt-0.5">Periode: {formatDateString(filterTglMulai)} s.d. {formatDateString(filterTglAkhir)}</p>
-            {user?.role === 'Admin' && filterRombel !== 'Semua' && (
-              <p className="text-xs text-slate-600 mt-0.5">Kelas/Rombel: <span className="font-bold text-green-700">{filterRombel}</span></p>
-            )}
-            {user?.role !== 'Admin' && (
-              <p className="text-xs text-slate-600 mt-0.5">Guru: <span className="font-bold text-green-700">{user?.nama || '-'}</span></p>
-            )}
-          </div>
-        </div>
+      {/* Container Khusus Print Jurnal */}
+      <div className="hidden print:block w-full">
+        {(() => {
+          const groupedRiwayat = riwayat.reduce((acc, curr) => {
+            if (!acc[curr.tanggal]) acc[curr.tanggal] = [];
+            acc[curr.tanggal].push(curr);
+            return acc;
+          }, {});
+          const printDates = Object.keys(groupedRiwayat).sort();
 
-        {/* Tabel Print */}
-        <div className="overflow-visible">
-          <table className="w-full text-left border-collapse print:text-black print:bg-white print:table-auto">
-            <thead>
-              <tr className="print:bg-gray-200 print:border-black">
-                <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">No</th>
-                <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Tanggal</th>
-                <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Jam</th>
-                {user?.role === 'Admin' && (
-                  <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Guru</th>
-                )}
-                <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Rombel</th>
-                <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Mapel</th>
-                <th className="text-xs font-bold print:text-black uppercase tracking-wider col-materi">Materi</th>
-                <th className="text-xs font-bold print:text-black uppercase tracking-wider col-materi">Catatan</th>
-              </tr>
-            </thead>
-            <tbody className="print:divide-black/20">
-              {riwayat.length === 0 ? (
-                <tr>
-                  <td colSpan={user?.role === 'Admin' ? 8 : 7} className="p-8 text-center text-slate-500 font-medium">Tidak ada data jurnal di rentang tanggal ini.</td>
-                </tr>
-              ) : (
-                <>
-                  {riwayat.map((j, idx) => (
-                    <tr key={j.id} className="print:hover:bg-transparent">
-                      <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{idx + 1}</td>
-                      <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center whitespace-nowrap">{formatDateString(j.tanggal)}</td>
-                      <td className="text-[8px] print:text-black print:px-1 print:py-1.5 text-center">{j.jam_pelajaran || '-'}</td>
-                      {user?.role === 'Admin' && (
-                        <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{j.master_user?.nama || '-'}</td>
-                      )}
-                      <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{j.rombel}</td>
-                      <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{j.mata_pelajaran}</td>
-                      <td className="text-[9px] print:text-black print:px-1 print:py-1.5 col-materi">{j.materi || '-'}</td>
-                      <td className="text-[9px] print:text-black print:px-1 print:py-1.5 col-materi">{j.catatan || '-'}</td>
-                    </tr>
-                  ))}
-                  {/* Tanda Tangan */}
-                  <tr className="print:table-row print-no-border">
-                    <td colSpan={user?.role === 'Admin' ? 8 : 7} className="pt-12 pb-2">
-                      <div className="flex justify-between items-end px-12 text-center text-xs text-black w-full">
-                        <div className="flex flex-col items-center">
-                          <p className="text-transparent select-none">.</p>
-                          <p>Dibuat Oleh,</p>
-                          <p className="font-bold uppercase mt-1">{user?.nama?.toUpperCase() || '-'},</p>
-                          <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">{user?.nama || '-'}</div>
-                          <p className="mt-1">-</p>
-                        </div>
-                        <div className="flex flex-col items-center">
-                          <p>Karangrejo, {formatDateString(new Date().toISOString())}</p>
-                          <p>Mengetahui Kepala Madrasah,</p>
-                          <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
-                          <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">Nur Su&apos;ud, S.Pd.I.</div>
-                          <p className="mt-1">-</p>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                </>
-              )}
-            </tbody>
-          </table>
-        </div>
+          if (printDates.length === 0) {
+            return <div className="p-8 text-center text-slate-500 font-medium">Tidak ada data jurnal di rentang tanggal ini.</div>;
+          }
+
+          return printDates.map((date, dateIdx) => {
+            const items = groupedRiwayat[date];
+            const roleLabel = user?.role === 'Admin' ? 'Kepala Madrasah' : user?.role === 'Wali Kelas' ? `Wali Kelas ${user?.rombel !== '-' && user?.rombel ? user.rombel : ''}`.trim() : user?.role === 'Guru Mapel' ? 'Guru Mata Pelajaran' : 'Staf TU';
+            return (
+              <div key={date} className={`w-full ${dateIdx < printDates.length - 1 ? 'page-break-after' : ''}`}>
+                {/* Header Print */}
+                <div className="mb-4">
+                  <div className="flex items-center gap-4 mb-2 border-b-[3px] border-black pb-2 relative">
+                    <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain" />
+                    <div className="flex-1 text-center">
+                      <h3 className="text-lg font-bold text-slate-800 tracking-tight">Yayasan NU Miftakhul Khoir Damarjati</h3>
+                      <h2 className="text-2xl font-bold text-green-700 tracking-tight mt-0.5">MI Miftahul Khoir 1 Karangrejo</h2>
+                      <p className="text-[10px] text-slate-600 mt-1 tracking-wide font-medium">NPSN: 60716857 | Jl. Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo, Kec. Purwosari, Kabupaten Pasuruan</p>
+                    </div>
+                    <div className="absolute bottom-0 left-0 w-full border-b border-black mt-0.5"></div>
+                  </div>
+                  <div className="text-center mt-3 mb-3">
+                    <h3 className="text-base font-bold text-slate-800">Laporan Jurnal Mengajar</h3>
+                    <p className="text-xs text-slate-600 mt-0.5">Tanggal: {formatDateString(date)}</p>
+                    {user?.role === 'Admin' && filterRombel !== 'Semua' && (
+                      <p className="text-xs text-slate-600 mt-0.5">Kelas/Rombel: <span className="font-bold text-green-700">{filterRombel}</span></p>
+                    )}
+                    {user?.role !== 'Admin' && (
+                      <p className="text-xs text-slate-600 mt-0.5">Guru: <span className="font-bold text-green-700">{user?.nama || '-'}</span></p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tabel Print */}
+                <div className="overflow-visible">
+                  <table className="w-full text-left border-collapse print:text-black print:bg-white print:table-auto">
+                    <thead>
+                      <tr className="print:bg-gray-200 print:border-black">
+                        <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">No</th>
+                        <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Jam</th>
+                        {user?.role === 'Admin' && (
+                          <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Guru</th>
+                        )}
+                        <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Rombel</th>
+                        <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Mapel</th>
+                        <th className="text-xs font-bold print:text-black uppercase tracking-wider col-materi">Materi</th>
+                        <th className="text-xs font-bold print:text-black uppercase tracking-wider col-materi">Catatan</th>
+                      </tr>
+                    </thead>
+                    <tbody className="print:divide-black/20">
+                      {items.map((j, idx) => (
+                        <tr key={j.id} className="print:hover:bg-transparent">
+                          <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{idx + 1}</td>
+                          <td className="text-[8px] print:text-black print:px-1 print:py-1.5 text-center">{j.jam_pelajaran || '-'}</td>
+                          {user?.role === 'Admin' && (
+                            <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{j.master_user?.nama || '-'}</td>
+                          )}
+                          <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{j.rombel}</td>
+                          <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{j.mata_pelajaran}</td>
+                          <td className="text-[9px] print:text-black print:px-1 print:py-1.5 col-materi">{j.materi || '-'}</td>
+                          <td className="text-[9px] print:text-black print:px-1 print:py-1.5 col-materi">{j.catatan || '-'}</td>
+                        </tr>
+                      ))}
+                      {/* Tanda Tangan */}
+                      <tr className="print:table-row print-no-border">
+                        <td colSpan={user?.role === 'Admin' ? 7 : 6} className="pt-12 pb-2">
+                          <div className="flex justify-between items-end px-12 text-center text-xs text-black w-full">
+                            <div className="flex flex-col items-center">
+                              <p className="text-transparent select-none">.</p>
+                              <p>Dibuat Oleh,</p>
+                              <p className="font-bold uppercase mt-1">{roleLabel},</p>
+                              <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">{user?.nama || '-'}</div>
+                              <p className="mt-1">-</p>
+                            </div>
+                            <div className="flex flex-col items-center">
+                              <p>Karangrejo, {formatDateString(new Date().toISOString())}</p>
+                              <p>Mengetahui Kepala Madrasah,</p>
+                              <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
+                              <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">Nur Su&apos;ud, S.Pd.I.</div>
+                              <p className="mt-1">-</p>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          });
+        })()}
       </div>
 
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           @page { size: 215mm 330mm portrait; margin: 10mm 10mm 10mm 15mm; }
           body { background: white; -webkit-print-color-adjust: exact; }
-          body * { visibility: hidden; }
-          .print-container-jurnal, .print-container-jurnal * { visibility: visible; }
-          .print-container-jurnal { position: relative; left: 0; top: 0; width: 100%; }
           .page-break-after { page-break-after: always; }
           table { border-collapse: collapse; width: 100%; margin-top: 10px; page-break-inside: auto; }
           tr { page-break-inside: avoid; page-break-after: auto; }
@@ -865,7 +889,6 @@ export default function JurnalPage() {
           .col-materi { white-space: normal !important; width: auto !important; word-wrap: break-word; }
           th { background: #e2e8f0 !important; -webkit-print-color-adjust: exact; }
           .print-no-border, .print-no-border td { border: none !important; }
-          .print\\:hidden { display: none !important; }
         }
       `}} />
     </div>
