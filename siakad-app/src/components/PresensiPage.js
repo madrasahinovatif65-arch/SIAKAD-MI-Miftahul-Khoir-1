@@ -228,7 +228,7 @@ export default function PresensiPage() {
         {/* Filter Tanggal & Rombel */}
         <div className="flex flex-wrap gap-4 mb-4">
           <div className="relative w-44">
-            <DatePicker withPortal={isMobile}
+            <DatePicker withPortal={isMobile} readOnly={isMobile} onFocus={(e) => isMobile && e.target.blur()}
               selected={new Date(tanggal)}
               onChange={(date) => {
                 if (date) {
@@ -493,7 +493,7 @@ export default function PresensiPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Rentang Tanggal</label>
-                <DatePicker withPortal={isMobile}
+                <DatePicker withPortal={isMobile} readOnly={isMobile} onFocus={(e) => isMobile && e.target.blur()}
                   selectsRange={true}
                   startDate={startDate}
                   endDate={endDate}
