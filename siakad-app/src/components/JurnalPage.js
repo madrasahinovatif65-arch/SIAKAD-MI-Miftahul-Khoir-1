@@ -189,6 +189,105 @@ export default function JurnalPage() {
     window.print();
   };
 
+  const formatDateString = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+  };
+
+  const handleExportWord = () => {
+    const guruName = user?.nama || user?.id_user || '-';
+    let html = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8">
+        <title>Jurnal Mengajar</title>
+        <style>@page { size: 215mm 330mm; margin: 1.0cm 1.0cm 1.0cm 1.5cm; }</style>
+      </head>
+      <body style="font-family: Arial, sans-serif;">
+        <table style="width: 100%; border-bottom: 3px solid black; margin-bottom: 20px; border-collapse: collapse;">
+          <tr>
+            <td style="width: 15%; text-align: left; vertical-align: middle;"></td>
+            <td style="width: 85%; text-align: center; vertical-align: middle;">
+              <h3 style="margin: 0; font-size: 16pt;">Yayasan NU Miftakhul Khoir Damarjati</h3>
+              <h2 style="margin: 0; font-size: 20pt; color: #15803d;">MI Miftahul Khoir 1 Karangrejo</h2>
+              <p style="margin: 5px 0 0 0; font-size: 9pt;">NPSN: 60716857 | Jl. Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo, Kec. Purwosari, Kabupaten Pasuruan</p>
+            </td>
+          </tr>
+        </table>
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h3 style="margin: 0; font-size: 14pt;">Laporan Jurnal Mengajar</h3>
+          <p style="margin: 5px 0;">Periode: ${formatDateString(filterTglMulai)} s.d. ${formatDateString(filterTglAkhir)}</p>
+          ${user.role === 'Admin' && filterRombel !== 'Semua' ? `<p style="margin: 0;">Kelas/Rombel: <b>${filterRombel}</b></p>` : ''}
+          ${user.role !== 'Admin' ? `<p style="margin: 0;">Guru: <b>${guruName}</b></p>` : ''}
+        </div>
+        <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; font-size: 9pt; text-align: center;">
+          <thead>
+            <tr style="background-color: #e2e8f0;">
+              <th style="width: 4%;">No</th>
+              <th style="width: 10%;">Tanggal</th>
+              <th style="width: 14%;">Jam</th>
+              ${user.role === 'Admin' ? '<th style="width: 12%;">Guru</th>' : ''}
+              <th style="width: 8%;">Rombel</th>
+              <th style="width: 12%;">Mapel</th>
+              <th style="text-align: left;">Materi</th>
+              <th style="text-align: left;">Catatan</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    riwayat.forEach((j, idx) => {
+      html += `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${formatDateString(j.tanggal)}</td>
+          <td style="font-size: 8pt;">${j.jam_pelajaran || '-'}</td>
+          ${user.role === 'Admin' ? `<td>${j.master_user?.nama || '-'}</td>` : ''}
+          <td>${j.rombel}</td>
+          <td>${j.mata_pelajaran}</td>
+          <td style="text-align: left;">${j.materi || '-'}</td>
+          <td style="text-align: left;">${j.catatan || '-'}</td>
+        </tr>
+      `;
+    });
+    html += `
+          </tbody>
+        </table>
+        <br><br><br>
+        <table style="width: 100%; text-align: center; border: none; font-size: 11pt;">
+          <tr>
+            <td style="width: 50%; border: none;">
+              <p style="color: transparent;">.</p>
+              <p>Dibuat Oleh,</p>
+              <p><b>${user.role === 'Admin' ? 'KEPALA MADRASAH' : guruName.toUpperCase()}</b></p>
+              <br><br><br><br>
+              <p><b><u>${guruName}</u></b></p>
+              <p style="margin-top: 0;">-</p>
+            </td>
+            <td style="width: 50%; border: none;">
+              <p>Karangrejo, ${formatDateString(new Date().toISOString())}</p>
+              <p>Mengetahui Kepala Madrasah,</p>
+              <p><b>MI Miftahul Khoir 1 Karangrejo</b></p>
+              <br><br><br><br>
+              <p><b><u>Nur Su'ud, S.Pd.I.</u></b></p>
+              <p style="margin-top: 0;">-</p>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Jurnal_Mengajar_${filterTglMulai}_sd_${filterTglAkhir}.doc`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleSave = async () => {
     if (!tanggal || !jamMulai || !rombel || !mapel) {
       setMessage({ type: 'error', text: 'Semua field wajib diisi.' });
@@ -504,6 +603,23 @@ export default function JurnalPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
           <h3 className="text-lg font-bold text-slate-800 dark:text-white tracking-tight">Riwayat Jurnal</h3>
           
+          <div className="flex flex-wrap gap-2">
+            <button onClick={handleExportWord}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 rounded-xl text-xs font-semibold transition-all shadow-sm">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+              </svg>
+              Export Word
+            </button>
+            <button onClick={handlePrint}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-xl text-xs font-semibold transition-all shadow-sm">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0v3.396c0 .63.508 1.141 1.141 1.141h8.218c.633 0 1.141-.51 1.141-1.141V8.25Z" />
+              </svg>
+              Print Cetak
+            </button>
+          </div>
+          
           <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full md:w-auto">
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <div className="relative w-full sm:w-auto">
@@ -525,6 +641,9 @@ export default function JurnalPage() {
                   className="w-full sm:w-32 pl-4 pr-8 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm relative z-40"
                   portalId="root-portal"
                 />
+                <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-40" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
+                </svg>
               </div>
               <span className="text-slate-500 dark:text-slate-400 font-medium text-xs">s/d</span>
               <div className="relative w-full sm:w-auto">
@@ -546,6 +665,9 @@ export default function JurnalPage() {
                   className="w-full sm:w-32 pl-4 pr-8 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm relative z-40"
                   portalId="root-portal"
                 />
+                <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-40" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
+                </svg>
               </div>
             </div>
             
@@ -615,12 +737,113 @@ export default function JurnalPage() {
         )}
       </div>
 
+      {/* Container Khusus Print Jurnal */}
+      <div className="print-container-jurnal hidden print:block">
+        {/* Header Print */}
+        <div className="mb-4">
+          <div className="flex items-center gap-4 mb-2 border-b-[3px] border-black pb-2 relative">
+            <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain" />
+            <div className="flex-1 text-center">
+              <h3 className="text-lg font-bold text-slate-800 tracking-tight">Yayasan NU Miftakhul Khoir Damarjati</h3>
+              <h2 className="text-2xl font-bold text-green-700 tracking-tight mt-0.5">MI Miftahul Khoir 1 Karangrejo</h2>
+              <p className="text-[10px] text-slate-600 mt-1 tracking-wide font-medium">NPSN: 60716857 | Jl. Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo, Kec. Purwosari, Kabupaten Pasuruan</p>
+            </div>
+            <div className="absolute bottom-0 left-0 w-full border-b border-black mt-0.5"></div>
+          </div>
+          <div className="text-center mt-3 mb-3">
+            <h3 className="text-base font-bold text-slate-800">Laporan Jurnal Mengajar</h3>
+            <p className="text-xs text-slate-600 mt-0.5">Periode: {formatDateString(filterTglMulai)} s.d. {formatDateString(filterTglAkhir)}</p>
+            {user?.role === 'Admin' && filterRombel !== 'Semua' && (
+              <p className="text-xs text-slate-600 mt-0.5">Kelas/Rombel: <span className="font-bold text-green-700">{filterRombel}</span></p>
+            )}
+            {user?.role !== 'Admin' && (
+              <p className="text-xs text-slate-600 mt-0.5">Guru: <span className="font-bold text-green-700">{user?.nama || '-'}</span></p>
+            )}
+          </div>
+        </div>
+
+        {/* Tabel Print */}
+        <div className="overflow-visible">
+          <table className="w-full text-left border-collapse print:text-black print:bg-white print:table-auto">
+            <thead>
+              <tr className="print:bg-gray-200 print:border-black">
+                <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">No</th>
+                <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Tanggal</th>
+                <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Jam</th>
+                {user?.role === 'Admin' && (
+                  <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Guru</th>
+                )}
+                <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Rombel</th>
+                <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">Mapel</th>
+                <th className="text-xs font-bold print:text-black uppercase tracking-wider col-materi">Materi</th>
+                <th className="text-xs font-bold print:text-black uppercase tracking-wider col-materi">Catatan</th>
+              </tr>
+            </thead>
+            <tbody className="print:divide-black/20">
+              {riwayat.length === 0 ? (
+                <tr>
+                  <td colSpan={user?.role === 'Admin' ? 8 : 7} className="p-8 text-center text-slate-500 font-medium">Tidak ada data jurnal di rentang tanggal ini.</td>
+                </tr>
+              ) : (
+                <>
+                  {riwayat.map((j, idx) => (
+                    <tr key={j.id} className="print:hover:bg-transparent">
+                      <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{idx + 1}</td>
+                      <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center whitespace-nowrap">{formatDateString(j.tanggal)}</td>
+                      <td className="text-[8px] print:text-black print:px-1 print:py-1.5 text-center">{j.jam_pelajaran || '-'}</td>
+                      {user?.role === 'Admin' && (
+                        <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{j.master_user?.nama || '-'}</td>
+                      )}
+                      <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{j.rombel}</td>
+                      <td className="text-[9px] print:text-black print:px-1 print:py-1.5 text-center">{j.mata_pelajaran}</td>
+                      <td className="text-[9px] print:text-black print:px-1 print:py-1.5 col-materi">{j.materi || '-'}</td>
+                      <td className="text-[9px] print:text-black print:px-1 print:py-1.5 col-materi">{j.catatan || '-'}</td>
+                    </tr>
+                  ))}
+                  {/* Tanda Tangan */}
+                  <tr className="print:table-row print-no-border">
+                    <td colSpan={user?.role === 'Admin' ? 8 : 7} className="pt-12 pb-2">
+                      <div className="flex justify-between items-end px-12 text-center text-xs text-black w-full">
+                        <div className="flex flex-col items-center">
+                          <p className="text-transparent select-none">.</p>
+                          <p>Dibuat Oleh,</p>
+                          <p className="font-bold uppercase mt-1">{user?.nama?.toUpperCase() || '-'},</p>
+                          <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">{user?.nama || '-'}</div>
+                          <p className="mt-1">-</p>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <p>Karangrejo, {formatDateString(new Date().toISOString())}</p>
+                          <p>Mengetahui Kepala Madrasah,</p>
+                          <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
+                          <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">Nur Su&apos;ud, S.Pd.I.</div>
+                          <p className="mt-1">-</p>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
+          @page { size: 215mm 330mm portrait; margin: 10mm 10mm 10mm 15mm; }
+          body { background: white; -webkit-print-color-adjust: exact; }
           body * { visibility: hidden; }
+          .print-container-jurnal, .print-container-jurnal * { visibility: visible; }
+          .print-container-jurnal { position: relative; left: 0; top: 0; width: 100%; }
+          .page-break-after { page-break-after: always; }
+          table { border-collapse: collapse; width: 100%; margin-top: 10px; page-break-inside: auto; }
+          tr { page-break-inside: avoid; page-break-after: auto; }
+          thead { display: table-header-group; }
+          th, td { border: 1px solid #000; padding: 4px 5px; color: #000 !important; font-size: 9px; }
+          .col-materi { white-space: normal !important; width: auto !important; word-wrap: break-word; }
+          th { background: #e2e8f0 !important; -webkit-print-color-adjust: exact; }
+          .print-no-border, .print-no-border td { border: none !important; }
           .print\\:hidden { display: none !important; }
-          .print\\:visible, .print\\:visible * { visibility: visible; }
-          .print\\:visible { position: absolute; left: 0; top: 0; width: 100%; }
         }
       `}} />
     </div>
