@@ -139,7 +139,9 @@ export default function JurnalPage() {
 
   const { data: riwayatData, isLoading: loadingRiwayat, mutate: mutateRiwayat } = useSWR(user ? `jurnal_riwayat_${user.id_user}_${filterTglMulai}_${filterTglAkhir}_${filterRombel}` : null, async () => {
     let query = supabase.from('jurnal_guru').select('*, master_user(nama), data_absensi_mapel(status)').order('tanggal', { ascending: true }).order('jam_pelajaran');
-    if (user.role !== 'Admin') {
+    if (user.role === 'Wali Kelas') {
+      query = query.eq('rombel', user.rombel);
+    } else if (user.role !== 'Admin') {
       query = query.eq('id_guru', user.id_user);
     }
     if (filterTglMulai && filterTglAkhir) {
@@ -177,9 +179,12 @@ export default function JurnalPage() {
     const todayStr = today.toISOString().split('T')[0];
 
     let query = supabase.from('jurnal_guru').select('tanggal, jam_pelajaran').gte('tanggal', startDateStr).lte('tanggal', todayStr);
-    if (user.role !== 'Admin') {
+    if (user.role === 'Wali Kelas') {
+      query = query.eq('rombel', user.rombel);
+    } else if (user.role !== 'Admin') {
       query = query.eq('id_guru', user.id_user);
     }
+
     const { data: jurnalData } = await query;
 
     // Fetch libur
@@ -863,7 +868,7 @@ export default function JurnalPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-slate-900 dark:text-white font-bold text-sm">{j.tanggal.split('-').reverse().join('-')}</span>
                       <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-md text-[10px] font-bold tracking-wider">{(j.jam_pelajaran || '').replace(/\s*\(.*\)/, '')}</span>
-                      {user.role === 'Admin' && j.master_user?.nama && (
+                      {(user.role === 'Admin' || user.role === 'Wali Kelas') && j.master_user?.nama && (
                         <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-md text-[10px] font-bold tracking-wider">
                           {j.master_user.nama}
                         </span>
@@ -874,7 +879,7 @@ export default function JurnalPage() {
                       <span className="px-2 py-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20 rounded-lg">{j.mata_pelajaran}</span>
                     </div>
                   </div>
-                  {user.role !== 'Admin' && (
+                  {(user.role !== 'Admin' && j.id_guru === user.id_user) && (
                     <div className="flex gap-2">
                       <button onClick={() => handleEdit(j)} title="Edit Jurnal" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-200 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 p-2 rounded-lg transition-colors">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" /></svg>
