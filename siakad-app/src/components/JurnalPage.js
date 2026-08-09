@@ -615,29 +615,7 @@ const rekapAbsen = {
             }`}>{message.text}</div>
           )}
 
-          {!isHoliday && (
-            <div className="fixed bottom-6 right-4 sm:right-8 z-[60] flex justify-end pointer-events-none print:hidden">
-              <button onClick={handleSave} disabled={saving}
-                  className="pointer-events-auto flex items-center gap-3 px-6 py-4 bg-emerald-600/90 backdrop-blur-sm rounded-full shadow-xl hover:bg-emerald-500/90 transition-all disabled:opacity-50 disabled:transform-none disabled:shadow-none text-white font-bold">
-                {saving ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
-                    </svg>
-                    Simpan Jurnal
-                  </>
-                )}
-              </button>
-            </div>
-          )}
+
         </div>
       )}
 
@@ -891,6 +869,30 @@ const rekapAbsen = {
           });
         })()}
       </div>
+
+      {user?.role !== 'Admin' && !isHoliday && (
+        <div className="fixed bottom-6 right-4 sm:right-8 z-[80] flex justify-end pointer-events-none print:hidden">
+          <button onClick={handleSave} disabled={saving}
+              className="pointer-events-auto flex items-center gap-3 px-6 py-4 bg-emerald-600/90 backdrop-blur-sm rounded-full shadow-2xl hover:bg-emerald-500/90 transition-all active:scale-95 disabled:opacity-50 disabled:transform-none disabled:shadow-none text-white font-bold">
+            {saving ? (
+              <>
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Menyimpan...
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+                </svg>
+                Simpan Jurnal
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
