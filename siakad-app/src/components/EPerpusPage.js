@@ -26,9 +26,8 @@ export default function EPerpusPage() {
     materi: {
       title: 'Materi Pelajaran',
       options: [
-        { label: 'PAI & Budi Pekerti', url: 'https://perpus.kemenag.go.id/' },
-        { label: 'Matematika & IPA', url: 'https://perpus.kemenag.go.id/' },
-        { label: 'Tematik Umum', url: 'https://perpus.kemenag.go.id/' },
+        { label: 'Pengetahuan Umum', url: 'https://perpus.kemenag.go.id/' },
+        { label: 'Agama', url: 'https://perpus.kemenag.go.id/' },
       ]
     }
   };
