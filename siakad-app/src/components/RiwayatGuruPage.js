@@ -343,7 +343,7 @@ export default function RiwayatGuruPage() {
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-4 w-full">
           <div className="flex items-center gap-2 flex-1 sm:flex-none">
             <div className="relative w-full sm:w-auto">
-              <DatePicker withPortal={isMobile} readOnly={isMobile} onFocus={(e) => isMobile && e.target.blur()}
+              <DatePicker withPortal={isMobile} onFocus={(e) => { if (isMobile) e.target.readOnly = true; }}
                 selected={new Date(tglMulai)}
                 onChange={(date) => {
                   if (date) {
@@ -366,7 +366,7 @@ export default function RiwayatGuruPage() {
             </div>
             <span className="text-slate-500 dark:text-slate-400 font-medium">s/d</span>
             <div className="relative w-full sm:w-auto">
-              <DatePicker withPortal={isMobile} readOnly={isMobile} onFocus={(e) => isMobile && e.target.blur()}
+              <DatePicker withPortal={isMobile} onFocus={(e) => { if (isMobile) e.target.readOnly = true; }}
                 selected={new Date(tglAkhir)}
                 onChange={(date) => {
                   if (date) {
