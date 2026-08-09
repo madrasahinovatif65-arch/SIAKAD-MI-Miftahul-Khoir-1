@@ -15,7 +15,7 @@ const getBase64FromUrl = async (url) => {
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import logo from '@/public/logo.png';
+import logo from '../../public/logo.png';
 import useSWR from 'swr';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
