@@ -71,13 +71,13 @@ export default function PullToRefresh({ children }) {
       if (isPulling && pullDistance > 80) {
         setRefreshing(true);
         
-        // Revalidate all SWR active cache
-        await mutate(() => true, undefined, { revalidate: true });
+        // Revalidate SWR as a fallback/immediate action
+        mutate(() => true, undefined, { revalidate: true });
         
-        // Timeout just for visual feedback
+        // Force a full page reload to mimic native browser behavior exactly
         setTimeout(() => {
-          setRefreshing(false);
-        }, 500);
+          window.location.reload();
+        }, 400);
       }
       setIsPulling(false);
       setPullDistance(0);
