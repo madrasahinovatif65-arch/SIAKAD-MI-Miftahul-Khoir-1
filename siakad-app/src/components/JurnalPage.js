@@ -467,8 +467,8 @@ export default function JurnalPage() {
   };
 
   const handleSave = async () => {
-    if (!tanggal || !jamMulai || !rombel || !mapel) {
-      setMessage({ type: 'error', text: 'Semua field wajib diisi.' });
+    if (!tanggal || !jamMulai || !rombel || !mapel || !materi || !materi.trim()) {
+      setMessage({ type: 'error', text: 'Semua field (termasuk Materi) wajib diisi.' });
       return;
     }
     setSaving(true);
