@@ -22,6 +22,8 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { id } from 'date-fns/locale/id';
 
 registerLocale('id', id);
+import { SaveIcon } from '@heroicons/react/24/solid';
+import AbsenModal from './AbsenModal';
 export default function JurnalPage() {
   const { user } = useAuth();
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().split('T')[0]);
@@ -37,6 +39,7 @@ export default function JurnalPage() {
   const [holidayName, setHolidayName] = useState('');
   const [editId, setEditId] = useState(null);
   const [absensiMapel, setAbsensiMapel] = useState({});
+  const [isAbsenModalOpen, setIsAbsenModalOpen] = useState(false);
 
   const [filterTglMulai, setFilterTglMulai] = useState(() => {
     const d = new Date();
@@ -84,8 +87,16 @@ export default function JurnalPage() {
   }, [siswaData, editId, editAbsensiMapel]);
 
   const handleStatusChange = (id_user, status) => {
-    setAbsensiMapel(prev => ({...prev, [id_user]: status}));
-  };
+  setAbsensiMapel(prev => ({ ...prev, [id_user]: status }));
+};
+
+// Rekap Absen summary counts
+const rekapAbsen = {
+  Hadir: Object.values(absensiMapel).filter(s => s === 'Hadir').length,
+  Sakit: Object.values(absensiMapel).filter(s => s === 'Sakit').length,
+  Izin: Object.values(absensiMapel).filter(s => s === 'Izin').length,
+  Alfa: Object.values(absensiMapel).filter(s => s === 'Alfa').length,
+};
 
   const { data: masterData } = useSWR('master_jurnal', async () => {
     const [jamRes, mapelRes, rombelRes] = await Promise.all([
@@ -410,7 +421,16 @@ export default function JurnalPage() {
       setEditId(null);
       mutateRiwayat();
     }
+    }
   };
+
+  const rekapAbsen = { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
+  if (siswaData?.murid) {
+    siswaData.murid.forEach(m => {
+      const st = absensiMapel[m.id_user] || 'Hadir';
+      if (rekapAbsen[st] !== undefined) rekapAbsen[st]++;
+    });
+  }
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -565,59 +585,36 @@ export default function JurnalPage() {
           {rombel && siswaData && !isHoliday && (
             <div className="space-y-3 mt-6">
               <h3 className="text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Absensi Kelas (Mapel)</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Pilih absensi jika ada murid yang bolos pelajaran Anda (otomatis diisi sesuai absen harian pagi).</p>
-              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left block md:table">
-                    <thead className="hidden md:table-header-group">
-                      <tr className="bg-slate-100 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
-                        <th className="px-5 py-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">No</th>
-                        <th className="px-5 py-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">Nama</th>
-                        <th className="px-5 py-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider text-center">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="block md:table-row-group divide-y divide-transparent md:divide-slate-100 md:dark:divide-white/5">
-                      {loadingSiswa ? (
-                        <tr><td colSpan={3} className="px-5 py-4 text-center text-sm text-slate-500">Memuat data murid...</td></tr>
-                      ) : siswaData.murid.length === 0 ? (
-                        <tr><td colSpan={3} className="px-5 py-4 text-center text-sm text-slate-500">Belum ada data murid di rombel ini</td></tr>
-                      ) : (
-                        siswaData.murid.map((m, idx) => {
-                           const currentStatus = absensiMapel[m.id_user] || 'Hadir';
-                           return (
-                             <tr key={m.id_user} className="block md:table-row bg-white md:bg-transparent dark:bg-slate-800/40 md:dark:bg-transparent mb-4 md:mb-0 rounded-2xl md:rounded-none border border-slate-100 dark:border-white/5 md:border-none shadow-sm md:shadow-none hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
-                               <td className="hidden md:table-cell px-5 py-3 text-slate-500 dark:text-slate-400">{idx + 1}</td>
-                               <td className="block md:table-cell px-4 py-3 md:px-5 md:py-3 border-b border-slate-50 dark:border-white/5 md:border-none">
-                                 <div>
-                                   <div className="text-slate-800 dark:text-white font-medium">
-                                     <span className="md:hidden mr-1.5 text-slate-400">{idx + 1}.</span>
-                                     {m.nama}
-                                   </div>
-                                   <div className="text-slate-400 dark:text-slate-500 font-mono text-xs mt-0.5">{m.id_user}</div>
-                                 </div>
-                               </td>
-                               <td className="block md:table-cell px-4 py-3 md:px-5 md:py-3 md:border-none">
-                                 <div className="flex flex-col gap-2">
-                                   <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider md:hidden">Status Presensi</span>
-                                   <div className="flex gap-2 justify-between md:justify-center">
-                                      {['Hadir', 'Sakit', 'Izin', 'Alfa'].map(s => (
-                                        <button key={s} onClick={() => handleStatusChange(m.id_user, s)}
-                                           className={`flex-1 md:flex-none md:w-auto md:px-3 h-8 md:h-8 rounded-lg text-xs font-bold border transition-all flex items-center justify-center ${currentStatus === s ? (s === 'Hadir' ? 'bg-emerald-500 border-emerald-500 text-white shadow-md' : s === 'Sakit' ? 'bg-amber-500 border-amber-500 text-white shadow-md' : s === 'Izin' ? 'bg-blue-500 border-blue-500 text-white shadow-md' : 'bg-rose-500 border-rose-500 text-white shadow-md') : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-400 dark:text-slate-500 hover:border-emerald-300 dark:hover:border-emerald-500/50 hover:text-emerald-500 shadow-sm'}`}>
-                                           <span className="md:hidden">{s}</span>
-                                           <span className="hidden md:inline">{s}</span>
-                                        </button>
-                                      ))}
-                                   </div>
-                                 </div>
-                               </td>
-                             </tr>
-                           );
-                        })
-                      )}
-                    </tbody>
-                  </table>
+              
+              {/* Card Rekap Absen */}
+              <div 
+                  onClick={() => setIsAbsenModalOpen(true)}
+                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl p-4 sm:p-5 shadow-sm cursor-pointer hover:border-emerald-500/50 dark:hover:border-emerald-500/50 transition-all flex justify-between items-center group"
+                ><div>
+                  <h4 className="text-sm font-bold text-slate-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Rekap Kehadiran</h4>
+                  <div className="flex gap-3 sm:gap-4 mt-2 text-xs font-medium">
+                    <span className="text-emerald-600 dark:text-emerald-400">Hadir: {rekapAbsen.Hadir}</span>
+                    <span className="text-amber-500">Sakit: {rekapAbsen.Sakit}</span>
+                    <span className="text-blue-500">Izin: {rekapAbsen.Izin}</span>
+                    <span className="text-rose-500">Alfa: {rekapAbsen.Alfa}</span>
+                  </div>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 transition-transform duration-300">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                  </svg>
                 </div>
               </div>
+
+              {/* Tabel Detail Absen (Collapsible) */}
+              <AbsenModal
+                  isOpen={isAbsenModalOpen}
+                  onClose={() => setIsAbsenModalOpen(false)}
+                  rekapAbsen={rekapAbsen}
+                  siswaData={siswaData}
+                  absensiMapel={absensiMapel}
+                  handleStatusChange={handleStatusChange}
+                />
             </div>
           )}
 
@@ -628,18 +625,23 @@ export default function JurnalPage() {
           )}
 
           {!isHoliday && (
-            <div className="fixed md:sticky bottom-6 md:bottom-4 left-4 right-4 md:left-auto md:right-auto z-50 md:z-20 flex justify-end pointer-events-none mt-6 print:hidden">
+            <div className="fixed bottom-6 right-4 sm:right-8 z-[60] flex justify-end pointer-events-none print:hidden">
               <button onClick={handleSave} disabled={saving}
-                className="pointer-events-auto w-full sm:w-auto px-8 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl shadow-xl shadow-emerald-600/30 hover:shadow-emerald-500/40 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none disabled:shadow-none flex items-center justify-center gap-2">
+                  className="pointer-events-auto flex items-center gap-3 px-6 py-4 bg-emerald-600/90 backdrop-blur-sm rounded-full shadow-xl hover:bg-emerald-500/90 transition-all disabled:opacity-50 disabled:transform-none disabled:shadow-none text-white font-bold">
                 {saving ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
                     Menyimpan...
                   </>
                 ) : (
                   <>
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" /></svg>
-                    {editId ? 'Perbarui Jurnal' : 'Simpan Jurnal'}
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+                    </svg>
+                    Simpan Jurnal
                   </>
                 )}
               </button>
