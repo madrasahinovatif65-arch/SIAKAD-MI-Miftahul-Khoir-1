@@ -25,6 +25,13 @@ export default function JurnalPage() {
   const [editId, setEditId] = useState(null);
   const [absensiMapel, setAbsensiMapel] = useState({});
 
+  const [filterTglMulai, setFilterTglMulai] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+  const [filterTglAkhir, setFilterTglAkhir] = useState(() => new Date().toISOString().split('T')[0]);
+  const [filterRombel, setFilterRombel] = useState('Semua');
+
   const { data: siswaData, isLoading: loadingSiswa } = useSWR(rombel && tanggal ? `siswa_absen_${rombel}_${tanggal}` : null, async () => {
     // Ambil murid
     const { data: murid } = await supabase.from('master_user').select('id_user, nama').eq('role', 'Murid').eq('rombel', rombel).order('nama');
@@ -100,11 +107,20 @@ export default function JurnalPage() {
     }
   }, [jamOptions, jamMulai]);
 
-  const { data: riwayatData, isLoading: loadingRiwayat, mutate: mutateRiwayat } = useSWR(user ? `jurnal_riwayat_${user.id_user}` : null, async () => {
-    let query = supabase.from('jurnal_guru').select('*, master_user(nama)').order('tanggal', { ascending: false }).order('jam_pelajaran').limit(20);
+  const { data: riwayatData, isLoading: loadingRiwayat, mutate: mutateRiwayat } = useSWR(user ? `jurnal_riwayat_${user.id_user}_${filterTglMulai}_${filterTglAkhir}_${filterRombel}` : null, async () => {
+    let query = supabase.from('jurnal_guru').select('*, master_user(nama)').order('tanggal', { ascending: false }).order('jam_pelajaran');
     if (user.role !== 'Admin') {
       query = query.eq('id_guru', user.id_user);
     }
+    if (filterTglMulai && filterTglAkhir) {
+      query = query.gte('tanggal', filterTglMulai).lte('tanggal', filterTglAkhir);
+    }
+    if (user.role === 'Admin' && filterRombel !== 'Semua') {
+      query = query.eq('rombel', filterRombel);
+    } else if (user.role !== 'Admin' && filterTglMulai === '' && filterTglAkhir === '') {
+       query = query.limit(20);
+    }
+    
     const { data } = await query;
     return data || [];
   });
@@ -485,7 +501,71 @@ export default function JurnalPage() {
 
       {/* Riwayat */}
       <div>
-        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 tracking-tight">Riwayat Jurnal Terbaru</h3>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+          <h3 className="text-lg font-bold text-slate-800 dark:text-white tracking-tight">Riwayat Jurnal</h3>
+          
+          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full md:w-auto">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-auto">
+                <DatePicker
+                  selected={filterTglMulai ? new Date(filterTglMulai) : null}
+                  onChange={(date) => {
+                    if (date) {
+                      const y = date.getFullYear();
+                      const m = String(date.getMonth() + 1).padStart(2, '0');
+                      const d = String(date.getDate()).padStart(2, '0');
+                      setFilterTglMulai(`${y}-${m}-${d}`);
+                    }
+                  }}
+                  dateFormat="dd-MM-yyyy"
+                  locale="id"
+                  todayButton="Hari Ini"
+                  placeholderText="Mulai"
+                  wrapperClassName="w-full"
+                  className="w-full sm:w-32 pl-4 pr-8 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm relative z-40"
+                  portalId="root-portal"
+                />
+              </div>
+              <span className="text-slate-500 dark:text-slate-400 font-medium text-xs">s/d</span>
+              <div className="relative w-full sm:w-auto">
+                <DatePicker
+                  selected={filterTglAkhir ? new Date(filterTglAkhir) : null}
+                  onChange={(date) => {
+                    if (date) {
+                      const y = date.getFullYear();
+                      const m = String(date.getMonth() + 1).padStart(2, '0');
+                      const d = String(date.getDate()).padStart(2, '0');
+                      setFilterTglAkhir(`${y}-${m}-${d}`);
+                    }
+                  }}
+                  dateFormat="dd-MM-yyyy"
+                  locale="id"
+                  todayButton="Hari Ini"
+                  placeholderText="Selesai"
+                  wrapperClassName="w-full"
+                  className="w-full sm:w-32 pl-4 pr-8 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm relative z-40"
+                  portalId="root-portal"
+                />
+              </div>
+            </div>
+            
+            {user?.role === 'Admin' && (
+              <div className="relative w-full sm:w-auto">
+                <select value={filterRombel} onChange={e => setFilterRombel(e.target.value)}
+                  style={{ backgroundImage: 'none' }}
+                  className="appearance-none w-full sm:w-36 pl-4 pr-8 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
+                  <option value="Semua" className="bg-white dark:bg-slate-900 text-slate-400">Semua Rombel</option>
+                  {(masterData?.rombel || []).map(r => (
+                    <option key={r} value={r} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{r}</option>
+                  ))}
+                </select>
+                <svg className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </div>
+            )}
+          </div>
+        </div>
         {loadingRiwayat ? (
           <div className="flex justify-center py-8">
             <div className="w-8 h-8 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
