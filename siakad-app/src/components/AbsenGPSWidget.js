@@ -7,9 +7,11 @@ import useSWR from 'swr';
 
 export default function AbsenGPSWidget() {
   const { user } = useAuth();
-  const [status, setStatus] = useState('idle'); // idle | locating | ready | sending | done | error | already | nfc
+  const [status, setStatus] = useState('idle'); // idle | locating | ready | sending | done | error
   const [message, setMessage] = useState('');
   const [location, setLocation] = useState(null);
+  const [mode, setMode] = useState('masuk'); // masuk | pulang
+  const [existingGpsData, setExistingGpsData] = useState(null);
 
   const SCHOOL_LAT = parseFloat(process.env.NEXT_PUBLIC_SCHOOL_LAT || '-7.123456');
   const SCHOOL_LNG = parseFloat(process.env.NEXT_PUBLIC_SCHOOL_LNG || '112.123456');
@@ -20,21 +22,70 @@ export default function AbsenGPSWidget() {
     
     // Cek Hari Libur
     const { data: libur } = await supabase.from('master_libur').select('*').eq('tanggal', today).single();
-    if (libur) return { type: 'holiday', message: `Hari libur: ${libur.keterangan}. Absensi ditolak.` };
+    if (libur) return { type: 'error', message: `Hari libur: ${libur.keterangan}. Absensi ditutup.` };
 
     const todayDate = new Date();
-    if (todayDate.getDay() === 0) return { type: 'holiday', message: 'Hari Minggu. Absensi ditolak.' };
+    if (todayDate.getDay() === 0) return { type: 'error', message: 'Hari Minggu. Absensi ditutup.' };
 
-    const { data: gpsData } = await supabase.from('log_gps_guru').select('*').eq('tanggal', today).eq('id_guru', user.id_user).single();
-    if (gpsData) return { type: 'already', data: gpsData, message: `Sudah absen GPS pukul ${gpsData.waktu} (${gpsData.status}).` };
-    
-    return { type: 'idle' };
+    const [gpsRes, nfcRes] = await Promise.all([
+      supabase.from('log_gps_guru').select('*').eq('tanggal', today).eq('id_guru', user.id_user).single(),
+      supabase.from('data_absensi_nfc_guru').select('*').eq('tanggal', today).eq('id_user', user.id_user).single()
+    ]);
+
+    const gpsData = gpsRes.data;
+    const nfcData = nfcRes.data;
+
+    let hasMasuk = false;
+    let hasPulang = false;
+
+    if (nfcData) {
+      if (nfcData.jam_datang) hasMasuk = true;
+      if (nfcData.jam_pulang) hasPulang = true;
+    }
+    if (gpsData) {
+      if (gpsData.waktu) hasMasuk = true;
+      if (gpsData.waktu_pulang) hasPulang = true;
+    }
+
+    if (hasPulang) {
+      return { type: 'done', message: '✅ Anda sudah melakukan absensi masuk dan pulang hari ini.' };
+    }
+
+    if (!hasMasuk) {
+      // Cek apakah sudah jam 06:00
+      if (todayDate.getHours() < 6) {
+         return { type: 'error', message: 'Absen masuk pagi baru dibuka pukul 06:00.' };
+      }
+      return { type: 'idle', mode: 'masuk', gpsData, message: 'Silakan lakukan absen kehadiran (masuk).' };
+    } else {
+      // Sudah masuk, mode pulang
+      const isFriday = todayDate.getDay() === 5;
+      const h = todayDate.getHours();
+      const m = todayDate.getMinutes();
+      
+      let canPulang = false;
+      let msg = '';
+      if (isFriday) {
+         if (h > 10 || (h === 10 && m >= 30)) canPulang = true;
+         else msg = 'Sudah absen masuk. Absen pulang hari Jumat dibuka jam 10:30.';
+      } else {
+         if (h >= 12) canPulang = true;
+         else msg = 'Sudah absen masuk. Absen pulang dibuka jam 12:00.';
+      }
+
+      if (!canPulang) {
+         return { type: 'error', message: msg };
+      }
+      return { type: 'idle', mode: 'pulang', gpsData, message: 'Silakan lakukan absen pulang.' };
+    }
   });
 
   useEffect(() => {
     if (todayStatus) {
       setStatus(todayStatus.type);
       setMessage(todayStatus.message);
+      if (todayStatus.mode) setMode(todayStatus.mode);
+      if (todayStatus.gpsData) setExistingGpsData(todayStatus.gpsData);
     }
   }, [todayStatus]);
 
@@ -47,7 +98,7 @@ export default function AbsenGPSWidget() {
   }
 
   const handleRefreshGPS = () => {
-    if (status === 'nfc' || status === 'already' || status === 'sending') return;
+    if (status === 'done' || status === 'sending') return;
     setStatus('locating');
     setMessage('Mencari sinyal GPS...');
     
@@ -62,40 +113,15 @@ export default function AbsenGPSWidget() {
         const { latitude, longitude } = pos.coords;
         const distance = calculateDistance(latitude, longitude, SCHOOL_LAT, SCHOOL_LNG);
         setLocation({ latitude, longitude, distance });
-        
-        // Cek Jam Pulang
-        const now = new Date();
-        const currentHour = now.getHours();
-        const currentMinute = now.getMinutes();
-        const isFriday = now.getDay() === 5;
-        
-        let canAbsen = false;
-        let timeMessage = '';
-        if (isFriday) {
-           if (currentHour > 10 || (currentHour === 10 && currentMinute >= 30)) {
-             canAbsen = true;
-           } else {
-             timeMessage = 'Absen pulang hari Jumat baru bisa dilakukan mulai jam 10:30.';
-           }
-        } else {
-           if (currentHour >= 12) {
-             canAbsen = true;
-           } else {
-             timeMessage = 'Absen pulang baru bisa dilakukan mulai jam 12:00.';
-           }
-        }
 
-        if (!canAbsen) {
+        if (distance > RADIUS) {
           setStatus('error');
-          setMessage(timeMessage);
+          setMessage(`⚠️ Anda berada di luar radius sekolah (${Math.round(distance)}m). Absen ditolak.`);
           return;
         }
 
         setStatus('ready');
-        setMessage(distance <= RADIUS 
-          ? `📍 Anda berada di dalam radius sekolah.`
-          : `⚠️ Anda berada di luar radius sekolah.`
-        );
+        setMessage(`📍 Anda berada di dalam radius sekolah (${Math.round(distance)}m).`);
       },
       (err) => {
         setStatus('error');
@@ -110,37 +136,54 @@ export default function AbsenGPSWidget() {
       handleRefreshGPS();
       return;
     }
+    if (location.distance > RADIUS) {
+      setStatus('error');
+      setMessage('⚠️ Anda berada di luar radius sekolah. Absen ditolak.');
+      return;
+    }
+
     setStatus('sending');
     setMessage('Menyimpan data absensi...');
     
     const today = new Date().toISOString().split('T')[0];
     const waktu = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
-    const { error } = await supabase.from('log_gps_guru').upsert({
+    const payload = {
       tanggal: today,
       id_guru: user.id_user,
       nama_guru: user.nama,
-      waktu,
       latitude: location.latitude,
       longitude: location.longitude,
       akurasi: 0,
       jarak_meter: Math.round(location.distance),
-      status: location.distance <= RADIUS ? 'Menunggu Verifikasi' : 'Di Luar Radius',
-    }, { onConflict: 'tanggal,id_guru' });
+      status: 'Hadir',
+    };
+
+    if (mode === 'masuk') {
+      payload.waktu = waktu;
+      // Pertahankan waktu pulang jika sebelumnya sudah ada (kasus tidak biasa)
+      if (existingGpsData?.waktu_pulang) payload.waktu_pulang = existingGpsData.waktu_pulang;
+    } else {
+      payload.waktu_pulang = waktu;
+      // Pertahankan waktu masuk dari gpsData
+      if (existingGpsData?.waktu) payload.waktu = existingGpsData.waktu;
+    }
+
+    const { error } = await supabase.from('log_gps_guru').upsert(payload, { onConflict: 'tanggal,id_guru' });
 
     if (error) {
       setStatus('error');
       setMessage('Gagal menyimpan: ' + error.message);
     } else {
       setStatus('done');
-      setMessage(`✅ Absen tercatat pukul ${waktu}.`);
+      setMessage(`✅ Absen ${mode} tercatat pukul ${waktu}.`);
       reloadStatus();
     }
   };
 
   if (!user || (user.role !== 'Wali Kelas' && user.role !== 'Guru Mapel')) return null;
 
-  const isDone = status === 'holiday' || status === 'already' || status === 'done';
+  const isDone = status === 'done' || status === 'error';
 
   return (
     <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-[2rem] p-6 lg:p-8 border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
@@ -161,10 +204,10 @@ export default function AbsenGPSWidget() {
           </div>
           <div>
             <h3 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white">
-              Absen Kehadiran {isDone ? 'Selesai / Ditutup' : 'GPS'}
+              Absen GPS {mode === 'masuk' ? 'Kehadiran' : 'Kepulangan'}
             </h3>
-            <p className={`text-sm mt-1 font-medium ${isDone ? (status === 'holiday' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400') : 'text-slate-500 dark:text-slate-400'}`}>
-              {message || 'Lakukan absensi pulang berbasis lokasi sekarang'}
+            <p className={`text-sm mt-1 font-medium ${isDone ? (status === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400') : 'text-slate-500 dark:text-slate-400'}`}>
+              {message}
             </p>
             {location && status === 'ready' && !isDone && (
               <div className="mt-3 flex items-center gap-2 text-[11px] sm:text-xs font-semibold flex-wrap">
@@ -192,14 +235,14 @@ export default function AbsenGPSWidget() {
 
             <button 
               onClick={handleAbsen}
-              disabled={status === 'locating' || status === 'sending' || !location}
-              className={`flex justify-center items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-white shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
-                !location 
-                  ? 'bg-slate-300 dark:bg-slate-700 shadow-none' 
+              disabled={status === 'locating' || status === 'sending' || !location || location.distance > RADIUS}
+              className={`flex justify-center items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-white shadow-md transition-all ${
+                (!location || location.distance > RADIUS) 
+                  ? 'bg-slate-300 dark:bg-slate-700 shadow-none cursor-not-allowed opacity-50' 
                   : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 shadow-emerald-500/25 active:scale-95'
               }`}
             >
-              {status === 'sending' ? 'Menyimpan...' : 'Absen Sekarang'}
+              {status === 'sending' ? 'Menyimpan...' : (mode === 'masuk' ? 'Absen Masuk' : 'Absen Pulang')}
             </button>
           </div>
         )}
