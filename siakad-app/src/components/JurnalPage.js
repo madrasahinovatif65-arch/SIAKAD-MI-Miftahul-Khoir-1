@@ -172,7 +172,7 @@ export default function JurnalPage() {
   };
 
   const handleSave = async () => {
-    if (!tanggal || !jamPelajaran || !rombel || !mapel) {
+    if (!tanggal || !jamMulai || !rombel || !mapel) {
       setMessage({ type: 'error', text: 'Semua field wajib diisi.' });
       return;
     }
