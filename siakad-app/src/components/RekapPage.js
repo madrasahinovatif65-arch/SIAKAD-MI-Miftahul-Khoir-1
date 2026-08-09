@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import useSWR from 'swr';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { id } from 'date-fns/locale/id';
@@ -11,6 +12,7 @@ import { id } from 'date-fns/locale/id';
 registerLocale('id', id);
 
 export default function RekapPage() {
+  const isMobile = useIsMobile();
   const { user } = useAuth();
   const [tglMulai, setTglMulai] = useState(() => {
     const d = new Date();
@@ -267,7 +269,7 @@ export default function RekapPage() {
           <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-4 w-full">
             <div className="flex items-center gap-2 flex-1 sm:flex-none">
               <div className="relative w-full sm:w-auto">
-                <DatePicker
+                <DatePicker withPortal={isMobile}
                   selected={new Date(tglMulai)}
                   onChange={(date) => {
                     if (date) {
@@ -290,7 +292,7 @@ export default function RekapPage() {
               </div>
               <span className="text-slate-500 dark:text-slate-400 font-medium">s/d</span>
               <div className="relative w-full sm:w-auto">
-                <DatePicker
+                <DatePicker withPortal={isMobile}
                   selected={new Date(tglAkhir)}
                   onChange={(date) => {
                     if (date) {

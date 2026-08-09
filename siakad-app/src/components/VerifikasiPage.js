@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import useSWR from 'swr';
 import { fetchMasterLibur, fetchVerifiedDatesGuru, fetchVerifikasiGuru } from '@/lib/fetchers';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { id } from 'date-fns/locale/id';
@@ -11,6 +12,7 @@ import { id } from 'date-fns/locale/id';
 registerLocale('id', id);
 
 export default function VerifikasiPage() {
+  const isMobile = useIsMobile();
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().split('T')[0]);
   const [absensi, setAbsensi] = useState({});
   const [saving, setSaving] = useState(false);
@@ -206,7 +208,7 @@ export default function VerifikasiPage() {
         {/* Filter Tanggal */}
         <div className="flex flex-wrap gap-4 mb-4">
           <div className="relative w-44">
-            <DatePicker
+            <DatePicker withPortal={isMobile}
               selected={new Date(tanggal)}
               onChange={(date) => {
                 if (date) {
@@ -450,7 +452,7 @@ export default function VerifikasiPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Rentang Tanggal</label>
-                <DatePicker
+                <DatePicker withPortal={isMobile}
                   selectsRange={true}
                   startDate={startDate}
                   endDate={endDate}

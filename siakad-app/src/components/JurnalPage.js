@@ -17,6 +17,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 
 import useSWR from 'swr';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { id } from 'date-fns/locale/id';
@@ -25,6 +26,7 @@ import AbsenModal from './AbsenModal';
 registerLocale('id', id);
 
 export default function JurnalPage() {
+  const isMobile = useIsMobile();
   const { user } = useAuth();
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().split('T')[0]);
   const [jamMulai, setJamMulai] = useState('');
@@ -570,7 +572,7 @@ export default function JurnalPage() {
             <div className="space-y-2">
               <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Tanggal</label>
               <div className="relative">
-                <DatePicker
+                <DatePicker withPortal={isMobile}
                   selected={new Date(tanggal)}
                   onChange={(date) => {
                     if (date) {
@@ -752,7 +754,7 @@ export default function JurnalPage() {
           <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full md:w-auto">
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <div className="relative w-full sm:w-auto">
-                <DatePicker
+                <DatePicker withPortal={isMobile}
                   selected={filterTglMulai ? new Date(filterTglMulai) : null}
                   onChange={(date) => {
                     if (date) {
@@ -776,7 +778,7 @@ export default function JurnalPage() {
               </div>
               <span className="text-slate-500 dark:text-slate-400 font-medium text-xs">s/d</span>
               <div className="relative w-full sm:w-auto">
-                <DatePicker
+                <DatePicker withPortal={isMobile}
                   selected={filterTglAkhir ? new Date(filterTglAkhir) : null}
                   onChange={(date) => {
                     if (date) {
