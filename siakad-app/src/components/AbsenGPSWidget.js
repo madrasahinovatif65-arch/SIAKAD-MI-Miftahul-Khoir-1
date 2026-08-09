@@ -151,7 +151,6 @@ export default function AbsenGPSWidget() {
     const payload = {
       tanggal: today,
       id_guru: user.id_user,
-      nama_guru: user.nama,
       latitude: location.latitude,
       longitude: location.longitude,
       akurasi: 0,
@@ -165,8 +164,8 @@ export default function AbsenGPSWidget() {
       if (existingGpsData?.waktu_pulang) payload.waktu_pulang = existingGpsData.waktu_pulang;
     } else {
       payload.waktu_pulang = waktu;
-      // Pertahankan waktu masuk dari gpsData
-      if (existingGpsData?.waktu) payload.waktu = existingGpsData.waktu;
+      // Pertahankan waktu masuk dari gpsData atau isi '-' jika tidak ada (meski harusnya ada NFC)
+      payload.waktu = existingGpsData?.waktu || '-';
     }
 
     const { error } = await supabase.from('log_gps_guru').upsert(payload, { onConflict: 'tanggal,id_guru' });
