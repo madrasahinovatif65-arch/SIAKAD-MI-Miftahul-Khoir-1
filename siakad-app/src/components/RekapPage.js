@@ -180,7 +180,7 @@ export default function RekapPage() {
           <tr>
             <td>${idx + 1}</td>
             <td style="text-align: left;">${m.nama}</td>
-            <td>${m.nisn || '-'}</td>
+            <td>${m.id_user || '-'}</td>
             <td>${hadir || '-'}</td>
             <td>${sakit || '-'}</td>
             <td>${izin || '-'}</td>
@@ -388,7 +388,7 @@ export default function RekapPage() {
                             <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-xs font-bold">{m.rombel}</span>
                           </td>
                         )}
-                        <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 font-mono text-center">{m.nisn || '-'}</td>
+                        <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 font-mono text-center">{m.id_user || '-'}</td>
                         <td className="px-5 py-3 text-sm text-emerald-600 dark:text-emerald-400 text-center font-bold bg-emerald-50/30 dark:bg-emerald-500/5">{hadir || '-'}</td>
                         <td className="px-5 py-3 text-sm text-center font-bold bg-amber-50/30 dark:bg-amber-500/5">
                           {sakit > 0 ? (
@@ -488,7 +488,7 @@ export default function RekapPage() {
                             <tr key={m.id_user} className="print:hover:bg-transparent">
                               <td className="text-sm print:text-black print:px-2 print:py-2 text-center">{idx + 1}</td>
                               <td className="text-sm print:text-black font-semibold print:px-2 print:py-2 col-nama">{m.nama}</td>
-                              <td className="text-sm print:text-black print:px-2 print:py-2 text-center font-mono">{m.nisn || '-'}</td>
+                              <td className="text-sm print:text-black print:px-2 print:py-2 text-center font-mono">{m.id_user || '-'}</td>
                               <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{hadir || '-'}</td>
                               <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{sakit || '-'}</td>
                               <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{izin || '-'}</td>
