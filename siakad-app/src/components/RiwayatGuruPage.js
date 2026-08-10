@@ -56,6 +56,8 @@ export default function RiwayatGuruPage() {
             rekap[v.id_guru].history[v.status].push(v);
           }
         }
+      });
+
       // 4. Ambil jurnal guru
       const { data: jurnalData } = await supabase
         .from('jurnal_guru')
@@ -610,7 +612,7 @@ export default function RiwayatGuruPage() {
             <p>Karangrejo, {formatDateString(new Date().toISOString())}</p>
             <p>Mengetahui Kepala Madrasah,</p>
             <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
-            <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">Nur Su'ud, S.Pd.I.</div>
+            <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">Nur Su&apos;ud, S.Pd.I.</div>
             <p className="mt-1">-</p>
           </div>
         </div>
