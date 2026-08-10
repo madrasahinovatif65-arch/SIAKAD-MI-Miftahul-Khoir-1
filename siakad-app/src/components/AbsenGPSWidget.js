@@ -38,90 +38,65 @@ export default function AbsenGPSWidget() {
     const nfcData = nfcRes.data;
     const verData = verRes.data;
 
-    if (verData) {
-      const isHadir = verData.status === 'Hadir';
-      return { type: isHadir ? 'done' : 'error', message: `📝 Absensi Anda hari ini telah ditetapkan admin dengan status: ${verData.status}.` };
-    }
-
     let hasMasuk = false;
     let hasPulang = false;
     let timeMasuk = null;
     let timePulang = null;
-
-    if (gpsData) {
-      if (gpsData.waktu) { hasMasuk = true; timeMasuk = gpsData.waktu; }
-      if (gpsData.waktu_pulang) { hasPulang = true; timePulang = gpsData.waktu_pulang; }
-    }
-    if (nfcData) {
-      if (nfcData.jam_datang) { hasMasuk = true; timeMasuk = nfcData.jam_datang; }
-      if (nfcData.jam_pulang) { hasPulang = true; timePulang = nfcData.jam_pulang; }
-    }
-    
     let checkinMethod = null;
-    if (nfcData && nfcData.jam_datang) checkinMethod = 'kartu (NFC)';
-    else if (gpsData && gpsData.waktu) checkinMethod = 'GPS';
-
     let checkoutMethod = null;
-    if (nfcData && nfcData.jam_pulang) checkoutMethod = 'kartu (NFC)';
-    else if (gpsData && gpsData.waktu_pulang) checkoutMethod = 'GPS';
+
+    if (gpsData?.waktu) { hasMasuk = true; timeMasuk = gpsData.waktu; checkinMethod = 'GPS'; }
+    if (nfcData?.jam_datang) { hasMasuk = true; timeMasuk = nfcData.jam_datang; checkinMethod = 'kartu (NFC)'; }
+
+    if (gpsData?.waktu_pulang) { hasPulang = true; timePulang = gpsData.waktu_pulang; checkoutMethod = 'GPS'; }
+    if (nfcData?.jam_pulang) { hasPulang = true; timePulang = nfcData.jam_pulang; checkoutMethod = 'kartu (NFC)'; }
+
+    if (!hasMasuk && verData && verData.status === 'Hadir') {
+      hasMasuk = true;
+      timeMasuk = verData.waktu || '-';
+      checkinMethod = 'Admin';
+    }
 
     const times = { masuk: timeMasuk, pulang: timePulang };
 
-    if (nfcData && (nfcData.jam_datang || nfcData.jam_pulang)) {
-      let msg = '';
-      if (checkinMethod && checkoutMethod) {
-        if (checkinMethod === checkoutMethod) {
-          msg = `Anda sudah absen datang dan pulang menggunakan ${checkinMethod} hari ini.`;
-        } else {
-          msg = `Anda sudah absen datang menggunakan ${checkinMethod} dan pulang menggunakan ${checkoutMethod} hari ini.`;
-        }
-      } else if (checkinMethod) {
-        const isFriday = todayDate.getDay() === 5;
-        let jamBuka = isFriday ? '10:30' : '12:00';
-        msg = `Anda sudah absen datang menggunakan ${checkinMethod} hari ini. Absen pulang dibuka jam ${jamBuka}.`;
-      } else if (checkoutMethod) {
-        msg = `Anda sudah absen pulang menggunakan ${checkoutMethod} hari ini.`;
-      }
-      return { type: 'error', message: msg, times };
+    if (verData && verData.status !== 'Hadir') {
+      return { type: 'error', message: `📝 Absensi Anda hari ini telah ditetapkan admin dengan status: ${verData.status}.`, times };
     }
 
-    if (hasPulang) {
-      let msg = '';
-      if (checkinMethod && checkoutMethod) {
-        msg = `✅ Anda sudah absen datang dan pulang menggunakan GPS hari ini.`;
-      } else if (checkoutMethod) {
-        msg = `✅ Anda sudah absen pulang menggunakan GPS hari ini.`;
+    if (hasMasuk && hasPulang) {
+      if (checkinMethod === checkoutMethod) {
+        return { type: 'done', message: `✅ Anda sudah absen datang dan pulang menggunakan ${checkinMethod} hari ini.`, times };
       }
-      return { type: 'done', message: msg, times };
+      return { type: 'done', message: `✅ Anda sudah absen datang menggunakan ${checkinMethod} dan pulang menggunakan ${checkoutMethod} hari ini.`, times };
     }
 
     if (!hasMasuk) {
-      // Cek apakah sudah jam 06:00
       if (todayDate.getHours() < 6) {
          return { type: 'error', message: 'Absen masuk pagi baru dibuka pukul 06:00.', times };
       }
       return { type: 'idle', mode: 'masuk', gpsData, message: 'Silakan lakukan absen kehadiran (masuk).', times };
-    } else {
-      // Sudah masuk, mode pulang
-      const isFriday = todayDate.getDay() === 5;
-      const h = todayDate.getHours();
-      const m = todayDate.getMinutes();
-      
-      let canPulang = false;
-      let msg = '';
-      if (isFriday) {
-         if (h > 10 || (h === 10 && m >= 30)) canPulang = true;
-         else msg = `Anda sudah absen datang menggunakan ${checkinMethod}. Absen pulang hari Jumat dibuka jam 10:30.`;
-      } else {
-         if (h >= 12) canPulang = true;
-         else msg = `Anda sudah absen datang menggunakan ${checkinMethod}. Absen pulang dibuka jam 12:00.`;
-      }
+    } 
 
-      if (!canPulang) {
-         return { type: 'error', message: msg, times };
-      }
-      return { type: 'idle', mode: 'pulang', gpsData, message: 'Silakan lakukan absen pulang.', times };
+    const isFriday = todayDate.getDay() === 5;
+    const h = todayDate.getHours();
+    const m = todayDate.getMinutes();
+    
+    let canPulang = false;
+    let msg = '';
+    
+    if (isFriday) {
+       if (h > 10 || (h === 10 && m >= 30)) canPulang = true;
+       else msg = `Anda sudah absen datang menggunakan ${checkinMethod}. Absen pulang hari Jumat dibuka jam 10:30.`;
+    } else {
+       if (h >= 12) canPulang = true;
+       else msg = `Anda sudah absen datang menggunakan ${checkinMethod}. Absen pulang dibuka jam 12:00.`;
     }
+
+    if (!canPulang) {
+       return { type: 'error', message: msg, times };
+    }
+    
+    return { type: 'idle', mode: 'pulang', gpsData, message: `Anda sudah absen datang menggunakan ${checkinMethod}. Silakan lakukan absen pulang.`, times };
   });
 
   useEffect(() => {

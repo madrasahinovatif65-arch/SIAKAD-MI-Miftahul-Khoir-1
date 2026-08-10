@@ -75,39 +75,81 @@ export default function RiwayatGuruPage() {
       return { guruList: guruData || [], rekapData: rekap, type: 'rekap' };
     } else {
       // Guru: riwayat harian
-      const { data: verData } = await supabase
-        .from('verifikasi_guru')
-        .select('*')
-        .eq('id_guru', user.id_user)
-        .gte('tanggal', tglMulai)
-        .lte('tanggal', tglAkhir)
-        .order('tanggal', { ascending: false });
-      
-      const { data: nfcData } = await supabase
-        .from('view_rekap_absensi_nfc')
-        .select('*')
-        .eq('id_user', user.id_user)
-        .gte('tanggal', tglMulai)
-        .lte('tanggal', tglAkhir)
-        .order('tanggal', { ascending: false });
+      const [verRes, nfcRes, gpsRes] = await Promise.all([
+        supabase.from('verifikasi_guru').select('*').eq('id_guru', user.id_user).gte('tanggal', tglMulai).lte('tanggal', tglAkhir),
+        supabase.from('view_rekap_absensi_nfc').select('*').eq('id_user', user.id_user).gte('tanggal', tglMulai).lte('tanggal', tglAkhir),
+        supabase.from('log_gps_guru').select('*').eq('id_guru', user.id_user).gte('tanggal', tglMulai).lte('tanggal', tglAkhir)
+      ]);
 
-      const verMap = {};
-      (verData || []).forEach(v => { verMap[v.tanggal] = v; });
+      const verData = verRes.data || [];
+      const nfcData = nfcRes.data || [];
+      const gpsData = gpsRes.data || [];
 
+      // Collect all unique dates
+      const dates = new Set([...verData.map(v => v.tanggal), ...nfcData.map(n => n.tanggal), ...gpsData.map(g => g.tanggal)]);
       const combined = [];
-      (nfcData || []).forEach(n => {
-        if (!verMap[n.tanggal]) {
-          combined.push({
-            tanggal: n.tanggal,
-            nama_guru: n.nama_guru,
-            waktu: n.jam_datang || '-',
-            status: 'Hadir',
-            metode: 'NFC',
-            catatan: n.jam_pulang ? `Pulang: ${n.jam_pulang}` : '-',
-          });
+
+      dates.forEach(date => {
+        const ver = verData.find(v => v.tanggal === date);
+        const nfc = nfcData.find(n => n.tanggal === date);
+        const gps = gpsData.find(g => g.tanggal === date);
+
+        let waktu_datang = null;
+        let waktu_pulang = null;
+        let isLate = false;
+
+        // Populate times from GPS
+        if (gps) {
+          if (gps.waktu) waktu_datang = gps.waktu;
+          if (gps.waktu_pulang) waktu_pulang = gps.waktu_pulang;
         }
+
+        // Overwrite/Populate times from NFC (NFC overrides GPS if both exist for same timestamp)
+        if (nfc) {
+          if (nfc.jam_datang) waktu_datang = nfc.jam_datang;
+          if (nfc.jam_pulang) waktu_pulang = nfc.jam_pulang;
+        }
+
+        if (waktu_datang) {
+          const match = waktu_datang.match(/(\d{2})[:.](\d{2})/);
+          if (match) {
+            const h = parseInt(match[1], 10);
+            const m = parseInt(match[2], 10);
+            if (h > 7 || (h === 7 && m > 0)) isLate = true;
+          }
+        }
+
+        let currentStatus = 'Hadir';
+        let catatan = '';
+        let metode = '-';
+        let waktuStr = '-';
+
+        if (ver) {
+          currentStatus = ver.status;
+          metode = ver.metode || 'Admin';
+          catatan = ver.catatan || (currentStatus === 'Hadir' ? 'Ditetapkan Admin' : '');
+          if (currentStatus === 'Hadir' && (waktu_datang || waktu_pulang)) {
+             waktuStr = `${waktu_datang || '-'} s/d ${waktu_pulang || '-'}`;
+          } else {
+             waktuStr = ver.waktu || '-';
+          }
+        } else if (nfc || gps) {
+          currentStatus = 'Hadir';
+          metode = (nfc && gps) ? 'NFC+GPS' : (nfc ? 'NFC' : 'GPS');
+          catatan = isLate ? 'Terlambat' : 'Absen Mandiri';
+          waktuStr = `${waktu_datang || '-'} s/d ${waktu_pulang || '-'}`;
+        }
+
+        combined.push({
+          tanggal: date,
+          nama_guru: user.nama,
+          waktu: waktuStr,
+          status: currentStatus,
+          metode,
+          catatan
+        });
       });
-      (verData || []).forEach(v => combined.push(v));
+
       combined.sort((a, b) => b.tanggal.localeCompare(a.tanggal));
       return { history: combined, type: 'history' };
     }
