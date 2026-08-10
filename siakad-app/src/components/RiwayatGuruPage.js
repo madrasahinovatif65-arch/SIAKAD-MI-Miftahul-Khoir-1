@@ -515,7 +515,7 @@ export default function RiwayatGuruPage() {
         </div>
 
       {/* Filter Tanggal */}
-      <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-4 sm:p-6 shadow-sm print:hidden">
+      <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-4 sm:p-6 shadow-sm mb-6 print:hidden">
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-4 w-full">
           <div className="flex items-center gap-2 flex-1 sm:flex-none">
             <div className="relative w-full sm:w-auto">
