@@ -55,7 +55,7 @@ export default function AbsenGPSPage() {
       .single();
 
     if (gpsData) {
-      return { type: 'already', data: gpsData, message: `Anda sudah absen GPS hari ini pukul ${gpsData.waktu}. Status: ${gpsData.status}` };
+      return { type: 'already', data: gpsData, message: `Anda sudah absen GPS hari ini pukul ${formatTimeShort(gpsData.waktu)}. Status: ${gpsData.status}` };
     }
 
     return null;

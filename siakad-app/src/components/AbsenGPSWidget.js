@@ -46,15 +46,15 @@ export default function AbsenGPSWidget() {
     let checkinMethod = null;
     let checkoutMethod = null;
 
-    if (gpsData?.waktu) { hasMasuk = true; timeMasuk = gpsData.waktu; checkinMethod = 'GPS'; }
-    if (nfcData?.jam_datang) { hasMasuk = true; timeMasuk = nfcData.jam_datang; checkinMethod = 'kartu (NFC)'; }
+    if (gpsData?.waktu) { hasMasuk = true; timeMasuk = formatTimeShort(gpsData.waktu); checkinMethod = 'GPS'; }
+    if (nfcData?.jam_datang) { hasMasuk = true; timeMasuk = formatTimeShort(nfcData.jam_datang); checkinMethod = 'kartu (NFC)'; }
 
-    if (gpsData?.waktu_pulang) { hasPulang = true; timePulang = gpsData.waktu_pulang; checkoutMethod = 'GPS'; }
-    if (nfcData?.jam_pulang) { hasPulang = true; timePulang = nfcData.jam_pulang; checkoutMethod = 'kartu (NFC)'; }
+    if (gpsData?.waktu_pulang) { hasPulang = true; timePulang = formatTimeShort(gpsData.waktu_pulang); checkoutMethod = 'GPS'; }
+    if (nfcData?.jam_pulang) { hasPulang = true; timePulang = formatTimeShort(nfcData.jam_pulang); checkoutMethod = 'kartu (NFC)'; }
 
     if (!hasMasuk && verData && verData.status === 'Hadir') {
       hasMasuk = true;
-      timeMasuk = verData.waktu || '-';
+      timeMasuk = verData.waktu ? formatTimeShort(verData.waktu) : '-';
       checkinMethod = 'Admin';
     }
 

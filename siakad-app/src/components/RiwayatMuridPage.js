@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { formatTimeShort } from '@/lib/dateUtils';
 import useSWR from 'swr';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import DatePicker, { registerLocale } from 'react-datepicker';
@@ -52,7 +53,7 @@ export default function RiwayatMuridPage() {
         combined.push({
           tanggal: n.tanggal,
           status: 'Hadir',
-          catatan: `NFC: ${n.jam_datang || '-'}${n.jam_pulang ? ' - ' + n.jam_pulang : ''}`,
+          catatan: `NFC: ${formatTimeShort(n.jam_datang) || '-'}${n.jam_pulang ? ' - ' + formatTimeShort(n.jam_pulang) : ''}`,
           metode: 'NFC',
         });
       }
