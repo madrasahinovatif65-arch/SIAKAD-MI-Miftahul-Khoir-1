@@ -8,6 +8,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { id } from 'date-fns/locale/id';
+import { getTahunPelajaran } from '@/lib/dateUtils';
 
 registerLocale('id', id);
 
@@ -142,7 +143,8 @@ export default function RekapPage() {
         
         <div style="text-align: center; margin-bottom: 20px;">
           <h3 style="margin: 0; font-size: 14pt;">Laporan Rekapitulasi Presensi Bulanan</h3>
-          <p style="margin: 5px 0;">Periode: ${formatDateString(tglMulai)} s.d. ${formatDateString(tglAkhir)}</p>
+          <p style="margin: 5px 0 2px 0;">${getTahunPelajaran()}</p>
+          <p style="margin: 2px 0;">Periode: ${formatDateString(tglMulai)} s.d. ${formatDateString(tglAkhir)}</p>
           <p style="margin: 0;">Kelas/Rombel: <b>${rName}</b></p>
         </div>
 
@@ -433,6 +435,7 @@ export default function RekapPage() {
                 
                 <div className="text-center mt-3 mb-3">
                   <h3 className="text-base font-bold text-slate-800">Laporan Rekapitulasi Presensi Bulanan</h3>
+                  <p className="text-xs text-slate-600 mt-0.5">{getTahunPelajaran()}</p>
                   <p className="text-xs text-slate-600 mt-0.5">Periode: {formatDateString(tglMulai)} s.d. {formatDateString(tglAkhir)}</p>
                   <p className="text-xs text-slate-600 mt-0.5">Kelas/Rombel: <span className="font-bold text-green-700">{rName}</span></p>
                 </div>

@@ -21,6 +21,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { id } from 'date-fns/locale/id';
+import { getTahunPelajaran } from '@/lib/dateUtils';
 import AbsenModal from './AbsenModal';
 
 registerLocale('id', id);
@@ -413,7 +414,8 @@ export default function JurnalPage() {
           <h3 style="margin: 0; font-size: 14pt; color: #15803d; font-weight: bold;">
             Rekapitulasi Jurnal Pembelajaran Guru - ${user?.role === 'Wali Kelas' ? user.rombel : (user?.role === 'Admin' && filterRombel !== 'Semua' ? filterRombel : (user?.role === 'Guru Mapel' ? (filterMapel !== 'Semua' ? filterMapel : 'Semua Mapel') : 'Semua Mapel'))}
           </h3>
-          <p style="margin: 5px 0;">Tanggal: ${dateText}</p>
+          <p style="margin: 5px 0 2px 0;">${getTahunPelajaran()}</p>
+          <p style="margin: 2px 0;">Tanggal: ${dateText}</p>
         </div>
         <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; font-size: 9pt; text-align: center; table-layout: auto;">
           <thead>
@@ -968,6 +970,7 @@ export default function JurnalPage() {
                   </div>
                   <div className="text-center mt-3 mb-3">
                     <h3 className="text-base font-bold text-green-700">Rekapitulasi Jurnal Pembelajaran Guru - {user?.role === 'Wali Kelas' ? user.rombel : (user?.role === 'Admin' && filterRombel !== 'Semua' ? filterRombel : (user?.role === 'Guru Mapel' ? (filterMapel !== 'Semua' ? filterMapel : 'Semua Mapel') : 'Semua Mapel'))}</h3>
+                    <p className="text-xs text-slate-600 mt-0.5">{getTahunPelajaran()}</p>
                     <p className="text-xs text-slate-600 mt-0.5">Tanggal: {dateText}</p>
                   </div>
                 </div>

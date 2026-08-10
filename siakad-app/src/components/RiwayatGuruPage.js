@@ -8,6 +8,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { id } from 'date-fns/locale/id';
+import { getTahunPelajaran } from '@/lib/dateUtils';
 
 registerLocale('id', id);
 
@@ -195,9 +196,10 @@ export default function RiwayatGuruPage() {
         </div>
         
         <div class="title-doc">
-          <h3>Laporan Rekapitulasi Presensi Guru</h3>
-          <p>Periode: ${formatDateString(tglMulai)} s.d. ${formatDateString(tglAkhir)}</p>
-          ${!isAdmin ? `<p>Nama Guru: <b>${user?.nama || ''}</b></p>` : ''}
+          <h3>${isAdmin ? 'Laporan Rekapitulasi Presensi Guru' : 'Riwayat Presensi Guru'}</h3>
+          <p style="margin: 5px 0 2px 0;">${getTahunPelajaran()}</p>
+          <p style="margin: 2px 0;">Periode: ${formatDateString(tglMulai)} s.d. ${formatDateString(tglAkhir)}</p>
+          ${!isAdmin ? `<p style="margin: 2px 0;">Nama Guru: <b>${user?.nama || ''}</b></p>` : ''}
         </div>
         
         <table>
@@ -337,7 +339,8 @@ export default function RiwayatGuruPage() {
         
         <div class="title-doc">
           <h3>Rekapitulasi Jurnal Pembelajaran Guru - ${titleText}</h3>
-          <p>Periode: ${formatDateString(jurnalTglMulai)} s.d. ${formatDateString(jurnalTglAkhir)}</p>
+          <p style="margin: 5px 0 2px 0;">${getTahunPelajaran()}</p>
+          <p style="margin: 2px 0;">Periode: ${formatDateString(jurnalTglMulai)} s.d. ${formatDateString(jurnalTglAkhir)}</p>
         </div>
         
         <table>
@@ -478,7 +481,8 @@ export default function RiwayatGuruPage() {
           </div>
           
           <div className="text-center mt-3 mb-3">
-            <h3 className="text-base font-bold text-slate-800">Laporan Rekapitulasi Presensi Guru</h3>
+            <h3 className="text-base font-bold text-slate-800">{isAdmin ? 'Laporan Rekapitulasi Presensi Guru' : 'Riwayat Presensi Guru'}</h3>
+            <p className="text-xs text-slate-600 mt-0.5">{getTahunPelajaran()}</p>
             <p className="text-xs text-slate-600 mt-0.5">Periode: {formatDateString(tglMulai)} s.d. {formatDateString(tglAkhir)}</p>
             {!isAdmin && <p className="text-xs text-slate-600 mt-0.5">Nama Guru: <span className="font-bold text-green-700">{user?.nama}</span></p>}
           </div>
@@ -770,6 +774,7 @@ export default function RiwayatGuruPage() {
             
             <div className="text-center mt-3 mb-3">
               <h3 className="text-base font-bold text-slate-800">Rekapitulasi Jurnal Pembelajaran Guru - {jurnalRombel !== 'Semua' && jurnalMapel !== 'Semua' ? `${jurnalRombel} - ${jurnalMapel}` : (jurnalRombel !== 'Semua' ? jurnalRombel : (jurnalMapel !== 'Semua' ? jurnalMapel : 'Semua Mapel'))}</h3>
+              <p className="text-xs text-slate-600 mt-0.5">{getTahunPelajaran()}</p>
               <p className="text-xs text-slate-600 mt-0.5">Periode: {formatDateString(jurnalTglMulai)} s.d. {formatDateString(jurnalTglAkhir)}</p>
             </div>
           </div>
