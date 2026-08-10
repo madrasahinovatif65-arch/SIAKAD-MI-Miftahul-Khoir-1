@@ -454,7 +454,7 @@ export default function RiwayatGuruPage() {
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="print:hidden space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">
@@ -904,6 +904,195 @@ export default function RiwayatGuruPage() {
           </div>
         </div>
       )}
+
+      {/* ----------------- PRINT ONLY BLOCKS ----------------- */}
+      <div className="hidden print:block w-full bg-white text-black font-sans page-break-inside-auto">
+        
+        {/* REKAP PRINT */}
+        {printTarget !== 'jurnal' && (
+          <div className="w-full">
+            <div className="flex items-center gap-4 mb-2 border-b-[3px] border-black pb-2 relative">
+              <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain" />
+              <div className="flex-1 text-center">
+                <h3 className="text-lg font-bold text-black tracking-tight">Yayasan NU Miftakhul Khoir Damarjati</h3>
+                <h2 className="text-2xl font-bold text-black tracking-tight mt-0.5">MI Miftahul Khoir 1 Karangrejo</h2>
+                <p className="text-[10px] text-black mt-1 tracking-wide font-medium">NPSN: 60716857 | Jl. Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo, Kec. Purwosari, Kabupaten Pasuruan</p>
+              </div>
+              <div className="absolute bottom-0 left-0 w-full border-b border-black mt-0.5"></div>
+            </div>
+            
+            <div className="text-center mt-3 mb-3">
+              <h3 className="text-base font-bold text-black">{isAdmin ? 'Laporan Rekapitulasi Presensi Guru' : 'Riwayat Presensi Guru'}</h3>
+              <p className="text-xs text-black mt-0.5">{getTahunPelajaran()}</p>
+              <p className="text-xs text-black mt-0.5">Periode: {formatDateString(tglMulai)} s.d. {formatDateString(tglAkhir)}</p>
+              {!isAdmin && <p className="text-xs text-black mt-0.5">Nama Guru: <span className="font-bold">{user?.nama}</span></p>}
+            </div>
+            
+            <h4 className="font-bold text-black text-[11px] mb-2 flex items-center gap-2">
+              REKAPITULASI KEHADIRAN GURU
+            </h4>
+
+            <table className="w-full text-left border-collapse text-black table-auto mt-2">
+              <thead>
+                {isAdmin ? (
+                  <tr className="bg-gray-200 border-black/50">
+                    <th className="px-2 py-2 text-xs font-bold text-black uppercase tracking-wider text-center border border-black">No</th>
+                    <th className="px-2 py-2 text-xs font-bold text-black uppercase tracking-wider border border-black col-nama">Nama Guru</th>
+                    <th className="px-2 py-2 text-xs font-bold text-black text-center uppercase tracking-wider border border-black">Hadir</th>
+                    <th className="px-2 py-2 text-xs font-bold text-black text-center uppercase tracking-wider border border-black">Sakit</th>
+                    <th className="px-2 py-2 text-xs font-bold text-black text-center uppercase tracking-wider border border-black">Izin</th>
+                    <th className="px-2 py-2 text-xs font-bold text-black text-center uppercase tracking-wider border border-black">Alfa</th>
+                    <th className="px-2 py-2 text-xs font-bold text-black text-center uppercase tracking-wider border border-black">Total</th>
+                    <th className="px-2 py-2 text-xs font-bold text-black text-center uppercase tracking-wider border border-black">%</th>
+                  </tr>
+                ) : (
+                  <tr className="bg-gray-200 border-black/50">
+                    <th className="px-2 py-2 text-xs font-bold text-black uppercase tracking-wider border border-black">Tanggal</th>
+                    <th className="px-2 py-2 text-xs font-bold text-black uppercase tracking-wider border border-black">Waktu</th>
+                    <th className="px-2 py-2 text-xs font-bold text-black uppercase tracking-wider border border-black">Metode</th>
+                    <th className="px-2 py-2 text-xs font-bold text-black uppercase tracking-wider border border-black">Status</th>
+                    <th className="px-2 py-2 text-xs font-bold text-black uppercase tracking-wider border border-black col-nama">Catatan</th>
+                  </tr>
+                )}
+              </thead>
+              <tbody>
+                {isAdmin && swrData?.type === 'rekap' ? (
+                  swrData.guruList.length > 0 ? (
+                    swrData.guruList.map((guru, idx) => {
+                      const r = swrData.rekapData[guru.id_user];
+                      const hadir = r.Hadir || 0;
+                      const sakit = r.Sakit || 0;
+                      const izin = r.Izin || 0;
+                      const alfa = r.Alfa || 0;
+                      const total = hadir + sakit + izin + alfa;
+                      const persen = total === 0 ? 0 : Math.round((hadir / total) * 100);
+                      return (
+                        <tr key={guru.id_user}>
+                          <td className="px-2 py-2 text-xs text-black text-center border border-black">{idx + 1}</td>
+                          <td className="px-2 py-2 text-xs font-bold text-black border border-black col-nama">{guru.nama}</td>
+                          <td className="px-2 py-2 text-xs text-center text-black border border-black">{hadir || '-'}</td>
+                          <td className="px-2 py-2 text-xs text-center text-black border border-black">{sakit || '-'}</td>
+                          <td className="px-2 py-2 text-xs text-center text-black border border-black">{izin || '-'}</td>
+                          <td className="px-2 py-2 text-xs text-center text-black border border-black">{alfa || '-'}</td>
+                          <td className="px-2 py-2 text-xs text-center text-black border border-black">{total || '-'}</td>
+                          <td className="px-2 py-2 text-xs text-center text-black border border-black">{persen > 0 ? persen + '%' : '-'}</td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr><td colSpan="8" className="text-center py-4 text-black border border-black">Belum ada data</td></tr>
+                  )
+                ) : (
+                  swrData?.history?.length > 0 ? (
+                    swrData.history.map((row, idx) => (
+                      <tr key={idx}>
+                        <td className="px-2 py-2 text-xs text-black border border-black">{formatDate(row.tanggal)}</td>
+                        <td className="px-2 py-2 text-xs text-black border border-black">{row.waktu}</td>
+                        <td className="px-2 py-2 text-xs text-black border border-black">{row.metode || 'GPS'}</td>
+                        <td className="px-2 py-2 text-xs text-black border border-black">{row.status}</td>
+                        <td className="px-2 py-2 text-xs text-black border border-black">{row.catatan || '-'}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr><td colSpan="5" className="text-center py-4 text-black border border-black">Tidak ada riwayat absensi pada rentang tanggal tersebut</td></tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* JURNAL PRINT */}
+        {printTarget !== 'rekap' && isAdmin && (
+          <div className="w-full mt-8">
+            <div className="flex items-center gap-4 mb-2 border-b-[3px] border-black pb-2 relative">
+              <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain" />
+              <div className="flex-1 text-center">
+                <h3 className="text-lg font-bold text-black tracking-tight">Yayasan NU Miftakhul Khoir Damarjati</h3>
+                <h2 className="text-2xl font-bold text-black tracking-tight mt-0.5">MI Miftahul Khoir 1 Karangrejo</h2>
+                <p className="text-[10px] text-black mt-1 tracking-wide font-medium">NPSN: 60716857 | Jl. Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo, Kec. Purwosari, Kabupaten Pasuruan</p>
+              </div>
+              <div className="absolute bottom-0 left-0 w-full border-b border-black mt-0.5"></div>
+            </div>
+            
+            <div className="text-center mt-3 mb-3">
+              <h3 className="text-base font-bold text-black">Rekapitulasi Jurnal Pembelajaran Guru - {jurnalRombel !== 'Semua' && jurnalMapel !== 'Semua' ? `${jurnalRombel} - ${jurnalMapel}` : (jurnalRombel !== 'Semua' ? jurnalRombel : (jurnalMapel !== 'Semua' ? jurnalMapel : 'Semua Mapel'))}</h3>
+              <p className="text-xs text-black mt-0.5">{getTahunPelajaran()}</p>
+              <p className="text-xs text-black mt-0.5">Periode: {formatDateString(jurnalTglMulai)} s.d. {formatDateString(jurnalTglAkhir)}</p>
+            </div>
+
+            <table className="w-full text-left border-collapse text-black table-auto mt-2">
+              <thead>
+                <tr className="bg-gray-200 border-black/50">
+                  <th className="px-2 py-2 text-xs font-bold text-black uppercase tracking-wider text-center border border-black w-[5%]">No</th>
+                  <th className="px-2 py-2 text-xs font-bold text-black uppercase tracking-wider border border-black w-[15%]">Waktu</th>
+                  <th className="px-2 py-2 text-xs font-bold text-black uppercase tracking-wider border border-black w-[10%]">Rombel</th>
+                  <th className="px-2 py-2 text-xs font-bold text-black uppercase tracking-wider border border-black w-[25%]">Mata Pelajaran</th>
+                  <th className="px-2 py-2 text-xs font-bold text-black uppercase tracking-wider border border-black w-[35%]">Materi & Catatan</th>
+                  <th className="px-2 py-2 text-xs font-bold text-black uppercase tracking-wider border border-black w-[10%] text-center">Kehadiran</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loadingJurnal ? (
+                  <tr><td colSpan="6" className="text-center py-4 border border-black">Memuat...</td></tr>
+                ) : jurnalData?.length > 0 ? (
+                  jurnalData.map((j, idx) => (
+                    <tr key={j.id}>
+                      <td className="px-2 py-2 text-xs text-black text-center border border-black">{idx + 1}</td>
+                      <td className="px-2 py-2 text-xs text-black border border-black">
+                        <div>{formatDate(j.tanggal)}</div>
+                        <div className="text-[10px] mt-1">{(j.jam_pelajaran || '-').replace(/\s*\(.*\)/, '')}</div>
+                      </td>
+                      <td className="px-2 py-2 text-xs text-black border border-black">{j.rombel}</td>
+                      <td className="px-2 py-2 text-xs text-black border border-black">
+                        <div className="font-bold">{j.mata_pelajaran}</div>
+                        <div className="text-[10px] mt-1">Guru : {j.master_user?.nama || '-'}</div>
+                      </td>
+                      <td className="px-2 py-2 text-xs text-black border border-black">
+                        <div>{j.materi || '-'}</div>
+                        {j.catatan && j.catatan !== '-' && (
+                          <div className="text-[10px] italic mt-1">Catatan: {j.catatan}</div>
+                        )}
+                      </td>
+                      <td className="px-2 py-2 text-xs text-center text-black border border-black">
+                        {(() => {
+                          const totalSiswa = masterData?.rombelCounts?.[j.rombel] || 1;
+                          const absenCount = j.data_absensi_mapel?.length || 0;
+                          const hadirCount = Math.max(0, totalSiswa - absenCount);
+                          const persentase = totalSiswa > 0 ? Math.round((hadirCount / totalSiswa) * 100) : 100;
+                          return `${persentase}%`;
+                        })()}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr><td colSpan="6" className="text-center py-4 border border-black">Belum ada jurnal mengajar</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+        
+        {/* TANDA TANGAN */}
+        {!loading && swrData && (
+          <div className="flex justify-between items-end px-12 text-center text-xs text-black w-full mt-12 pt-8" style={{ pageBreakInside: 'avoid' }}>
+            <div className="flex flex-col items-center">
+              <p className="text-transparent select-none">.</p>
+              <p>Disiapkan Oleh,</p>
+              <p className="font-bold uppercase mt-1">STAF TATA USAHA,</p>
+              <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">.......................................</div>
+              <p className="mt-1">-</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <p>Karangrejo, {formatDateString(new Date().toISOString())}</p>
+              <p>Mengetahui Kepala Madrasah,</p>
+              <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
+              <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">Nur Su&apos;ud, S.Pd.I.</div>
+              <p className="mt-1">-</p>
+            </div>
+          </div>
+        )}
+      </div>
 
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
