@@ -30,7 +30,7 @@ export default function AbsenGPSWidget() {
 
     const [gpsRes, nfcRes] = await Promise.all([
       supabase.from('log_gps_guru').select('*').eq('tanggal', today).eq('id_guru', user.id_user).single(),
-      supabase.from('data_absensi_nfc_guru').select('*').eq('tanggal', today).eq('id_user', user.id_user).single()
+      supabase.from('view_rekap_absensi_nfc').select('*').eq('tanggal', today).eq('id_user', user.id_user).single()
     ]);
 
     const gpsData = gpsRes.data;
