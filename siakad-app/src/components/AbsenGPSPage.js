@@ -96,7 +96,6 @@ export default function AbsenGPSPage() {
           waktu,
           latitude,
           longitude,
-          akurasi: Math.round(accuracy),
           jarak_meter: Math.round(distance),
           status: distance <= RADIUS ? 'Menunggu Verifikasi' : 'Di Luar Radius',
         }, { onConflict: 'tanggal,id_guru' });
@@ -165,7 +164,6 @@ export default function AbsenGPSPage() {
             {[
               { label: 'Latitude', value: location.latitude.toFixed(6) },
               { label: 'Longitude', value: location.longitude.toFixed(6) },
-              { label: 'Akurasi', value: `${Math.round(location.accuracy)}m` },
               { label: 'Jarak', value: `${Math.round(location.distance)}m` },
             ].map(item => (
               <div key={item.label} className="bg-white dark:bg-white/5 shadow-sm dark:shadow-none rounded-xl p-3">

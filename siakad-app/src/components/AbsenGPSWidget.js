@@ -153,7 +153,6 @@ export default function AbsenGPSWidget() {
       id_guru: user.id_user,
       latitude: location.latitude,
       longitude: location.longitude,
-      akurasi: 0,
       jarak_meter: Math.round(location.distance),
       status: 'Hadir',
     };
