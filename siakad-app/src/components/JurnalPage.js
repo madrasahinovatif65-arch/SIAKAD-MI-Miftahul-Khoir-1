@@ -30,6 +30,9 @@ registerLocale('id', id);
 export default function JurnalPage() {
   const isMobile = useIsMobile();
   const { user } = useAuth();
+
+  if (!user) return null;
+
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().split('T')[0]);
   const [jamMulai, setJamMulai] = useState('');
   const [jamSelesai, setJamSelesai] = useState('');
@@ -588,7 +591,7 @@ export default function JurnalPage() {
         </button>
       </div>
 
-      {user.role !== 'Admin' && (
+      {user?.role !== 'Admin' && (
         <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 print:hidden relative shadow-sm">
           {isHoliday && (
             <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-2xl px-4 py-3.5 text-amber-600 dark:text-amber-300 text-sm flex items-center gap-3 font-medium shadow-sm">
@@ -893,7 +896,7 @@ export default function JurnalPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-slate-900 dark:text-white font-bold text-sm">{j.tanggal.split('-').reverse().join('-')}</span>
                       <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-md text-[10px] font-bold tracking-wider">{(j.jam_pelajaran || '').replace(/\s*\(.*\)/, '')}</span>
-                      {(user.role === 'Admin' || user.role === 'Wali Kelas') && j.master_user?.nama && (
+                      {(user?.role === 'Admin' || user?.role === 'Wali Kelas') && j.master_user?.nama && (
                         <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-md text-[10px] font-bold tracking-wider">
                           {j.master_user.nama}
                         </span>
@@ -904,7 +907,7 @@ export default function JurnalPage() {
                       <span className="px-2 py-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20 rounded-lg">{j.mata_pelajaran}</span>
                     </div>
                   </div>
-                  {(user.role !== 'Admin' && j.id_guru === user.id_user) && (
+                  {(user?.role !== 'Admin' && j.id_guru === user?.id_user) && (
                     <div className="flex gap-2">
                       <button onClick={() => handleEdit(j)} title="Edit Jurnal" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-200 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 p-2 rounded-lg transition-colors">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" /></svg>
