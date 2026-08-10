@@ -50,14 +50,40 @@ export default function AbsenGPSWidget() {
       if (nfcData.jam_pulang) { hasPulang = true; timePulang = nfcData.jam_pulang; }
     }
     
+    let checkinMethod = null;
+    if (nfcData && nfcData.jam_datang) checkinMethod = 'kartu (NFC)';
+    else if (gpsData && gpsData.waktu) checkinMethod = 'GPS';
+
+    let checkoutMethod = null;
+    if (nfcData && nfcData.jam_pulang) checkoutMethod = 'kartu (NFC)';
+    else if (gpsData && gpsData.waktu_pulang) checkoutMethod = 'GPS';
+
     const times = { masuk: timeMasuk, pulang: timePulang };
 
     if (nfcData && (nfcData.jam_datang || nfcData.jam_pulang)) {
-      return { type: 'error', message: 'Anda sudah absen menggunakan kartu (NFC) hari ini. Harap gunakan kartu untuk absen kepulangan.', times };
+      let msg = '';
+      if (checkinMethod && checkoutMethod) {
+        if (checkinMethod === checkoutMethod) {
+          msg = `Anda sudah absen datang dan pulang menggunakan ${checkinMethod} hari ini.`;
+        } else {
+          msg = `Anda sudah absen datang menggunakan ${checkinMethod} dan pulang menggunakan ${checkoutMethod} hari ini.`;
+        }
+      } else if (checkinMethod) {
+        msg = `Anda sudah absen datang menggunakan ${checkinMethod} hari ini. Harap gunakan kartu untuk absen kepulangan.`;
+      } else if (checkoutMethod) {
+        msg = `Anda sudah absen pulang menggunakan ${checkoutMethod} hari ini.`;
+      }
+      return { type: 'error', message: msg, times };
     }
 
     if (hasPulang) {
-      return { type: 'done', message: '✅ Anda sudah melakukan absensi masuk dan pulang hari ini.', times };
+      let msg = '';
+      if (checkinMethod && checkoutMethod) {
+        msg = `✅ Anda sudah absen datang dan pulang menggunakan GPS hari ini.`;
+      } else if (checkoutMethod) {
+        msg = `✅ Anda sudah absen pulang menggunakan GPS hari ini.`;
+      }
+      return { type: 'done', message: msg, times };
     }
 
     if (!hasMasuk) {
@@ -76,10 +102,10 @@ export default function AbsenGPSWidget() {
       let msg = '';
       if (isFriday) {
          if (h > 10 || (h === 10 && m >= 30)) canPulang = true;
-         else msg = 'Sudah absen masuk. Absen pulang hari Jumat dibuka jam 10:30.';
+         else msg = `Anda sudah absen datang menggunakan ${checkinMethod}. Absen pulang hari Jumat dibuka jam 10:30.`;
       } else {
          if (h >= 12) canPulang = true;
-         else msg = 'Sudah absen masuk. Absen pulang dibuka jam 12:00.';
+         else msg = `Anda sudah absen datang menggunakan ${checkinMethod}. Absen pulang dibuka jam 12:00.`;
       }
 
       if (!canPulang) {
