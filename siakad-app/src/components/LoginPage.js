@@ -178,8 +178,11 @@ export default function LoginPage({ onLoginSuccess }) {
             </div>
           )}
 
-          {/* Scanner UI */}
-          <div className={`space-y-4 ${showScanner ? 'block' : 'hidden'}`}>
+          {/* Scanner UI Modal */}
+          {showScanner && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+              <div className="bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-white/10 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4 relative">
+                <h3 className="text-lg font-bold text-center text-slate-900 dark:text-white">Scan QR Code</h3>
             {cameras.length > 0 && (
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-medium text-emerald-700 dark:text-teal-200/70 uppercase tracking-wider">
@@ -206,13 +209,15 @@ export default function LoginPage({ onLoginSuccess }) {
             <div id="qr-reader" className="w-full overflow-hidden rounded-xl border-2 border-slate-300 dark:border-white/20 bg-black/50"></div>
             <button 
               onClick={handleCancelScan}
-              className="w-full py-2.5 bg-white dark:bg-white/10 hover:bg-white dark:bg-white/20 text-slate-900 dark:text-white font-medium rounded-xl transition-colors">
+              className="w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 dark:text-rose-400 font-medium rounded-xl transition-colors">
               Batal Scan
             </button>
-          </div>
+              </div>
+            </div>
+          )}
 
           {/* Login Form UI */}
-          <div className={showScanner ? 'hidden' : 'block'}>
+          <div className="block">
             <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <label className="text-xs font-medium text-emerald-700 dark:text-teal-200/70 uppercase tracking-wider">
