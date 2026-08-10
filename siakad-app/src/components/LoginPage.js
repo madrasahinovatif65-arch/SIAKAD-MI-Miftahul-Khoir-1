@@ -13,6 +13,7 @@ export default function LoginPage({ onLoginSuccess }) {
   const [showPin, setShowPin] = useState(false);
   const [cameras, setCameras] = useState([]);
   const [selectedCameraId, setSelectedCameraId] = useState('');
+  const formRef = useRef(null);
 
   useEffect(() => {
     // Inject HTML5 QR Code script if not present
@@ -96,26 +97,17 @@ export default function LoginPage({ onLoginSuccess }) {
         
         setUsername(decodedText);
         const result = await loginQR(decodedText);
-        setIsLoading(false);
 
-        if (result.success) {
-          // Tanyakan apakah ingin menyimpan sesi login
-          const saveLogin = window.confirm("Berhasil Scan!\n\nApakah Anda ingin menyimpan info login Anda di perangkat ini agar tidak perlu scan/login lagi di kemudian hari?\n\n- Pilih 'OK' untuk perangkat Pribadi.\n- Pilih 'Batal' untuk perangkat Umum.");
-          
-          if (!saveLogin) {
-            // Jika tidak ingin disimpan, hapus token auth dari localStorage agar sesi ini menjadi sementara
-            setTimeout(() => {
-              Object.keys(localStorage).forEach(key => {
-                if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
-                  localStorage.removeItem(key);
-                }
-              });
-              localStorage.removeItem('siakad_user');
-            }, 1000);
-          }
-          
-          onLoginSuccess?.(result.data);
+        if (result.success && result.pin) {
+          setPin(result.pin);
+          // Tunggu React memperbarui state, lalu jalankan submit form layaknya diketik manual
+          setTimeout(() => {
+            if (formRef.current) {
+              formRef.current.requestSubmit();
+            }
+          }, 150);
         } else {
+          setIsLoading(false);
           setError(result.message);
         }
       },
@@ -221,7 +213,7 @@ export default function LoginPage({ onLoginSuccess }) {
 
           {/* Login Form UI */}
           <div className={showScanner ? 'hidden' : 'block'}>
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <label className="text-xs font-medium text-emerald-700 dark:text-teal-200/70 uppercase tracking-wider">
                 ID User / NISN

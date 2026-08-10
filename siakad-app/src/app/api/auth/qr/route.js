@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// API ini hanya boleh dipanggil dari sisi klien untuk login QR
+// API ini hanya boleh dipanggil dari sisi klien untuk mengambil PIN berdasarkan QR scan
 export async function POST(request) {
   try {
     const { id_user } = await request.json();
@@ -35,21 +35,10 @@ export async function POST(request) {
       return NextResponse.json({ success: false, message: 'Pengguna tidak ditemukan atau tidak aktif' }, { status: 404 });
     }
 
-    // 2. Lakukan login menggunakan email virtual dan PIN
-    const email = `${user.id_user.toLowerCase()}@siakad.local`;
-    const { data: authData, error: authError } = await supabaseAdmin.auth.signInWithPassword({
-      email: email,
-      password: user.pin
-    });
-
-    if (authError || !authData.session) {
-      return NextResponse.json({ success: false, message: 'Gagal mengautentikasi sesi QR' }, { status: 401 });
-    }
-
-    // 3. Kembalikan session ke klien
+    // 2. Kembalikan PIN ke klien (Peringatan: Ini mengekspos PIN pengguna)
     return NextResponse.json({
       success: true,
-      session: authData.session
+      pin: user.pin
     });
 
   } catch (error) {

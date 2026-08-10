@@ -102,7 +102,7 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  // Login via QR: Meminta server bypass token
+  // Ambil PIN via QR
   const loginQR = useCallback(async (username) => {
     try {
       const response = await fetch('/api/auth/qr', {
@@ -117,23 +117,7 @@ export function AuthProvider({ children }) {
         return { success: false, message: data.message || 'Gagal login via QR' };
       }
 
-      // Set session yang diterima dari server
-      const { error, data: sessionData } = await supabase.auth.setSession({
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token
-      });
-
-      if (error) {
-         return { success: false, message: 'Gagal mengatur sesi Auth: ' + error.message };
-      }
-
-      if (sessionData?.user?.id) {
-        await fetchUserData(sessionData.user.id);
-      } else {
-        await fetchUserData(data.session.user.id);
-      }
-      
-      return { success: true };
+      return { success: true, pin: data.pin };
     } catch (err) {
       return { success: false, message: 'Terjadi kesalahan jaringan: ' + err.message };
     }
