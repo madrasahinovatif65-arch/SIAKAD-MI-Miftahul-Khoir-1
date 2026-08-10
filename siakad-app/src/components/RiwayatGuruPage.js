@@ -729,6 +729,7 @@ export default function RiwayatGuruPage() {
                     }}
                     dateFormat="dd/MM/yyyy" locale="id" todayButton="Hari Ini" wrapperClassName="w-full"
                     className="w-full sm:w-40 pl-11 pr-8 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm relative z-40"
+                    portalId="root-portal"
                   />
                   <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-40" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
@@ -749,6 +750,7 @@ export default function RiwayatGuruPage() {
                     }}
                     dateFormat="dd/MM/yyyy" locale="id" todayButton="Hari Ini" wrapperClassName="w-full"
                     className="w-full sm:w-40 pl-16 pr-8 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm relative z-40"
+                    portalId="root-portal"
                   />
                   <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-40" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
@@ -1078,7 +1080,7 @@ export default function RiwayatGuruPage() {
         
         {/* TANDA TANGAN */}
         {!loading && swrData && (
-          <div className="flex justify-between items-end px-12 text-center text-xs text-black w-full mt-12 pt-8" style={{ pageBreakInside: 'avoid' }}>
+          <div className="print-ttd-block flex justify-between items-end px-12 text-center text-xs text-black w-full mt-12 pt-8" style={{ pageBreakInside: 'avoid' }}>
             <div className="flex flex-col items-center">
               <p className="text-transparent select-none">.</p>
               <p>Disiapkan Oleh,</p>
@@ -1107,19 +1109,22 @@ export default function RiwayatGuruPage() {
           /* Force all containers to be visible and not clip during print */
           * { overflow: visible !important; }
           
-          table { width: 100%; border-collapse: collapse; margin-top: 1rem; page-break-inside: auto; }
+          table { width: 100%; border-collapse: collapse; margin-top: 1rem; page-break-inside: auto; table-layout: fixed; }
           tr { page-break-inside: avoid; page-break-after: auto; }
           thead { display: table-header-group; }
           
-          /* Kolom mengecil sesuai isi teks agar menghemat tempat, kecuali kolom nama */
-          th, td { border: 1px solid #000; padding: ${getDynamicPadding()}; color: #000 !important; font-size: 10px; white-space: nowrap; }
+          /* Wrap text in all cells so the table fits within the printable area */
+          th, td { border: 1px solid #000; padding: 4px 5px; color: #000 !important; font-size: 9px; white-space: normal; word-wrap: break-word; overflow-wrap: break-word; }
           th { background: #e2e8f0 !important; -webkit-print-color-adjust: exact; }
           
-          /* Kolom Nama Guru akan melar dan wrap text */
+          /* Kolom Nama Guru / Materi melar dan wrap text */
           .col-nama { white-space: normal !important; width: auto !important; word-wrap: break-word; }
           
           /* Hilangkan border khusus untuk baris tanda tangan */
           tr.print-no-border > td { border: none !important; }
+          
+          /* Pastikan blok tanda tangan tidak terpisah halaman */
+          .print-ttd-block { page-break-inside: avoid !important; break-inside: avoid !important; }
         }
       `}} />
     </>
