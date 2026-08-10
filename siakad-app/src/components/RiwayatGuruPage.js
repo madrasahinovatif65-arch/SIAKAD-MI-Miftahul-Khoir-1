@@ -56,7 +56,15 @@ export default function RiwayatGuruPage() {
             rekap[v.id_guru].history[v.status].push(v);
           }
         }
-      }); return { guruList: guruData || [], rekapData: rekap, type: 'rekap' };
+      // 4. Ambil jurnal guru
+      const { data: jurnalData } = await supabase
+        .from('jurnal_guru')
+        .select('*, master_user(nama)')
+        .gte('tanggal', tglMulai)
+        .lte('tanggal', tglAkhir)
+        .order('tanggal', { ascending: false });
+
+      return { guruList: guruData || [], rekapData: rekap, jurnalData: jurnalData || [], type: 'rekap' };
     } else {
       // Guru: riwayat harian
       const { data: verData } = await supabase
@@ -225,7 +233,46 @@ export default function RiwayatGuruPage() {
     html += `
           </tbody>
         </table>
-        
+    `;
+
+    if (isAdmin && swrData?.jurnalData?.length > 0) {
+      html += `
+        <br><br>
+        <div class="title-doc">
+          <h3>Riwayat Jurnal Guru</h3>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Waktu</th>
+              <th>Guru</th>
+              <th>Rombel</th>
+              <th>Mata Pelajaran</th>
+              <th>Materi & Catatan</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      swrData.jurnalData.forEach((j, idx) => {
+        html += `
+            <tr>
+              <td style="width: 5%;">${idx + 1}</td>
+              <td>${formatDate(j.tanggal)}<br><span style="font-size:9pt;">${j.jam_pelajaran ? j.jam_pelajaran.replace(/\s*\(.*\)/, '') : '-'}</span></td>
+              <td>${j.master_user?.nama || '-'}</td>
+              <td>${j.rombel}</td>
+              <td>${j.mata_pelajaran}</td>
+              <td class="text-left">${j.materi}${j.catatan && j.catatan !== '-' ? `<br><i>Catatan: ${j.catatan}</i>` : ''}</td>
+            </tr>
+        `;
+      });
+      html += `
+          </tbody>
+        </table>
+      `;
+    }
+
+    html += `
         <br><br><br>
         <table style="width: 100%; text-align: center; border: none; font-size: 11pt;">
           <tr>
@@ -500,31 +547,71 @@ export default function RiwayatGuruPage() {
                     <tr><td colSpan="5" className="text-center py-12 text-slate-500 dark:text-slate-400">Tidak ada riwayat absensi pada rentang tanggal tersebut</td></tr>
                   )
                 )}
-                {/* Baris Tanda Tangan Menyatu dengan Tabel (Tanpa Border) */}
-                {!loading && (
-                  <tr className="print:table-row hidden print-no-border">
-                    <td colSpan={isAdmin ? 8 : 5} className="pt-12 pb-2">
-                      <div className="flex justify-between items-end px-12 text-center text-xs text-black w-full">
-                        <div className="flex flex-col items-center">
-                          <p className="text-transparent select-none">.</p>
-                          <p>Disiapkan Oleh,</p>
-                          <p className="font-bold uppercase mt-1">STAF TATA USAHA,</p>
-                          <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">.......................................</div>
-                          <p className="mt-1">-</p>
-                        </div>
-                        <div className="flex flex-col items-center">
-                          <p>Karangrejo, {formatDateString(new Date().toISOString())}</p>
-                          <p>Mengetahui Kepala Madrasah,</p>
-                          <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
-                          <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">Nur Su'ud, S.Pd.I.</div>
-                          <p className="mt-1">-</p>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Jurnal Table for Admin */}
+      {!loading && isAdmin && swrData?.jurnalData && swrData.jurnalData.length > 0 && (
+        <div className="mt-8 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm print:border-none print:shadow-none print:rounded-none print:bg-transparent print:overflow-visible print:mt-12">
+          <div className="p-5 border-b border-slate-200 dark:border-white/10 print:border-black/50">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white print:text-black">Riwayat Jurnal Guru</h3>
+          </div>
+          <div className="overflow-x-auto print:overflow-visible">
+            <table className="w-full text-left border-collapse print:text-black print:bg-white print:table-auto">
+              <thead>
+                <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 print:bg-gray-200 print:border-black/50">
+                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider text-center w-[5%]">No</th>
+                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[15%]">Waktu</th>
+                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[20%]">Guru</th>
+                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[10%]">Rombel</th>
+                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[20%]">Mata Pelajaran</th>
+                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[30%]">Materi & Catatan</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-white/5 print:divide-black/20">
+                {swrData.jurnalData.map((j, idx) => (
+                  <tr key={j.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+                    <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black text-center">{idx + 1}</td>
+                    <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black font-mono">
+                      <div className="font-bold">{formatDate(j.tanggal)}</div>
+                      <div className="mt-1 text-xs">{j.jam_pelajaran ? j.jam_pelajaran.replace(/\s*\(.*\)/, '') : '-'}</div>
+                    </td>
+                    <td className="px-5 py-4 text-sm font-medium text-slate-900 dark:text-white print:text-black">{j.master_user?.nama}</td>
+                    <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black">{j.rombel}</td>
+                    <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black">{j.mata_pelajaran}</td>
+                    <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black">
+                      <div className="font-medium whitespace-pre-wrap">{j.materi}</div>
+                      {j.catatan && j.catatan !== '-' && (
+                        <div className="mt-2 text-xs italic opacity-75 border-t border-slate-200 dark:border-white/10 pt-2 print:border-black/20">Catatan: {j.catatan}</div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Tanda Tangan untuk Print (Ditaruh di luar tabel) */}
+      {!loading && swrData && (
+        <div className="hidden print:flex justify-between items-end px-12 text-center text-xs text-black w-full mt-12 pt-8">
+          <div className="flex flex-col items-center">
+            <p className="text-transparent select-none">.</p>
+            <p>Disiapkan Oleh,</p>
+            <p className="font-bold uppercase mt-1">STAF TATA USAHA,</p>
+            <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">.......................................</div>
+            <p className="mt-1">-</p>
+          </div>
+          <div className="flex flex-col items-center">
+            <p>Karangrejo, {formatDateString(new Date().toISOString())}</p>
+            <p>Mengetahui Kepala Madrasah,</p>
+            <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
+            <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">Nur Su'ud, S.Pd.I.</div>
+            <p className="mt-1">-</p>
           </div>
         </div>
       )}
