@@ -12,7 +12,8 @@ const getBase64FromUrl = async (url) => {
   });
 };
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { formatTimeShort } from '@/lib/dateUtils';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 

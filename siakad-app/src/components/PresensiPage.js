@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import useSWR from 'swr';
-import { fetchMasterLibur, fetchPresensiData } from '@/lib/fetchers';
+import { fetchPresensiData, fetchMasterLibur } from '@/lib/fetchers';
+import { formatTimeShort } from '@/lib/dateUtils';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -65,15 +66,7 @@ export default function PresensiPage() {
     return undefined;
   };
 
-  const formatTime = (timeStr) => {
-    if (!timeStr || timeStr === '-') return '-';
-    // Match HH:MM:SS or HH.MM.SS
-    const match = timeStr.match(/\d{2}[:.]\d{2}[:.]\d{2}/);
-    if (match) return match[0].replace(/\./g, ':'); // normalize to colon
-    const matchShort = timeStr.match(/\d{2}[:.]\d{2}/);
-    if (matchShort) return matchShort[0].replace(/\./g, ':');
-    return timeStr;
-  };
+  const formatTime = formatTimeShort;
 
   useEffect(() => {
     if (!rombel && rombelOptions.length > 0) {

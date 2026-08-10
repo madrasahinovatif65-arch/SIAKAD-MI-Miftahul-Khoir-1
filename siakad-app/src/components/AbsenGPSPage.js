@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { formatTimeShort } from '@/lib/dateUtils';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import useSWR from 'swr';
@@ -30,7 +31,7 @@ export default function AbsenGPSPage() {
       .single();
 
     if (nfcData) {
-      return { type: 'nfc', data: nfcData, message: `Anda sudah tercatat hadir via NFC hari ini (${nfcData.jam_datang || '-'}). GPS dinonaktifkan.` };
+      return { type: 'nfc', data: nfcData, message: `Anda sudah tercatat hadir via NFC hari ini (${formatTimeShort(nfcData.jam_datang) || '-'}). GPS dinonaktifkan.` };
     }
 
     // Cek Verifikasi Guru

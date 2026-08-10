@@ -8,7 +8,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { id } from 'date-fns/locale/id';
-import { getTahunPelajaran } from '@/lib/dateUtils';
+import { getTahunPelajaran, formatTimeShort } from '@/lib/dateUtils';
 
 registerLocale('id', id);
 
@@ -306,7 +306,7 @@ export default function RiwayatGuruPage() {
           html += `
             <tr>
               <td>${formatDate(row.tanggal)}</td>
-              <td>${row.waktu}</td>
+              <td>${formatTimeShort(row.waktu)}</td>
               <td>${row.metode || 'GPS'}</td>
               <td>${row.status}</td>
               <td>${row.catatan || '-'}</td>
@@ -700,7 +700,7 @@ export default function RiwayatGuruPage() {
                     swrData.history.map((row, idx) => (
                       <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
                         <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black font-mono">{formatDate(row.tanggal)}</td>
-                        <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black">{row.waktu}</td>
+                        <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black">{formatTimeShort(row.waktu)}</td>
                         <td className="px-5 py-4 text-sm">
                           <span className={`px-2 py-1 rounded-md text-xs ${
                             row.metode === 'NFC' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
@@ -1034,7 +1034,7 @@ export default function RiwayatGuruPage() {
                     swrData.history.map((row, idx) => (
                       <tr key={idx}>
                         <td className="px-2 py-2 text-xs text-black border border-black">{formatDate(row.tanggal)}</td>
-                        <td className="px-2 py-2 text-xs text-black border border-black">{row.waktu}</td>
+                        <td className="px-2 py-2 text-xs text-black border border-black">{formatTimeShort(row.waktu)}</td>
                         <td className="px-2 py-2 text-xs text-black border border-black">{row.metode || 'GPS'}</td>
                         <td className="px-2 py-2 text-xs text-black border border-black">{row.status}</td>
                         <td className="px-2 py-2 text-xs text-black border border-black">{row.catatan || '-'}</td>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import useSWR from 'swr';
 import { fetchMasterLibur, fetchVerifiedDatesGuru, fetchVerifikasiGuru } from '@/lib/fetchers';
+import { formatTimeShort } from '@/lib/dateUtils';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -63,14 +64,7 @@ export default function VerifikasiPage() {
     return undefined;
   };
 
-  const formatTime = (timeStr) => {
-    if (!timeStr || timeStr === '-') return '-';
-    const match = timeStr.match(/\d{2}[:.]\d{2}[:.]\d{2}/);
-    if (match) return match[0].replace(/\./g, ':');
-    const matchShort = timeStr.match(/\d{2}[:.]\d{2}/);
-    if (matchShort) return matchShort[0].replace(/\./g, ':');
-    return timeStr;
-  };
+  const formatTime = formatTimeShort;
 
   const { data: swrData, isLoading: loading, mutate: reloadData } = useSWR(
     tanggal ? ['verifikasi', tanggal] : null, 
