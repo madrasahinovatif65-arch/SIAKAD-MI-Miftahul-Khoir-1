@@ -105,7 +105,7 @@ export async function POST(request) {
           const gps = gpsMapData[key];
 
           let status = 'Hadir';
-          let catatan = 'Hadir (Verifikasi Rentang)';
+          let catatan = 'Hadir (Verifikasi Admin)';
           let metode = 'Otomatis';
           let waktu = '-';
 
