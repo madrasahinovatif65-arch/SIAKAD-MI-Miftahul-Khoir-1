@@ -155,6 +155,7 @@ export default function RekapPage() {
             <tr style="background-color: #e2e8f0;">
               <th style="width: 5%;">No</th>
               <th style="text-align: left;">Nama Murid</th>
+              <th>NISN</th>
               <th>Hadir</th>
               <th>Sakit</th>
               <th>Izin</th>
@@ -179,6 +180,7 @@ export default function RekapPage() {
           <tr>
             <td>${idx + 1}</td>
             <td style="text-align: left;">${m.nama}</td>
+            <td>${m.nisn || '-'}</td>
             <td>${hadir || '-'}</td>
             <td>${sakit || '-'}</td>
             <td>${izin || '-'}</td>
@@ -348,6 +350,7 @@ export default function RekapPage() {
                 {rombel === 'Semua' && (
                   <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Rombel</th>
                 )}
+                <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 text-center uppercase tracking-wider">NISN</th>
                 <th className="px-5 py-4 text-xs font-bold text-emerald-600 dark:text-emerald-400 text-center uppercase tracking-wider">Hadir</th>
                 <th className="px-5 py-4 text-xs font-bold text-amber-600 dark:text-amber-400 text-center uppercase tracking-wider">Sakit</th>
                 <th className="px-5 py-4 text-xs font-bold text-blue-600 dark:text-blue-400 text-center uppercase tracking-wider">Izin</th>
@@ -385,6 +388,7 @@ export default function RekapPage() {
                             <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-xs font-bold">{m.rombel}</span>
                           </td>
                         )}
+                        <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 font-mono text-center">{m.nisn || '-'}</td>
                         <td className="px-5 py-3 text-sm text-emerald-600 dark:text-emerald-400 text-center font-bold bg-emerald-50/30 dark:bg-emerald-500/5">{hadir || '-'}</td>
                         <td className="px-5 py-3 text-sm text-center font-bold bg-amber-50/30 dark:bg-amber-500/5">
                           {sakit > 0 ? (
@@ -455,6 +459,7 @@ export default function RekapPage() {
                     <tr className="print:bg-gray-200 print:border-black">
                       <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">No</th>
                       <th className="text-xs font-bold print:text-black uppercase tracking-wider col-nama">Nama Murid</th>
+                      <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">NISN</th>
                       <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">Hadir</th>
                       <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">Sakit</th>
                       <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">Izin</th>
@@ -483,6 +488,7 @@ export default function RekapPage() {
                             <tr key={m.id_user} className="print:hover:bg-transparent">
                               <td className="text-sm print:text-black print:px-2 print:py-2 text-center">{idx + 1}</td>
                               <td className="text-sm print:text-black font-semibold print:px-2 print:py-2 col-nama">{m.nama}</td>
+                              <td className="text-sm print:text-black print:px-2 print:py-2 text-center font-mono">{m.nisn || '-'}</td>
                               <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{hadir || '-'}</td>
                               <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{sakit || '-'}</td>
                               <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{izin || '-'}</td>
