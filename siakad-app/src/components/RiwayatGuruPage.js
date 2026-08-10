@@ -912,6 +912,9 @@ export default function RiwayatGuruPage() {
           body, html { background: white !important; background-color: white !important; color: black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .page-break-after { page-break-after: always; }
           
+          /* Force all containers to be visible and not clip during print */
+          * { overflow: visible !important; }
+          
           table { width: 100%; border-collapse: collapse; margin-top: 1rem; page-break-inside: auto; }
           tr { page-break-inside: avoid; page-break-after: auto; }
           thead { display: table-header-group; }
