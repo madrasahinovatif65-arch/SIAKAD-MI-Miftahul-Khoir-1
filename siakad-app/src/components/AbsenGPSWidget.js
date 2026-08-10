@@ -28,13 +28,20 @@ export default function AbsenGPSWidget() {
     const todayDate = new Date();
     if (todayDate.getDay() === 0) return { type: 'error', message: 'Hari Minggu. Absensi ditutup.' };
 
-    const [gpsRes, nfcRes] = await Promise.all([
+    const [gpsRes, nfcRes, verRes] = await Promise.all([
       supabase.from('log_gps_guru').select('*').eq('tanggal', today).eq('id_guru', user.id_user).single(),
-      supabase.from('view_rekap_absensi_nfc').select('*').eq('tanggal', today).eq('id_user', user.id_user).single()
+      supabase.from('view_rekap_absensi_nfc').select('*').eq('tanggal', today).eq('id_user', user.id_user).single(),
+      supabase.from('verifikasi_guru').select('*').eq('tanggal', today).eq('id_guru', user.id_user).single()
     ]);
 
     const gpsData = gpsRes.data;
     const nfcData = nfcRes.data;
+    const verData = verRes.data;
+
+    if (verData) {
+      const isHadir = verData.status === 'Hadir';
+      return { type: isHadir ? 'done' : 'error', message: `📝 Absensi Anda hari ini telah ditetapkan admin dengan status: ${verData.status}.` };
+    }
 
     let hasMasuk = false;
     let hasPulang = false;

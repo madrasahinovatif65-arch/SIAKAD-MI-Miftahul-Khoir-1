@@ -33,6 +33,18 @@ export default function AbsenGPSPage() {
       return { type: 'nfc', data: nfcData, message: `Anda sudah tercatat hadir via NFC hari ini (${nfcData.jam_datang || '-'}). GPS dinonaktifkan.` };
     }
 
+    // Cek Verifikasi Guru
+    const { data: verData } = await supabase
+      .from('verifikasi_guru')
+      .select('*')
+      .eq('tanggal', today)
+      .eq('id_guru', user.id_user)
+      .single();
+
+    if (verData) {
+      return { type: 'already', data: verData, message: `Absensi Anda hari ini telah ditetapkan admin: ${verData.status}. GPS dinonaktifkan.` };
+    }
+
     // Cek GPS
     const { data: gpsData } = await supabase
       .from('log_gps_guru')
