@@ -308,6 +308,8 @@ export default function RiwayatGuruPage() {
   };
 
   const handleExportWordJurnal = () => {
+    const titleText = jurnalRombel !== 'Semua' && jurnalMapel !== 'Semua' ? `${jurnalRombel} - ${jurnalMapel}` : (jurnalRombel !== 'Semua' ? jurnalRombel : (jurnalMapel !== 'Semua' ? jurnalMapel : 'Semua Mapel'));
+    
     let html = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
@@ -334,7 +336,7 @@ export default function RiwayatGuruPage() {
         </div>
         
         <div class="title-doc">
-          <h3>Riwayat Jurnal Guru</h3>
+          <h3>Rekapitulasi Jurnal Pembelajaran Guru - ${titleText}</h3>
           <p>Periode: ${formatDateString(jurnalTglMulai)} s.d. ${formatDateString(jurnalTglAkhir)}</p>
         </div>
         
@@ -767,7 +769,7 @@ export default function RiwayatGuruPage() {
             </div>
             
             <div className="text-center mt-3 mb-3">
-              <h3 className="text-base font-bold text-slate-800">Riwayat Jurnal Guru</h3>
+              <h3 className="text-base font-bold text-slate-800">Rekapitulasi Jurnal Pembelajaran Guru - {jurnalRombel !== 'Semua' && jurnalMapel !== 'Semua' ? `${jurnalRombel} - ${jurnalMapel}` : (jurnalRombel !== 'Semua' ? jurnalRombel : (jurnalMapel !== 'Semua' ? jurnalMapel : 'Semua Mapel'))}</h3>
               <p className="text-xs text-slate-600 mt-0.5">Periode: {formatDateString(jurnalTglMulai)} s.d. {formatDateString(jurnalTglAkhir)}</p>
             </div>
           </div>
