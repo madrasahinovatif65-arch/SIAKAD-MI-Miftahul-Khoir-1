@@ -31,8 +31,6 @@ export default function JurnalPage() {
   const isMobile = useIsMobile();
   const { user } = useAuth();
 
-  if (!user) return null;
-
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().split('T')[0]);
   const [jamMulai, setJamMulai] = useState('');
   const [jamSelesai, setJamSelesai] = useState('');
