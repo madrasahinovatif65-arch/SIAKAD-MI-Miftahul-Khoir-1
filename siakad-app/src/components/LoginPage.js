@@ -40,12 +40,20 @@ export default function LoginPage({ onLoginSuccess }) {
       if (devices && devices.length) {
         setCameras(devices);
         
-        // Cari kamera belakang sebagai prioritas
-        const backCamera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('belakang'));
-        const defaultCameraId = backCamera ? backCamera.id : devices[0].id;
-        setSelectedCameraId(defaultCameraId);
+        // Cari preferensi kamera sebelumnya
+        const savedCameraId = localStorage.getItem('preferredCameraId');
+        let targetCameraId = null;
+
+        if (savedCameraId && devices.find(d => d.id === savedCameraId)) {
+          targetCameraId = savedCameraId;
+        } else {
+          // Cari kamera belakang sebagai prioritas jika belum ada preferensi
+          const backCamera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('belakang'));
+          targetCameraId = backCamera ? backCamera.id : devices[0].id;
+        }
         
-        startScannerWithCamera(defaultCameraId);
+        setSelectedCameraId(targetCameraId);
+        startScannerWithCamera(targetCameraId);
       } else {
         setError("Tidak ada kamera yang ditemukan di perangkat ini.");
         setShowScanner(false);
@@ -91,6 +99,21 @@ export default function LoginPage({ onLoginSuccess }) {
         setIsLoading(false);
 
         if (result.success) {
+          // Tanyakan apakah ingin menyimpan sesi login
+          const saveLogin = window.confirm("Berhasil Scan!\n\nApakah Anda ingin menyimpan info login Anda di perangkat ini agar tidak perlu scan/login lagi di kemudian hari?\n\n- Pilih 'OK' untuk perangkat Pribadi.\n- Pilih 'Batal' untuk perangkat Umum.");
+          
+          if (!saveLogin) {
+            // Jika tidak ingin disimpan, hapus token auth dari localStorage agar sesi ini menjadi sementara
+            setTimeout(() => {
+              Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+                  localStorage.removeItem(key);
+                }
+              });
+              localStorage.removeItem('siakad_user');
+            }, 1000);
+          }
+          
           onLoginSuccess?.(result.data);
         } else {
           setError(result.message);
@@ -174,8 +197,10 @@ export default function LoginPage({ onLoginSuccess }) {
                   className="w-full px-4 py-2.5 bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 transition-all"
                   value={selectedCameraId}
                   onChange={(e) => {
-                    setSelectedCameraId(e.target.value);
-                    startScannerWithCamera(e.target.value);
+                    const newCamId = e.target.value;
+                    setSelectedCameraId(newCamId);
+                    localStorage.setItem('preferredCameraId', newCamId);
+                    startScannerWithCamera(newCamId);
                   }}
                 >
                   {cameras.map((cam, idx) => (
