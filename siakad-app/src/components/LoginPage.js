@@ -11,6 +11,8 @@ export default function LoginPage({ onLoginSuccess }) {
   const [isLoading, setIsLoading] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showPin, setShowPin] = useState(false);
+  const [cameras, setCameras] = useState([]);
+  const [selectedCameraId, setSelectedCameraId] = useState('');
 
   useEffect(() => {
     // Inject HTML5 QR Code script if not present
@@ -31,13 +33,47 @@ export default function LoginPage({ onLoginSuccess }) {
       return;
     }
     setShowScanner(true);
-    
-    // Inisialisasi secara sinkron dengan klik untuk memastikan izin kamera diminta
+    setError('');
+
+    // Meminta izin dan mendapatkan daftar kamera terlebih dahulu
+    window.Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length) {
+        setCameras(devices);
+        
+        // Cari kamera belakang sebagai prioritas
+        const backCamera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('belakang'));
+        const defaultCameraId = backCamera ? backCamera.id : devices[0].id;
+        setSelectedCameraId(defaultCameraId);
+        
+        startScannerWithCamera(defaultCameraId);
+      } else {
+        setError("Tidak ada kamera yang ditemukan di perangkat ini.");
+        setShowScanner(false);
+      }
+    }).catch(err => {
+      setError("Kamera gagal diakses. Pastikan izin kamera diberikan.");
+      setShowScanner(false);
+    });
+  };
+
+  const startScannerWithCamera = (cameraId) => {
+    if (scannerRef.current) {
+      scannerRef.current.stop().catch(e => console.error(e)).finally(() => {
+        scannerRef.current.clear();
+        scannerRef.current = null;
+        startNewScanner(cameraId);
+      });
+    } else {
+      startNewScanner(cameraId);
+    }
+  };
+
+  const startNewScanner = (cameraId) => {
     const html5QrCode = new window.Html5Qrcode("qr-reader");
     scannerRef.current = html5QrCode;
 
     html5QrCode.start(
-      { facingMode: "environment" },
+      cameraId,
       { fps: 10, qrbox: { width: 250, height: 250 } },
       async (decodedText) => {
         if (scannerRef.current) {
@@ -129,6 +165,27 @@ export default function LoginPage({ onLoginSuccess }) {
 
           {/* Scanner UI */}
           <div className={`space-y-4 ${showScanner ? 'block' : 'hidden'}`}>
+            {cameras.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-medium text-emerald-700 dark:text-teal-200/70 uppercase tracking-wider">
+                  Pilih Kamera
+                </label>
+                <select 
+                  className="w-full px-4 py-2.5 bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 transition-all"
+                  value={selectedCameraId}
+                  onChange={(e) => {
+                    setSelectedCameraId(e.target.value);
+                    startScannerWithCamera(e.target.value);
+                  }}
+                >
+                  {cameras.map((cam, idx) => (
+                    <option key={cam.id} value={cam.id} className="text-slate-900">
+                      {cam.label || `Kamera ${idx + 1}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div id="qr-reader" className="w-full overflow-hidden rounded-xl border-2 border-slate-300 dark:border-white/20 bg-black/50"></div>
             <button 
               onClick={handleCancelScan}
