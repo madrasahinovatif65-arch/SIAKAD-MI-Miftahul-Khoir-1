@@ -557,7 +557,7 @@ export default function RiwayatGuruPage() {
         </div>
 
       {/* Filter Tanggal */}
-      <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-4 sm:p-6 shadow-sm mb-6 print:hidden">
+      <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-4 sm:p-6 shadow-sm mb-8 print:hidden">
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-4 w-full">
           <div className="flex items-center gap-2 flex-1 sm:flex-none">
             <div className="relative w-full sm:w-auto">
@@ -612,7 +612,7 @@ export default function RiwayatGuruPage() {
       </div>
 
       {!isAdmin && swrData?.type === 'history' && (
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6 print:hidden">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8 print:hidden">
           {Object.entries(guruSummary).map(([s, count]) => (
             <span key={s} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${statusColors[s]}`}>
               {s}: {count}
@@ -630,7 +630,7 @@ export default function RiwayatGuruPage() {
           <div className="w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
         </div>
       ) : (
-        <div className={`bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm print:border-none print:shadow-none print:rounded-none print:bg-transparent print:overflow-visible ${printTarget === 'jurnal' ? 'print:hidden' : ''}`}>
+        <div className={`mt-6 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm print:mt-0 print:border-none print:shadow-none print:rounded-none print:bg-transparent print:overflow-visible ${printTarget === 'jurnal' ? 'print:hidden' : ''}`}>
           <div className="overflow-x-auto print:overflow-visible">
             <table className="w-full text-left border-collapse print:text-black print:bg-white print:table-auto">
               <thead>
@@ -754,7 +754,7 @@ export default function RiwayatGuruPage() {
             </div>
           </div>
 
-          <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-4 sm:p-6 shadow-sm mb-6 print:hidden">
+          <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-4 sm:p-6 shadow-sm mb-8 print:hidden">
             <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-4 w-full">
               <div className="flex items-center gap-2 flex-1 sm:flex-none">
                 <div className="relative w-full sm:w-auto">
@@ -842,7 +842,7 @@ export default function RiwayatGuruPage() {
             </div>
           </div>
 
-          <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm print:border-none print:shadow-none print:rounded-none print:bg-transparent print:overflow-visible">
+          <div className="mt-6 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm print:mt-0 print:border-none print:shadow-none print:rounded-none print:bg-transparent print:overflow-visible">
             <div className="overflow-x-auto print:overflow-visible">
               <table className="w-full text-left border-collapse print:text-black print:bg-white print:table-auto">
                 <thead>
