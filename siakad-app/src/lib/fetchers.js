@@ -212,8 +212,8 @@ export const fetchVerifikasiGuru = async ([_key, tanggal]) => {
       waktu = waktu_datang || waktu_pulang || '-';
     } else {
       currentStatus = 'Hadir';
-      catatan = '';
-      metode = '-';
+      catatan = 'Hadir (Verifikasi Admin)';
+      metode = 'Otomatis';
     }
 
     mergedAbsensi[guru.id_user] = {

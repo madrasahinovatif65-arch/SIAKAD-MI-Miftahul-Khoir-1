@@ -612,7 +612,7 @@ export default function RiwayatGuruPage() {
       </div>
 
       {!isAdmin && swrData?.type === 'history' && (
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 print:hidden">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6 print:hidden">
           {Object.entries(guruSummary).map(([s, count]) => (
             <span key={s} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${statusColors[s]}`}>
               {s}: {count}
