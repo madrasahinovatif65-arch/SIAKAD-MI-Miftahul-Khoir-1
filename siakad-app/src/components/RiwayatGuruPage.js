@@ -454,7 +454,7 @@ export default function RiwayatGuruPage() {
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 print-container">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">
@@ -485,7 +485,7 @@ export default function RiwayatGuruPage() {
         </div>
       </div>
 
-      <div className={`print-container ${printTarget === 'jurnal' ? 'print:hidden' : ''}`}>
+      <div className={`${printTarget === 'jurnal' ? 'print:hidden' : ''}`}>
         {/* Header Print */}
         <div className="hidden print:block mb-4">
           <div className="flex items-center gap-4 mb-2 border-b-[3px] border-black pb-2 relative">
