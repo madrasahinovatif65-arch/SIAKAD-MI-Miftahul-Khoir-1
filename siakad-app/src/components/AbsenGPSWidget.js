@@ -69,7 +69,9 @@ export default function AbsenGPSWidget() {
           msg = `Anda sudah absen datang menggunakan ${checkinMethod} dan pulang menggunakan ${checkoutMethod} hari ini.`;
         }
       } else if (checkinMethod) {
-        msg = `Anda sudah absen datang menggunakan ${checkinMethod} hari ini. Harap gunakan kartu untuk absen kepulangan.`;
+        const isFriday = todayDate.getDay() === 5;
+        let jamBuka = isFriday ? '10:30' : '12:00';
+        msg = `Anda sudah absen datang menggunakan ${checkinMethod} hari ini. Absen pulang dibuka jam ${jamBuka}.`;
       } else if (checkoutMethod) {
         msg = `Anda sudah absen pulang menggunakan ${checkoutMethod} hari ini.`;
       }
@@ -135,13 +137,22 @@ export default function AbsenGPSWidget() {
 
   const handleRefreshGPS = () => {
     if (status === 'done' || status === 'sending') return;
-    setStatus('locating');
-    setMessage('Mencari sinyal GPS...');
+    
+    reloadStatus();
+
+    const isServerError = todayStatus?.type === 'error';
     
     if (!navigator.geolocation) {
-      setStatus('error');
-      setMessage('GPS tidak didukung oleh perangkat ini.');
+      if (!isServerError) {
+        setStatus('error');
+        setMessage('GPS tidak didukung oleh perangkat ini.');
+      }
       return;
+    }
+
+    if (!isServerError) {
+      setStatus('locating');
+      setMessage('Mencari sinyal GPS...');
     }
 
     navigator.geolocation.getCurrentPosition(
@@ -149,6 +160,8 @@ export default function AbsenGPSWidget() {
         const { latitude, longitude } = pos.coords;
         const distance = calculateDistance(latitude, longitude, SCHOOL_LAT, SCHOOL_LNG);
         setLocation({ latitude, longitude, distance });
+
+        if (isServerError) return;
 
         if (distance > RADIUS) {
           setStatus('error');
@@ -160,6 +173,7 @@ export default function AbsenGPSWidget() {
         setMessage(`📍 Anda berada di dalam radius sekolah (${Math.round(distance)}m).`);
       },
       (err) => {
+        if (isServerError) return;
         setStatus('error');
         setMessage('Gagal mendapatkan lokasi GPS: ' + err.message);
       },
