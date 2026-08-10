@@ -454,6 +454,7 @@ export default function RiwayatGuruPage() {
   }
 
   return (
+    <>
     <div className="print:hidden space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
         <div>
@@ -905,6 +906,8 @@ export default function RiwayatGuruPage() {
         </div>
       )}
 
+    </div>
+
       {/* ----------------- PRINT ONLY BLOCKS ----------------- */}
       <div className="hidden print:block w-full bg-white text-black font-sans page-break-inside-auto">
         
@@ -1119,6 +1122,6 @@ export default function RiwayatGuruPage() {
           tr.print-no-border > td { border: none !important; }
         }
       `}} />
-    </div>
+    </>
   );
 }
