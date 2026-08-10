@@ -47,6 +47,10 @@ export default function AbsenGPSWidget() {
       if (gpsData.waktu_pulang) hasPulang = true;
     }
 
+    if (nfcData && (nfcData.jam_datang || nfcData.jam_pulang)) {
+      return { type: 'error', message: 'Anda sudah absen menggunakan kartu (NFC) hari ini. Harap gunakan kartu untuk absen kepulangan.' };
+    }
+
     if (hasPulang) {
       return { type: 'done', message: '✅ Anda sudah melakukan absensi masuk dan pulang hari ini.' };
     }
