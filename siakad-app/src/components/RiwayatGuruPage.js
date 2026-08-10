@@ -25,6 +25,19 @@ export default function RiwayatGuruPage() {
     return new Date().toISOString().split('T')[0];
   });
 
+  const [jurnalTglMulai, setJurnalTglMulai] = useState(() => {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    return new Date(firstDay.getTime() - (firstDay.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+  });
+  const [jurnalTglAkhir, setJurnalTglAkhir] = useState(() => {
+    const today = new Date();
+    return new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+  });
+  const [jurnalRombel, setJurnalRombel] = useState('Semua');
+  const [jurnalMapel, setJurnalMapel] = useState('Semua');
+  const [printTarget, setPrintTarget] = useState('all');
+
   const { data: swrData, isLoading: loading } = useSWR(user && tglMulai && tglAkhir ? `riwayat_guru_${user.id_user}_${tglMulai}_${tglAkhir}` : null, async () => {
     if (isAdmin) {
       // 1. Ambil data guru
@@ -58,15 +71,7 @@ export default function RiwayatGuruPage() {
         }
       });
 
-      // 4. Ambil jurnal guru
-      const { data: jurnalData } = await supabase
-        .from('jurnal_guru')
-        .select('*, master_user(nama)')
-        .gte('tanggal', tglMulai)
-        .lte('tanggal', tglAkhir)
-        .order('tanggal', { ascending: false });
-
-      return { guruList: guruData || [], rekapData: rekap, jurnalData: jurnalData || [], type: 'rekap' };
+      return { guruList: guruData || [], rekapData: rekap, type: 'rekap' };
     } else {
       // Guru: riwayat harian
       const { data: verData } = await supabase
@@ -106,6 +111,37 @@ export default function RiwayatGuruPage() {
       return { history: combined, type: 'history' };
     }
   });
+
+  const { data: masterData } = useSWR(isAdmin ? 'master_rombel_mapel' : null, async () => {
+    const [rombelRes, mapelRes] = await Promise.all([
+      supabase.from('master_user').select('rombel').eq('role', 'Murid'),
+      supabase.from('master_mapel').select('*').order('nama_mapel')
+    ]);
+    const rombel = [...new Set((rombelRes.data || []).map(d => d.rombel).filter(Boolean))].sort();
+    return { rombel, mapel: mapelRes.data || [] };
+  });
+
+  const { data: jurnalData, isLoading: loadingJurnal } = useSWR(
+    isAdmin && jurnalTglMulai && jurnalTglAkhir ? `jurnal_admin_${jurnalTglMulai}_${jurnalTglAkhir}_${jurnalRombel}_${jurnalMapel}` : null,
+    async () => {
+      let query = supabase
+        .from('jurnal_guru')
+        .select('*, master_user(nama)')
+        .gte('tanggal', jurnalTglMulai)
+        .lte('tanggal', jurnalTglAkhir)
+        .order('tanggal', { ascending: false });
+        
+      if (jurnalRombel !== 'Semua') {
+         query = query.eq('rombel', jurnalRombel);
+      }
+      if (jurnalMapel !== 'Semua') {
+         query = query.eq('mata_pelajaran', jurnalMapel);
+      }
+      
+      const { data } = await query;
+      return data || [];
+    }
+  );
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -235,14 +271,73 @@ export default function RiwayatGuruPage() {
     html += `
           </tbody>
         </table>
+        <br><br><br>
+        <table style="width: 100%; text-align: center; border: none; font-size: 11pt;">
+          <tr>
+            <td style="width: 50%; border: none;">
+              <p style="color: transparent;">.</p>
+              <p>Disiapkan Oleh,</p>
+              <p><b>STAF TATA USAHA</b></p>
+              <br><br><br><br>
+              <p><b><u>.......................................</u></b></p>
+              <p style="margin-top: 0;">-</p>
+            </td>
+            <td style="width: 50%; border: none;">
+              <p>Karangrejo, ${formatDateString(new Date().toISOString())}</p>
+              <p>Mengetahui Kepala Madrasah,</p>
+              <p><b>MI Miftahul Khoir 1 Karangrejo</b></p>
+              <br><br><br><br>
+              <p><b><u>Nur Su'ud, S.Pd.I.</u></b></p>
+              <p style="margin-top: 0;">-</p>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
     `;
 
-    if (isAdmin && swrData?.jurnalData?.length > 0) {
-      html += `
-        <br><br>
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Laporan_Guru_${isAdmin ? 'Rekap' : 'Riwayat'}_${tglMulai}.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportWordJurnal = () => {
+    let html = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8">
+        <title>Export Word Jurnal</title>
+        <style>
+          @page { margin: 1.0cm 1.0cm 1.0cm 1.5cm; }
+          body { font-family: 'Times New Roman', serif; font-size: 11pt; }
+          .header { text-align: center; margin-bottom: 20px; border-bottom: 3px solid black; padding-bottom: 10px; }
+          .header h3 { margin: 0; font-size: 14pt; }
+          .header h2 { margin: 0; font-size: 18pt; color: #15803d; }
+          .header p { margin: 5px 0 0 0; font-size: 9pt; }
+          .title-doc { text-align: center; margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th, td { border: 1px solid black; padding: 5px; text-align: center; }
+          .text-left { text-align: left; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h3>Yayasan NU Miftakhul Khoir Damarjati</h3>
+          <h2>MI Miftahul Khoir 1 Karangrejo</h2>
+          <p>NPSN: 60716857 | Jl. Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo, Kec. Purwosari, Kab. Pasuruan</p>
+        </div>
+        
         <div class="title-doc">
           <h3>Riwayat Jurnal Guru</h3>
+          <p>Periode: ${formatDateString(jurnalTglMulai)} s.d. ${formatDateString(jurnalTglAkhir)}</p>
         </div>
+        
         <table>
           <thead>
             <tr>
@@ -255,8 +350,10 @@ export default function RiwayatGuruPage() {
             </tr>
           </thead>
           <tbody>
-      `;
-      swrData.jurnalData.forEach((j, idx) => {
+    `;
+    
+    if (jurnalData && jurnalData.length > 0) {
+      jurnalData.forEach((j, idx) => {
         html += `
             <tr>
               <td style="width: 5%;">${idx + 1}</td>
@@ -268,11 +365,12 @@ export default function RiwayatGuruPage() {
             </tr>
         `;
       });
-      html += `
+    }
+
+    html += `
           </tbody>
         </table>
-      `;
-    }
+    `;
 
     html += `
         <br><br><br>
@@ -311,8 +409,12 @@ export default function RiwayatGuruPage() {
     URL.revokeObjectURL(url);
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = (target = 'all') => {
+    setPrintTarget(target);
+    setTimeout(() => {
+      window.print();
+      setPrintTarget('all');
+    }, 100);
   };
 
   const statusColors = {
@@ -350,7 +452,7 @@ export default function RiwayatGuruPage() {
               Export Word
             </button>
           )}
-          <button onClick={handlePrint}
+          <button onClick={() => handlePrint('rekap')}
             className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 rounded-xl text-sm font-semibold transition-all shadow-sm">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0v3.396c0 .63.508 1.141 1.141 1.141h8.218c.633 0 1.141-.51 1.141-1.141V8.25Z" />
@@ -360,7 +462,7 @@ export default function RiwayatGuruPage() {
         </div>
       </div>
 
-      <div className="print-container">
+      <div className={`print-container ${printTarget === 'jurnal' ? 'print:hidden' : ''}`}>
         {/* Header Print */}
         <div className="hidden print:block mb-4">
           <div className="flex items-center gap-4 mb-2 border-b-[3px] border-black pb-2 relative">
@@ -555,27 +657,140 @@ export default function RiwayatGuruPage() {
         </div>
       )}
 
-      {/* Jurnal Table for Admin */}
-      {!loading && isAdmin && swrData?.jurnalData && swrData.jurnalData.length > 0 && (
-        <div className="mt-8 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm print:border-none print:shadow-none print:rounded-none print:bg-transparent print:overflow-visible print:mt-12">
-          <div className="p-5 border-b border-slate-200 dark:border-white/10 print:border-black/50">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white print:text-black">Riwayat Jurnal Guru</h3>
+      {/* Jurnal Section for Admin */}
+      {isAdmin && (
+        <div className={`mt-16 print:mt-0 ${printTarget === 'rekap' ? 'print:hidden' : ''}`}>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 print:hidden">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white tracking-tight">
+                Riwayat Jurnal Guru
+              </h2>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+                Laporan riwayat jurnal mengajar seluruh guru
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={handleExportWordJurnal}
+                className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 rounded-xl text-sm font-semibold transition-all shadow-sm">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                </svg>
+                Export Word
+              </button>
+              <button onClick={() => handlePrint('jurnal')}
+                className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 rounded-xl text-sm font-semibold transition-all shadow-sm">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0v3.396c0 .63.508 1.141 1.141 1.141h8.218c.633 0 1.141-.51 1.141-1.141V8.25Z" />
+                </svg>
+                Print
+              </button>
+            </div>
           </div>
-          <div className="overflow-x-auto print:overflow-visible">
-            <table className="w-full text-left border-collapse print:text-black print:bg-white print:table-auto">
-              <thead>
-                <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 print:bg-gray-200 print:border-black/50">
-                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider text-center w-[5%]">No</th>
-                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[15%]">Waktu</th>
-                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[20%]">Guru</th>
-                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[10%]">Rombel</th>
-                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[20%]">Mata Pelajaran</th>
-                  <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[30%]">Materi & Catatan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-white/5 print:divide-black/20">
-                {swrData.jurnalData.map((j, idx) => (
-                  <tr key={j.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+
+          <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-4 sm:p-6 shadow-sm mb-6 print:hidden">
+            <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-4 w-full">
+              <div className="flex items-center gap-2 flex-1 sm:flex-none">
+                <div className="relative w-full sm:w-auto">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 z-50 pointer-events-none">DARI:</span>
+                  <DatePicker withPortal={isMobile} onFocus={(e) => { if (isMobile) e.target.readOnly = true; }}
+                    selected={new Date(jurnalTglMulai)}
+                    onChange={(date) => {
+                      if (date) {
+                        const y = date.getFullYear();
+                        const m = String(date.getMonth() + 1).padStart(2, '0');
+                        const d = String(date.getDate()).padStart(2, '0');
+                        setJurnalTglMulai(`${y}-${m}-${d}`);
+                      }
+                    }}
+                    dateFormat="dd/MM/yyyy" locale="id" todayButton="Hari Ini" wrapperClassName="w-full"
+                    className="w-full sm:w-40 pl-11 pr-8 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm relative z-40"
+                  />
+                  <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-40" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
+                  </svg>
+                </div>
+                <span className="text-slate-300 dark:text-slate-600 font-medium text-sm">-</span>
+                <div className="relative w-full sm:w-auto">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 z-50 pointer-events-none">HINGGA:</span>
+                  <DatePicker withPortal={isMobile} onFocus={(e) => { if (isMobile) e.target.readOnly = true; }}
+                    selected={new Date(jurnalTglAkhir)}
+                    onChange={(date) => {
+                      if (date) {
+                        const y = date.getFullYear();
+                        const m = String(date.getMonth() + 1).padStart(2, '0');
+                        const d = String(date.getDate()).padStart(2, '0');
+                        setJurnalTglAkhir(`${y}-${m}-${d}`);
+                      }
+                    }}
+                    dateFormat="dd/MM/yyyy" locale="id" todayButton="Hari Ini" wrapperClassName="w-full"
+                    className="w-full sm:w-40 pl-16 pr-8 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm relative z-40"
+                  />
+                  <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-40" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="relative w-full sm:w-auto">
+                <select value={jurnalRombel} onChange={e => setJurnalRombel(e.target.value)}
+                  style={{ backgroundImage: 'none' }}
+                  className="appearance-none w-full sm:w-40 pl-4 pr-8 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm relative z-40">
+                  <option value="Semua">Semua Rombel</option>
+                  {(masterData?.rombel || []).map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+                <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-40" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
+                </svg>
+              </div>
+              <div className="relative w-full sm:w-auto">
+                <select value={jurnalMapel} onChange={e => setJurnalMapel(e.target.value)}
+                  style={{ backgroundImage: 'none' }}
+                  className="appearance-none w-full sm:w-40 pl-4 pr-8 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm relative z-40">
+                  <option value="Semua">Semua Mapel</option>
+                  {(masterData?.mapel || []).map(m => <option key={m.id_mapel} value={m.nama_mapel}>{m.nama_mapel}</option>)}
+                </select>
+                <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-40" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="hidden print:block mb-4">
+            <div className="flex items-center gap-4 mb-2 border-b-[3px] border-black pb-2 relative">
+              <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain" />
+              <div className="flex-1 text-center">
+                <h3 className="text-lg font-bold text-slate-800 tracking-tight">Yayasan NU Miftakhul Khoir Damarjati</h3>
+                <h2 className="text-2xl font-bold text-green-700 tracking-tight mt-0.5">MI Miftahul Khoir 1 Karangrejo</h2>
+                <p className="text-[10px] text-slate-600 mt-1 tracking-wide font-medium">NPSN: 60716857 | Jl. Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo, Kec. Purwosari, Kabupaten Pasuruan</p>
+              </div>
+              <div className="absolute bottom-0 left-0 w-full border-b border-black mt-0.5"></div>
+            </div>
+            
+            <div className="text-center mt-3 mb-3">
+              <h3 className="text-base font-bold text-slate-800">Riwayat Jurnal Guru</h3>
+              <p className="text-xs text-slate-600 mt-0.5">Periode: {formatDateString(jurnalTglMulai)} s.d. {formatDateString(jurnalTglAkhir)}</p>
+            </div>
+          </div>
+
+          <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm print:border-none print:shadow-none print:rounded-none print:bg-transparent print:overflow-visible">
+            <div className="overflow-x-auto print:overflow-visible">
+              <table className="w-full text-left border-collapse print:text-black print:bg-white print:table-auto">
+                <thead>
+                  <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 print:bg-gray-200 print:border-black/50">
+                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider text-center w-[5%]">No</th>
+                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[15%]">Waktu</th>
+                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[20%]">Guru</th>
+                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[10%]">Rombel</th>
+                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[20%]">Mata Pelajaran</th>
+                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[30%]">Materi & Catatan</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-white/5 print:divide-black/20">
+                  {loadingJurnal ? (
+                    <tr><td colSpan="6" className="text-center py-12"><div className="w-8 h-8 mx-auto border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" /></td></tr>
+                  ) : jurnalData && jurnalData.length > 0 ? (
+                    jurnalData.map((j, idx) => (
+                      <tr key={j.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
                     <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black text-center">{idx + 1}</td>
                     <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black font-mono">
                       <div className="font-bold">{formatDate(j.tanggal)}</div>
@@ -591,10 +806,14 @@ export default function RiwayatGuruPage() {
                       )}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                    ))
+                  ) : (
+                    <tr><td colSpan="6" className="text-center py-12 text-slate-500 dark:text-slate-400">Tidak ada riwayat jurnal</td></tr>
+                  )}
+                </tbody>
+              </table>
           </div>
+        </div>
         </div>
       )}
 
