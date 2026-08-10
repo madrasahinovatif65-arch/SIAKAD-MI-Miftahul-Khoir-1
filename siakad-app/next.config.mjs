@@ -1,6 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  experimental: {
+    cpus: 1,
+    workerThreads: false,
+    memoryBasedWorkersCount: true
+  }
 };
 
 export default nextConfig;
