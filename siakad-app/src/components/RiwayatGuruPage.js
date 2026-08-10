@@ -454,7 +454,7 @@ export default function RiwayatGuruPage() {
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 print-container">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">
@@ -907,18 +907,18 @@ export default function RiwayatGuruPage() {
 
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
-          body { background: white; }
-          @page { size: 215.9mm 330.2mm; margin: 10mm 10mm 10mm 15mm; }
-          body * { visibility: hidden; }
-          .print\\:hidden { display: none !important; }
-          .print-container, .print-container * { visibility: visible; }
-          .print-container { position: absolute; left: 0; top: 0; width: 100%; }
+          :root { color-scheme: light !important; }
+          @page { size: 215mm 330mm portrait; margin: 10mm 10mm 10mm 15mm; background: white !important; }
+          body, html { background: white !important; background-color: white !important; color: black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .page-break-after { page-break-after: always; }
           
-          table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+          table { width: 100%; border-collapse: collapse; margin-top: 1rem; page-break-inside: auto; }
+          tr { page-break-inside: avoid; page-break-after: auto; }
           thead { display: table-header-group; }
           
           /* Kolom mengecil sesuai isi teks agar menghemat tempat, kecuali kolom nama */
           th, td { border: 1px solid #000; padding: ${getDynamicPadding()}; color: #000 !important; font-size: 10px; white-space: nowrap; }
+          th { background: #e2e8f0 !important; -webkit-print-color-adjust: exact; }
           
           /* Kolom Nama Guru akan melar dan wrap text */
           .col-nama { white-space: normal !important; width: auto !important; word-wrap: break-word; }
