@@ -193,10 +193,14 @@ export default function AbsenGPSWidget() {
         
         {/* Kiri: Info & Status */}
         <div className="flex items-start gap-4">
-          <div className={`w-16 h-16 shrink-0 rounded-2xl flex items-center justify-center shadow-inner ${isDone ? 'bg-gradient-to-br from-emerald-100 to-teal-50 dark:from-emerald-900/40 dark:to-teal-900/20 border border-emerald-200/50 dark:border-emerald-500/20' : 'bg-gradient-to-br from-rose-100 to-red-50 dark:from-rose-900/40 dark:to-red-900/20 border border-rose-200/50 dark:border-rose-500/20'}`}>
-            {isDone ? (
+          <div className={`w-16 h-16 shrink-0 rounded-2xl flex items-center justify-center shadow-inner ${status === 'done' ? 'bg-gradient-to-br from-emerald-100 to-teal-50 dark:from-emerald-900/40 dark:to-teal-900/20 border border-emerald-200/50 dark:border-emerald-500/20' : 'bg-gradient-to-br from-rose-100 to-red-50 dark:from-rose-900/40 dark:to-red-900/20 border border-rose-200/50 dark:border-rose-500/20'}`}>
+            {status === 'done' ? (
               <svg className="w-8 h-8 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            ) : status === 'error' ? (
+              <svg className="w-8 h-8 text-rose-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             ) : (
               <svg className="w-8 h-8 text-rose-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -222,7 +226,7 @@ export default function AbsenGPSWidget() {
         </div>
 
         {/* Kanan: Tombol-tombol */}
-        {!isDone && (
+        {status !== 'done' && (
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto shrink-0">
             <button 
               onClick={handleRefreshGPS}
@@ -237,9 +241,9 @@ export default function AbsenGPSWidget() {
 
             <button 
               onClick={handleAbsen}
-              disabled={status === 'locating' || status === 'sending' || !location || location.distance > RADIUS}
+              disabled={status === 'locating' || status === 'sending' || status === 'error' || !location || location.distance > RADIUS}
               className={`flex justify-center items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-white shadow-md transition-all ${
-                (!location || location.distance > RADIUS) 
+                (status === 'error' || !location || location.distance > RADIUS) 
                   ? 'bg-slate-300 dark:bg-slate-700 shadow-none cursor-not-allowed opacity-50' 
                   : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 shadow-emerald-500/25 active:scale-95'
               }`}
