@@ -12,6 +12,7 @@ export default function AbsenGPSWidget() {
   const [location, setLocation] = useState(null);
   const [mode, setMode] = useState('masuk'); // masuk | pulang
   const [existingGpsData, setExistingGpsData] = useState(null);
+  const [times, setTimes] = useState(null);
 
   const SCHOOL_LAT = parseFloat(process.env.NEXT_PUBLIC_SCHOOL_LAT || '-7.123456');
   const SCHOOL_LNG = parseFloat(process.env.NEXT_PUBLIC_SCHOOL_LNG || '112.123456');
@@ -37,30 +38,34 @@ export default function AbsenGPSWidget() {
 
     let hasMasuk = false;
     let hasPulang = false;
+    let timeMasuk = null;
+    let timePulang = null;
 
-    if (nfcData) {
-      if (nfcData.jam_datang) hasMasuk = true;
-      if (nfcData.jam_pulang) hasPulang = true;
-    }
     if (gpsData) {
-      if (gpsData.waktu) hasMasuk = true;
-      if (gpsData.waktu_pulang) hasPulang = true;
+      if (gpsData.waktu) { hasMasuk = true; timeMasuk = gpsData.waktu; }
+      if (gpsData.waktu_pulang) { hasPulang = true; timePulang = gpsData.waktu_pulang; }
     }
+    if (nfcData) {
+      if (nfcData.jam_datang) { hasMasuk = true; timeMasuk = nfcData.jam_datang; }
+      if (nfcData.jam_pulang) { hasPulang = true; timePulang = nfcData.jam_pulang; }
+    }
+    
+    const times = { masuk: timeMasuk, pulang: timePulang };
 
     if (nfcData && (nfcData.jam_datang || nfcData.jam_pulang)) {
-      return { type: 'error', message: 'Anda sudah absen menggunakan kartu (NFC) hari ini. Harap gunakan kartu untuk absen kepulangan.' };
+      return { type: 'error', message: 'Anda sudah absen menggunakan kartu (NFC) hari ini. Harap gunakan kartu untuk absen kepulangan.', times };
     }
 
     if (hasPulang) {
-      return { type: 'done', message: '✅ Anda sudah melakukan absensi masuk dan pulang hari ini.' };
+      return { type: 'done', message: '✅ Anda sudah melakukan absensi masuk dan pulang hari ini.', times };
     }
 
     if (!hasMasuk) {
       // Cek apakah sudah jam 06:00
       if (todayDate.getHours() < 6) {
-         return { type: 'error', message: 'Absen masuk pagi baru dibuka pukul 06:00.' };
+         return { type: 'error', message: 'Absen masuk pagi baru dibuka pukul 06:00.', times };
       }
-      return { type: 'idle', mode: 'masuk', gpsData, message: 'Silakan lakukan absen kehadiran (masuk).' };
+      return { type: 'idle', mode: 'masuk', gpsData, message: 'Silakan lakukan absen kehadiran (masuk).', times };
     } else {
       // Sudah masuk, mode pulang
       const isFriday = todayDate.getDay() === 5;
@@ -78,9 +83,9 @@ export default function AbsenGPSWidget() {
       }
 
       if (!canPulang) {
-         return { type: 'error', message: msg };
+         return { type: 'error', message: msg, times };
       }
-      return { type: 'idle', mode: 'pulang', gpsData, message: 'Silakan lakukan absen pulang.' };
+      return { type: 'idle', mode: 'pulang', gpsData, message: 'Silakan lakukan absen pulang.', times };
     }
   });
 
@@ -90,6 +95,7 @@ export default function AbsenGPSWidget() {
       setMessage(todayStatus.message);
       if (todayStatus.mode) setMode(todayStatus.mode);
       if (todayStatus.gpsData) setExistingGpsData(todayStatus.gpsData);
+      if (todayStatus.times) setTimes(todayStatus.times);
     }
   }, [todayStatus]);
 
@@ -215,6 +221,16 @@ export default function AbsenGPSWidget() {
             <p className={`text-sm mt-1 font-medium ${isDone ? (status === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400') : 'text-slate-500 dark:text-slate-400'}`}>
               {message}
             </p>
+            {times && (times.masuk || times.pulang) && (
+              <div className="mt-3 flex items-center gap-2 text-[11px] sm:text-xs font-semibold flex-wrap">
+                <span className="bg-slate-100 dark:bg-white/5 px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
+                  Masuk: <span className="text-emerald-600 dark:text-emerald-400">{times.masuk || '-'}</span>
+                </span>
+                <span className="bg-slate-100 dark:bg-white/5 px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
+                  Pulang: <span className="text-emerald-600 dark:text-emerald-400">{times.pulang || '-'}</span>
+                </span>
+              </div>
+            )}
             {location && status === 'ready' && !isDone && (
               <div className="mt-3 flex items-center gap-2 text-[11px] sm:text-xs font-semibold flex-wrap">
                 <span className="bg-slate-100 dark:bg-white/5 px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
