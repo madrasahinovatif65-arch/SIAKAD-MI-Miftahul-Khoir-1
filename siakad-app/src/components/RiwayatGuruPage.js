@@ -115,11 +115,15 @@ export default function RiwayatGuruPage() {
 
   const { data: masterData } = useSWR(isAdmin ? 'master_rombel_mapel' : null, async () => {
     const [rombelRes, mapelRes] = await Promise.all([
-      supabase.from('master_user').select('rombel').eq('role', 'Murid'),
+      supabase.from('master_user').select('rombel').eq('role', 'Murid').eq('status_aktif', 'Aktif'),
       supabase.from('master_mapel').select('*').order('nama_mapel')
     ]);
+    const rombelCounts = {};
+    (rombelRes.data || []).forEach(m => {
+      rombelCounts[m.rombel] = (rombelCounts[m.rombel] || 0) + 1;
+    });
     const rombel = [...new Set((rombelRes.data || []).map(d => d.rombel).filter(Boolean))].sort();
-    return { rombel, mapel: mapelRes.data || [] };
+    return { rombel, rombelCounts, mapel: mapelRes.data || [] };
   });
 
   const { data: jurnalData, isLoading: loadingJurnal } = useSWR(
@@ -127,7 +131,7 @@ export default function RiwayatGuruPage() {
     async () => {
       let query = supabase
         .from('jurnal_guru')
-        .select('*, master_user(nama)')
+        .select('*, master_user(nama), data_absensi_mapel(nisn)')
         .gte('tanggal', jurnalTglMulai)
         .lte('tanggal', jurnalTglAkhir)
         .order('tanggal', { ascending: false });
@@ -343,15 +347,15 @@ export default function RiwayatGuruPage() {
           <p style="margin: 2px 0;">Periode: ${formatDateString(jurnalTglMulai)} s.d. ${formatDateString(jurnalTglAkhir)}</p>
         </div>
         
-        <table>
+        <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; font-size: 9pt; text-align: center; table-layout: auto;">
           <thead>
-            <tr>
-              <th>No</th>
-              <th>Waktu</th>
-              <th>Guru</th>
-              <th>Rombel</th>
-              <th>Mata Pelajaran</th>
-              <th>Materi & Catatan</th>
+            <tr style="background-color: #e2e8f0;">
+              <th style="width: 4%;">No</th>
+              <th style="width: 14%;">Waktu</th>
+              <th style="width: 8%;">Rombel</th>
+              <th style="width: 28%;">Mata Pelajaran</th>
+              <th style="text-align: left; width: 23%;">Materi & Catatan</th>
+              <th style="text-align: center; width: 23%;">Kehadiran</th>
             </tr>
           </thead>
           <tbody>
@@ -361,12 +365,26 @@ export default function RiwayatGuruPage() {
       jurnalData.forEach((j, idx) => {
         html += `
             <tr>
-              <td style="width: 5%;">${idx + 1}</td>
-              <td>${formatDate(j.tanggal)}<br><span style="font-size:9pt;">${j.jam_pelajaran ? j.jam_pelajaran.replace(/\s*\(.*\)/, '') : '-'}</span></td>
-              <td>${j.master_user?.nama || '-'}</td>
+              <td>${idx + 1}</td>
+              <td style="font-size: 8pt;">
+                <div style="font-weight: bold;">${formatDate(j.tanggal)}</div>
+                <div style="margin-top: 3px;">${j.jam_pelajaran ? j.jam_pelajaran.replace(/\s*\(.*\)/, '') : '-'}</div>
+              </td>
               <td>${j.rombel}</td>
-              <td>${j.mata_pelajaran}</td>
-              <td class="text-left">${j.materi}${j.catatan && j.catatan !== '-' ? `<br><i>Catatan: ${j.catatan}</i>` : ''}</td>
+              <td>
+                <div style="font-weight: bold;">${j.mata_pelajaran}</div>
+                <div style="margin-top: 3px; font-size: 8pt;">Guru : ${j.master_user?.nama || '-'}</div>
+              </td>
+              <td style="text-align: left;">${j.materi}${j.catatan && j.catatan !== '-' ? `<br><i>Catatan: ${j.catatan}</i>` : ''}</td>
+              <td style="text-align: center;">
+                ${(() => {
+                  const totalSiswa = masterData?.rombelCounts?.[j.rombel] || 1;
+                  const absenCount = j.data_absensi_mapel?.length || 0;
+                  const hadirCount = Math.max(0, totalSiswa - absenCount);
+                  const persentase = totalSiswa > 0 ? Math.round((hadirCount / totalSiswa) * 100) : 100;
+                  return `${persentase}%`;
+                })()}
+              </td>
             </tr>
         `;
       });
@@ -569,7 +587,7 @@ export default function RiwayatGuruPage() {
           <div className="w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm print:border-none print:shadow-none print:rounded-none print:bg-transparent print:overflow-visible">
+        <div className={`bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm print:border-none print:shadow-none print:rounded-none print:bg-transparent print:overflow-visible ${printTarget === 'jurnal' ? 'print:hidden' : ''}`}>
           <div className="overflow-x-auto print:overflow-visible">
             <table className="w-full text-left border-collapse print:text-black print:bg-white print:table-auto">
               <thead>
@@ -786,36 +804,47 @@ export default function RiwayatGuruPage() {
                   <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 print:bg-gray-200 print:border-black/50">
                     <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider text-center w-[5%]">No</th>
                     <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[15%]">Waktu</th>
-                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[20%]">Guru</th>
                     <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[10%]">Rombel</th>
-                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[20%]">Mata Pelajaran</th>
-                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[30%]">Materi & Catatan</th>
+                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[25%]">Mata Pelajaran</th>
+                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[35%]">Materi & Catatan</th>
+                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider w-[10%] text-center">Kehadiran</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-white/5 print:divide-black/20">
                   {loadingJurnal ? (
                     <tr><td colSpan="6" className="text-center py-12"><div className="w-8 h-8 mx-auto border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" /></td></tr>
-                  ) : jurnalData && jurnalData.length > 0 ? (
+                  ) : jurnalData?.length > 0 ? (
                     jurnalData.map((j, idx) => (
-                      <tr key={j.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
-                    <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black text-center">{idx + 1}</td>
-                    <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black font-mono">
-                      <div className="font-bold">{formatDate(j.tanggal)}</div>
-                      <div className="mt-1 text-xs">{j.jam_pelajaran ? j.jam_pelajaran.replace(/\s*\(.*\)/, '') : '-'}</div>
-                    </td>
-                    <td className="px-5 py-4 text-sm font-medium text-slate-900 dark:text-white print:text-black">{j.master_user?.nama}</td>
-                    <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black">{j.rombel}</td>
-                    <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black">{j.mata_pelajaran}</td>
-                    <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black">
-                      <div className="font-medium whitespace-pre-wrap">{j.materi}</div>
-                      {j.catatan && j.catatan !== '-' && (
-                        <div className="mt-2 text-xs italic opacity-75 border-t border-slate-200 dark:border-white/10 pt-2 print:border-black/20">Catatan: {j.catatan}</div>
-                      )}
-                    </td>
-                  </tr>
+                      <tr key={j.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors print:hover:bg-transparent">
+                        <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black text-center">{idx + 1}</td>
+                        <td className="px-5 py-4 text-sm font-medium text-slate-900 dark:text-white print:text-black">
+                          <div>{formatDate(j.tanggal)}</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{(j.jam_pelajaran || '-').replace(/\s*\(.*\)/, '')}</div>
+                        </td>
+                        <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black">{j.rombel}</td>
+                        <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black">
+                          <div className="font-bold">{j.mata_pelajaran}</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">Guru : {j.master_user?.nama || '-'}</div>
+                        </td>
+                        <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black">
+                          <div>{j.materi || '-'}</div>
+                          {j.catatan && j.catatan !== '-' && (
+                            <div className="text-xs italic text-slate-500 dark:text-slate-400 mt-1">Catatan: {j.catatan}</div>
+                          )}
+                        </td>
+                        <td className="px-5 py-4 text-sm text-center font-bold text-slate-700 dark:text-white print:text-black">
+                          {(() => {
+                            const totalSiswa = masterData?.rombelCounts?.[j.rombel] || 1;
+                            const absenCount = j.data_absensi_mapel?.length || 0;
+                            const hadirCount = Math.max(0, totalSiswa - absenCount);
+                            const persentase = totalSiswa > 0 ? Math.round((hadirCount / totalSiswa) * 100) : 100;
+                            return `${persentase}%`;
+                          })()}
+                        </td>
+                      </tr>
                     ))
                   ) : (
-                    <tr><td colSpan="6" className="text-center py-12 text-slate-500 dark:text-slate-400">Tidak ada riwayat jurnal</td></tr>
+                    <tr><td colSpan="6" className="text-center py-12 text-slate-500 dark:text-slate-400">Belum ada jurnal mengajar</td></tr>
                   )}
                 </tbody>
               </table>
