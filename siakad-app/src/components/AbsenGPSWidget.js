@@ -52,7 +52,11 @@ export default function AbsenGPSWidget() {
     if (gpsData?.waktu_pulang) { hasPulang = true; timePulang = formatTimeShort(gpsData.waktu_pulang); checkoutMethod = 'GPS'; }
     if (nfcData?.jam_pulang) { hasPulang = true; timePulang = formatTimeShort(nfcData.jam_pulang); checkoutMethod = 'kartu (NFC)'; }
 
-    if (!hasMasuk && verData && verData.status === 'Hadir') {
+    // Verifikasi oleh admin (manual) → verifikator = 'Admin' dan statusnya final
+    const isAdminVerified = verData && verData.verifikator === 'Admin';
+    const isPendingGPS = verData && (verData.status === 'Menunggu Verifikasi' || verData.status === 'Di Luar Radius');
+
+    if (!hasMasuk && isAdminVerified && verData.status === 'Hadir') {
       hasMasuk = true;
       timeMasuk = verData.waktu ? formatTimeShort(verData.waktu) : '-';
       checkinMethod = 'Admin';
@@ -60,8 +64,16 @@ export default function AbsenGPSWidget() {
 
     const times = { masuk: timeMasuk, pulang: timePulang };
 
-    if (verData && verData.status !== 'Hadir') {
+    // Jika admin sudah verifikasi dengan status non-Hadir → blokir GPS
+    if (isAdminVerified && verData.status !== 'Hadir') {
       return { type: 'error', message: `📝 Absensi Anda hari ini telah ditetapkan admin dengan status: ${verData.status}.`, times };
+    }
+
+    // Jika GPS sudah dikirim tapi menunggu verifikasi admin → tampilkan info, izinkan pulang jika perlu
+    if (isPendingGPS) {
+      hasMasuk = true;
+      if (!timeMasuk) timeMasuk = verData.waktu ? formatTimeShort(verData.waktu) : '-';
+      if (!checkinMethod) checkinMethod = 'GPS (menunggu verifikasi)';
     }
 
     if (hasMasuk && hasPulang) {
