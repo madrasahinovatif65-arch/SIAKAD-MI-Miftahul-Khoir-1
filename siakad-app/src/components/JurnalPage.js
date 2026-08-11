@@ -12,8 +12,8 @@ const getBase64FromUrl = async (url) => {
   });
 };
 
-import { useState, useEffect, useCallback } from 'react';
-import { formatTimeShort } from '@/lib/dateUtils';
+import { getTodayDate, useState, useEffect, useCallback } from 'react';
+import { formatTimeShort } , getTodayDate } from '@/lib/dateUtils';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 
@@ -31,7 +31,7 @@ export default function JurnalPage() {
   const isMobile = useIsMobile();
   const { user } = useAuth();
 
-  const [tanggal, setTanggal] = useState(() => new Date().toISOString().split('T')[0]);
+  const [tanggal, setTanggal] = useState(() => getTodayDate());
   const [jamMulai, setJamMulai] = useState('');
   const [jamSelesai, setJamSelesai] = useState('');
   const [rombel, setRombel] = useState(user?.rombel !== '-' ? user?.rombel : '');

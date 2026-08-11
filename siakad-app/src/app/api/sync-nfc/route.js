@@ -1,3 +1,4 @@
+import { getTodayDate } from '@/lib/dateUtils';
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
@@ -13,7 +14,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let targetDate = new Date().toISOString().split('T')[0];
+    let targetDate = getTodayDate();
 
     // Coba parsing body jika ada (admin memicu manual)
     try {

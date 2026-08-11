@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { formatTimeShort } from '@/lib/dateUtils';
+import { getTodayDate, useState, useEffect } from 'react';
+import { formatTimeShort } , getTodayDate } from '@/lib/dateUtils';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import useSWR from 'swr';
@@ -20,7 +20,7 @@ export default function AbsenGPSWidget() {
   const RADIUS = parseInt(process.env.NEXT_PUBLIC_GPS_RADIUS_METER || '50');
 
   const { data: todayStatus, mutate: reloadStatus } = useSWR(user ? `absen_gps_${user.id_user}` : null, async () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDate();
     
     // Cek Hari Libur
     const { data: libur } = await supabase.from('master_libur').select('*').eq('tanggal', today).single();
@@ -190,7 +190,7 @@ export default function AbsenGPSWidget() {
     setStatus('sending');
     setMessage('Menyimpan data absensi...');
     
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDate();
     const waktu = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
     const payload = {

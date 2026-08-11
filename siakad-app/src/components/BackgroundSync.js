@@ -1,3 +1,4 @@
+import { getTodayDate } from '@/lib/dateUtils';
 'use client';
 
 import { useEffect } from 'react';
@@ -13,7 +14,7 @@ export default function BackgroundSync() {
 
     // Run prefetches in background with slight delay to not block initial render
     const timer = setTimeout(() => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayDate();
 
       // 1. Prefetch master_libur_all
       preload('master_libur_all', fetchMasterLibur);

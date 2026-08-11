@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { getTodayDate, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import { formatTimeShort } from '@/lib/dateUtils';
+import { formatTimeShort } , getTodayDate } from '@/lib/dateUtils';
 import useSWR from 'swr';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import DatePicker, { registerLocale } from 'react-datepicker';
@@ -20,7 +20,7 @@ export default function RiwayatMuridPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
   });
   const [tglAkhir, setTglAkhir] = useState(() => {
-    return new Date().toISOString().split('T')[0];
+    return getTodayDate();
   });
   const [filterStatus, setFilterStatus] = useState('Semua');
   const { data: swrData, isLoading: loading } = useSWR(user && tglMulai && tglAkhir ? `riwayat_murid_${user.id_user}_${tglMulai}_${tglAkhir}` : null, async () => {

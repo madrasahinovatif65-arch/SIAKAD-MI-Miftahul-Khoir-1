@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { formatTimeShort } from '@/lib/dateUtils';
+import { getTodayDate, useState, useEffect } from 'react';
+import { formatTimeShort } , getTodayDate } from '@/lib/dateUtils';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import useSWR from 'swr';
@@ -20,7 +20,7 @@ export default function AbsenGPSPage() {
 
   // Cek apakah sudah absen hari ini (GPS atau NFC) menggunakan SWR
   const { data: todayStatus, mutate: reloadStatus } = useSWR(user ? `absen_gps_${user.id_user}` : null, async () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDate();
 
     // Cek NFC dulu (prioritas)
     const { data: nfcData } = await supabase
@@ -99,7 +99,7 @@ export default function AbsenGPSPage() {
         setStatus('sending');
         setMessage('Mengirim data absensi...');
 
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayDate();
         const waktu = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
         const { error } = await supabase.from('log_gps_guru').upsert({

@@ -1,3 +1,4 @@
+import { getTodayDate } from '@/lib/dateUtils';
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
@@ -57,7 +58,7 @@ const QUICK_MENU_CONFIG = {
 export default function DashboardHome() {
   const { user } = useAuth();
   const { data } = useSWR(user ? `dashboard-stats-${user.id_user}` : null, async () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDate();
     const monthStart = today.slice(0, 7) + '-01';
 
     if (user.role === 'Murid') {

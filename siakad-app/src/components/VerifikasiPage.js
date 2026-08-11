@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { getTodayDate, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import useSWR from 'swr';
 import { fetchMasterLibur, fetchVerifiedDatesGuru, fetchVerifikasiGuru } from '@/lib/fetchers';
-import { formatTimeShort } from '@/lib/dateUtils';
+import { formatTimeShort } , getTodayDate } from '@/lib/dateUtils';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -14,7 +14,7 @@ registerLocale('id', id);
 
 export default function VerifikasiPage() {
   const isMobile = useIsMobile();
-  const [tanggal, setTanggal] = useState(() => new Date().toISOString().split('T')[0]);
+  const [tanggal, setTanggal] = useState(() => getTodayDate());
   const [absensi, setAbsensi] = useState({});
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);

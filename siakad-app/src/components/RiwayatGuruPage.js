@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { getTodayDate, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import useSWR from 'swr';
@@ -8,7 +8,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { id } from 'date-fns/locale/id';
-import { getTahunPelajaran, formatTimeShort } from '@/lib/dateUtils';
+import { getTahunPelajaran, formatTimeShort } , getTodayDate } from '@/lib/dateUtils';
 
 registerLocale('id', id);
 
@@ -23,7 +23,7 @@ export default function RiwayatGuruPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
   });
   const [tglAkhir, setTglAkhir] = useState(() => {
-    return new Date().toISOString().split('T')[0];
+    return getTodayDate();
   });
 
   const [jurnalTglMulai, setJurnalTglMulai] = useState(() => {
