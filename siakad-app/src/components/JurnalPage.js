@@ -154,8 +154,17 @@ export default function JurnalPage() {
     if (user.role === 'Admin' && filterRombel !== 'Semua') {
       query = query.eq('rombel', filterRombel);
     }
+    // Filter Mapel untuk Wali Kelas
+    if (user.role === 'Wali Kelas' && filterMapel !== 'Semua') {
+      query = query.eq('mata_pelajaran', filterMapel);
+    }
+    // Filter Mapel untuk Guru Mapel (hanya mapel yang diampu)
     if (user.role === 'Guru Mapel' && filterMapel !== 'Semua') {
       query = query.eq('mata_pelajaran', filterMapel);
+    }
+    // Filter Kelas untuk Guru Mapel
+    if (user.role === 'Guru Mapel' && filterRombel !== 'Semua') {
+      query = query.eq('rombel', filterRombel);
     }
     if (user.role !== 'Admin' && filterTglMulai === '' && filterTglAkhir === '') {
       query = query.limit(20);
@@ -844,12 +853,13 @@ export default function JurnalPage() {
               </div>
             </div>
 
+            {/* Filter Rombel - Admin */}
             {user?.role === 'Admin' && (
               <div className="relative w-full sm:w-auto">
                 <select value={filterRombel} onChange={e => setFilterRombel(e.target.value)}
                   style={{ backgroundImage: 'none' }}
                   className="appearance-none w-full sm:w-36 pl-4 pr-8 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
-                  <option value="Semua" className="bg-white dark:bg-slate-900 text-slate-400">Semua Rombel</option>
+                  <option value="Semua" className="bg-white dark:bg-slate-900 text-slate-400">Semua Kelas</option>
                   {(masterData?.rombel || []).map(r => (
                     <option key={r} value={r} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{r}</option>
                   ))}
@@ -859,13 +869,14 @@ export default function JurnalPage() {
                 </svg>
               </div>
             )}
-            {user?.role === 'Guru Mapel' && (
+            {/* Filter Mapel - Wali Kelas (semua mapel yang ada di kelas) */}
+            {user?.role === 'Wali Kelas' && (
               <div className="relative w-full sm:w-auto">
                 <select value={filterMapel} onChange={e => setFilterMapel(e.target.value)}
                   style={{ backgroundImage: 'none' }}
                   className="appearance-none w-full sm:w-36 pl-4 pr-8 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
                   <option value="Semua" className="bg-white dark:bg-slate-900 text-slate-400">Semua Mapel</option>
-                  {(mapelOptions || []).map(m => (
+                  {(masterData?.mapel || []).map(m => (
                     <option key={m.id_mapel} value={m.nama_mapel} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{m.nama_mapel}</option>
                   ))}
                 </select>
@@ -873,6 +884,37 @@ export default function JurnalPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
                 </svg>
               </div>
+            )}
+            {/* Filter Kelas + Mapel - Guru Mapel (mapel hanya yang diampu) */}
+            {user?.role === 'Guru Mapel' && (
+              <>
+                <div className="relative w-full sm:w-auto">
+                  <select value={filterRombel} onChange={e => setFilterRombel(e.target.value)}
+                    style={{ backgroundImage: 'none' }}
+                    className="appearance-none w-full sm:w-36 pl-4 pr-8 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
+                    <option value="Semua" className="bg-white dark:bg-slate-900 text-slate-400">Semua Kelas</option>
+                    {(masterData?.rombel || []).map(r => (
+                      <option key={r} value={r} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{r}</option>
+                    ))}
+                  </select>
+                  <svg className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </div>
+                <div className="relative w-full sm:w-auto">
+                  <select value={filterMapel} onChange={e => setFilterMapel(e.target.value)}
+                    style={{ backgroundImage: 'none' }}
+                    className="appearance-none w-full sm:w-40 pl-4 pr-8 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
+                    <option value="Semua" className="bg-white dark:bg-slate-900 text-slate-400">Semua Mapel Diampu</option>
+                    {(mapelOptions || []).map(m => (
+                      <option key={m.id_mapel} value={m.nama_mapel} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{m.nama_mapel}</option>
+                    ))}
+                  </select>
+                  <svg className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </div>
+              </>
             )}
           </div>
         </div>
