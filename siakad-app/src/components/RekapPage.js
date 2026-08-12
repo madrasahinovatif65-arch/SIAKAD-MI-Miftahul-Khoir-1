@@ -22,14 +22,14 @@ export default function RekapPage() {
   const [tglAkhir, setTglAkhir] = useState(() => {
     return getTodayDate();
   });
-  const [rombel, setRombel] = useState(user?.role === 'Admin' ? 'Semua' : user?.rombel || '');
+  const [rombel, setRombel] = useState(user?.role === 'Admin' || user?.role === 'Guru Mapel' ? 'Semua' : user?.rombel || '');
   const [rombelOptions, setRombelOptions] = useState([]);
   const [selectedHistory, setSelectedHistory] = useState(null);
   // Injeksi 3: Mode Toggle
-  const [mode, setMode] = useState('harian'); // 'harian' | 'mapel'
+  const [mode, setMode] = useState(user?.role === 'Guru Mapel' ? 'mapel' : 'harian'); // 'harian' | 'mapel'
   const [filterMapel, setFilterMapel] = useState('Semua');
   
-  // Ambil daftar rombel untuk Admin
+  // Ambil daftar rombel untuk Admin dan Guru Mapel
   useEffect(() => {
     async function fetchRombel() {
       const { data } = await supabase.from('master_user').select('rombel').eq('role', 'Murid');
@@ -38,7 +38,13 @@ export default function RekapPage() {
         setRombelOptions(unique);
       }
     }
-    if (user?.role === 'Admin') fetchRombel();
+    if (user?.role === 'Admin' || user?.role === 'Guru Mapel') fetchRombel();
+  }, [user]);
+
+  useEffect(() => {
+    if (user?.role === 'Guru Mapel') {
+      setMode('mapel');
+    }
   }, [user]);
 
   const { data: swrData, isLoading: loading } = useSWR(tglMulai && tglAkhir && rombel ? `rekap_${rombel}_${tglMulai}_${tglAkhir}` : null, async () => {
@@ -435,7 +441,7 @@ export default function RekapPage() {
                 </svg>
               </div>
             </div>
-            {user?.role === 'Admin' && (
+            {(user?.role === 'Admin' || user?.role === 'Guru Mapel') && (
               <div className="relative w-full sm:w-auto">
                 <select value={rombel} onChange={e => setRombel(e.target.value)}
                   style={{ backgroundImage: 'none' }}
@@ -451,21 +457,23 @@ export default function RekapPage() {
               </div>
             )}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-2 border-t border-slate-100 dark:border-white/10 mt-2 w-full">
-              <div className="flex rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-sm shrink-0">
-                <button onClick={() => setMode('harian')} className={`px-4 py-2 text-xs font-bold transition-colors ${mode === 'harian' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'}`}>
-                  Rekap Harian
-                </button>
-                <button onClick={() => setMode('mapel')} className={`px-4 py-2 text-xs font-bold transition-colors ${mode === 'mapel' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'}`}>
-                  Rekap Mapel
-                </button>
-              </div>
+              {user?.role !== 'Guru Mapel' && (
+                <div className="flex rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-sm shrink-0">
+                  <button onClick={() => setMode('harian')} className={`px-4 py-2 text-xs font-bold transition-colors ${mode === 'harian' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'}`}>
+                    Rekap Harian
+                  </button>
+                  <button onClick={() => setMode('mapel')} className={`px-4 py-2 text-xs font-bold transition-colors ${mode === 'mapel' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'}`}>
+                    Rekap Mapel
+                  </button>
+                </div>
+              )}
               {mode === 'mapel' && (
                 <div className="relative w-full sm:w-auto">
                   <select value={filterMapel} onChange={e => setFilterMapel(e.target.value)}
                     style={{ backgroundImage: 'none' }}
                     className="appearance-none w-full sm:w-auto pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-sm">
                     <option value="Semua">-- Pilih Mata Pelajaran --</option>
-                    {(user?.role === 'Guru Mapel' ? (user.mapel ? [user.mapel] : mapelOptions) : mapelOptions).map(m => (
+                    {(user?.role === 'Guru Mapel' && user?.mapel && user.mapel !== '-' ? mapelOptions.filter(m => user.mapel.includes(m)) : mapelOptions).map(m => (
                       <option key={m} value={m}>{m}</option>
                     ))}
                   </select>
