@@ -148,6 +148,11 @@ export default function RekapPage() {
   const rombelsToPrint = rombel === 'Semua' ? rombelOptions : [rombel];
 
   const handleExportWord = () => {
+    if (mode === 'mapel' && (!rekapMapelData || rekapMapelData.jurnal.length === 0)) {
+      alert('Data rekap mapel tidak tersedia atau belum dipilih.');
+      return;
+    }
+
     let html = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
@@ -158,16 +163,112 @@ export default function RekapPage() {
       <body style="font-family: Arial, sans-serif;">
     `;
 
-    rombelsToPrint.forEach((rName, rIdx) => {
-      const rMuridData = rombel === 'Semua' ? muridData.filter(m => m.rombel === rName) : muridData;
-      const rWaliName = rombel === 'Semua' ? (waliKelasMap[rName] || '.............................................') : waliKelasName;
-      
+    if (mode === 'harian') {
+      rombelsToPrint.forEach((rName, rIdx) => {
+        const rMuridData = rombel === 'Semua' ? muridData.filter(m => m.rombel === rName) : muridData;
+        const rWaliName = rombel === 'Semua' ? (waliKelasMap[rName] || '.............................................') : waliKelasName;
+        
+        html += `
+          <table style="width: 100%; border-bottom: 3px solid black; margin-bottom: 20px; border-collapse: collapse;">
+            <tr>
+              <td style="width: 15%; text-align: left; vertical-align: middle;"></td>
+              <td style="width: 85%; text-align: center; vertical-align: middle;">
+                <h3 style="margin: 0; font-size: 16pt;">Yayasan NU Miftakhul Khoir Damarjati</h3>
+                <h2 style="margin: 0; font-size: 20pt; color: #15803d;">MI Miftahul Khoir 1 Karangrejo</h2>
+                <p style="margin: 5px 0 0 0; font-size: 9pt;">NPSN: 60716857 | Jl. Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo, Kec. Purwosari, Kabupaten Pasuruan</p>
+              </td>
+            </tr>
+          </table>
+          
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; font-size: 14pt;">Laporan Rekapitulasi Presensi Bulanan</h3>
+            <p style="margin: 5px 0 2px 0;">${getTahunPelajaran()}</p>
+            <p style="margin: 2px 0;">Periode: ${formatDateString(tglMulai)} s.d. ${formatDateString(tglAkhir)}</p>
+            <p style="margin: 0;">Kelas/Rombel: <b>${rName}</b></p>
+          </div>
+
+          <h4 style="color: #166534; font-size: 11pt; margin-bottom: 10px;">REKAPITULASI KEHADIRAN SISWA</h4>
+
+          <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; font-size: 10pt; text-align: center;">
+            <thead>
+              <tr style="background-color: #e2e8f0;">
+                <th style="width: 5%;">No</th>
+                <th style="text-align: left;">Nama Murid</th>
+                <th>NISN</th>
+                <th>Hadir</th>
+                <th>Sakit</th>
+                <th>Izin</th>
+                <th>Alfa</th>
+                <th>Total</th>
+                <th>Persentase</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        rMuridData.forEach((m, idx) => {
+          const r = rekapData[m.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
+          const hadir = r.Hadir || 0;
+          const sakit = r.Sakit || 0;
+          const izin = r.Izin || 0;
+          const alfa = r.Alfa || 0;
+          const total = hadir + sakit + izin + alfa;
+          const persentase = total > 0 ? ((hadir / total) * 100).toFixed(1) + '%' : '-';
+
+          html += `
+            <tr>
+              <td>${idx + 1}</td>
+              <td style="text-align: left;">${m.nama}</td>
+              <td>${m.id_user || '-'}</td>
+              <td>${hadir || '-'}</td>
+              <td>${sakit || '-'}</td>
+              <td>${izin || '-'}</td>
+              <td>${alfa || '-'}</td>
+              <td>${total || '-'}</td>
+              <td>${persentase}</td>
+            </tr>
+          `;
+        });
+
+        html += `
+              </tbody>
+            </table>
+            <br><br><br>
+            <table style="width: 100%; text-align: center; border: none; font-size: 11pt;">
+              <tr>
+                <td style="width: 50%; border: none;">
+                  <p style="color: transparent;">.</p>
+                  <p>Disiapkan Oleh,</p>
+                  <p><b>WALI KELAS ${rName}</b></p>
+                  <br><br><br><br>
+                  <p><b><u>${rWaliName}</u></b></p>
+                  <p style="margin-top: 0;">-</p>
+                </td>
+                <td style="width: 50%; border: none;">
+                  <p>Karangrejo, ${formatDateString(new Date().toISOString())}</p>
+                  <p>Mengetahui Kepala Madrasah,</p>
+                  <p><b>MI Miftahul Khoir 1 Karangrejo</b></p>
+                  <br><br><br><br>
+                  <p><b><u>Nur Su'ud, S.Pd.I.</u></b></p>
+                  <p style="margin-top: 0;">-</p>
+                </td>
+              </tr>
+            </table>
+        `;
+
+        if (rIdx < rombelsToPrint.length - 1) {
+          html += `<br clear=all style='mso-special-character:line-break;page-break-before:always'>`;
+        }
+      });
+    } else {
+      // Mode Mapel
+      const { murid: mapelMurid, jurnal: mapelJurnal, absenMap } = rekapMapelData;
+      const rName = rombel === 'Semua' ? 'Semua Rombel' : rombel;
+
       html += `
         <table style="width: 100%; border-bottom: 3px solid black; margin-bottom: 20px; border-collapse: collapse;">
           <tr>
-            <td style="width: 15%; text-align: left; vertical-align: middle;">
-              <!-- Placeholder untuk logo -->
-            </td>
+            <td style="width: 15%; text-align: left; vertical-align: middle;"></td>
             <td style="width: 85%; text-align: center; vertical-align: middle;">
               <h3 style="margin: 0; font-size: 16pt;">Yayasan NU Miftakhul Khoir Damarjati</h3>
               <h2 style="margin: 0; font-size: 20pt; color: #15803d;">MI Miftahul Khoir 1 Karangrejo</h2>
@@ -177,53 +278,36 @@ export default function RekapPage() {
         </table>
         
         <div style="text-align: center; margin-bottom: 20px;">
-          <h3 style="margin: 0; font-size: 14pt;">Laporan Rekapitulasi Presensi Bulanan</h3>
+          <h3 style="margin: 0; font-size: 14pt;">Laporan Rekapitulasi Presensi Mata Pelajaran</h3>
           <p style="margin: 5px 0 2px 0;">${getTahunPelajaran()}</p>
+          <p style="margin: 2px 0;">Mata Pelajaran: <b>${filterMapel}</b></p>
           <p style="margin: 2px 0;">Periode: ${formatDateString(tglMulai)} s.d. ${formatDateString(tglAkhir)}</p>
           <p style="margin: 0;">Kelas/Rombel: <b>${rName}</b></p>
         </div>
 
-        <h4 style="color: #166534; font-size: 11pt; margin-bottom: 10px;">REKAPITULASI KEHADIRAN SISWA</h4>
-
-        <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; font-size: 10pt; text-align: center;">
+        <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; font-size: 9pt; text-align: center;">
           <thead>
             <tr style="background-color: #e2e8f0;">
-              <th style="width: 5%;">No</th>
               <th style="text-align: left;">Nama Murid</th>
-              <th>NISN</th>
-              <th>Hadir</th>
-              <th>Sakit</th>
-              <th>Izin</th>
-              <th>Alfa</th>
-              <th>Total</th>
-              <th>Persentase</th>
+              ${mapelJurnal.map((j, i) => `<th>P${i + 1}<br><span style="font-size: 7pt; font-weight: normal;">${j.tanggal.slice(8)}/${j.tanggal.slice(5, 7)}</span></th>`).join('')}
+              <th>H</th><th>S</th><th>I</th><th>A</th><th>%</th>
             </tr>
           </thead>
           <tbody>
       `;
 
-      rMuridData.forEach((m, idx) => {
-        const r = rekapData[m.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
-        const hadir = r.Hadir || 0;
-        const sakit = r.Sakit || 0;
-        const izin = r.Izin || 0;
-        const alfa = r.Alfa || 0;
-        const total = hadir + sakit + izin + alfa;
-        const persentase = total > 0 ? ((hadir / total) * 100).toFixed(1) + '%' : '-';
-
-        html += `
-          <tr>
-            <td>${idx + 1}</td>
-            <td style="text-align: left;">${m.nama}</td>
-            <td>${m.id_user || '-'}</td>
-            <td>${hadir || '-'}</td>
-            <td>${sakit || '-'}</td>
-            <td>${izin || '-'}</td>
-            <td>${alfa || '-'}</td>
-            <td>${total || '-'}</td>
-            <td>${persentase}</td>
-          </tr>
-        `;
+      mapelMurid.forEach((m) => {
+        let H = 0, S = 0, I = 0, A = 0;
+        let rowHtml = `<tr><td style="text-align: left;">${m.nama}</td>`;
+        mapelJurnal.forEach(j => {
+          const st = absenMap[j.id]?.[m.id_user] || 'Hadir';
+          if (st === 'Hadir') H++; else if (st === 'Sakit') S++; else if (st === 'Izin') I++; else A++;
+          const char = st === 'Hadir' ? 'H' : st.charAt(0);
+          rowHtml += `<td>${char}</td>`;
+        });
+        const pct = mapelJurnal.length > 0 ? Math.round((H / mapelJurnal.length) * 100) : 100;
+        rowHtml += `<td>${H || '-'}</td><td>${S || '-'}</td><td>${I || '-'}</td><td>${A || '-'}</td><td>${pct}%</td></tr>`;
+        html += rowHtml;
       });
 
       html += `
@@ -235,9 +319,9 @@ export default function RekapPage() {
               <td style="width: 50%; border: none;">
                 <p style="color: transparent;">.</p>
                 <p>Disiapkan Oleh,</p>
-                <p><b>WALI KELAS ${rName}</b></p>
+                <p><b>GURU MATA PELAJARAN</b></p>
                 <br><br><br><br>
-                <p><b><u>${rWaliName}</u></b></p>
+                <p><b><u>${user?.nama || '.............................................'}</u></b></p>
                 <p style="margin-top: 0;">-</p>
               </td>
               <td style="width: 50%; border: none;">
@@ -251,11 +335,7 @@ export default function RekapPage() {
             </tr>
           </table>
       `;
-
-      if (rIdx < rombelsToPrint.length - 1) {
-        html += `<br clear=all style='mso-special-character:line-break;page-break-before:always'>`;
-      }
-    });
+    }
 
     html += `
       </body>
@@ -548,114 +628,211 @@ export default function RekapPage() {
       )}
 
       <div className="print-container hidden print:block">
-        {rombelsToPrint.map((rName, rIdx) => {
-          const rMuridData = rombel === 'Semua' ? muridData.filter(m => m.rombel === rName) : muridData;
-          const rWaliName = rombel === 'Semua' ? (waliKelasMap[rName] || '.............................................') : waliKelasName;
-
-          return (
-            <div key={rName} className={rIdx < rombelsToPrint.length - 1 ? 'page-break-after' : ''}>
-              {/* Header Print */}
-              <div className="mb-4">
-                <div className="flex items-center gap-4 mb-2 border-b-[3px] border-black pb-2 relative">
-                  <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain" />
-                  <div className="flex-1 text-center">
-                    <h3 className="text-lg font-bold text-slate-800 tracking-tight">Yayasan NU Miftakhul Khoir Damarjati</h3>
-                    <h2 className="text-2xl font-bold text-green-700 tracking-tight mt-0.5">MI Miftahul Khoir 1 Karangrejo</h2>
-                    <p className="text-[10px] text-slate-600 mt-1 tracking-wide font-medium">NPSN: 60716857 | Jl. Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo, Kec. Purwosari, Kabupaten Pasuruan</p>
+        {mode === 'harian' ? (
+          rombelsToPrint.map((rName, rIdx) => {
+            const rMuridData = rombel === 'Semua' ? muridData.filter(m => m.rombel === rName) : muridData;
+            const rWaliName = rombel === 'Semua' ? (waliKelasMap[rName] || '.............................................') : waliKelasName;
+  
+            return (
+              <div key={rName} className={rIdx < rombelsToPrint.length - 1 ? 'page-break-after' : ''}>
+                {/* Header Print */}
+                <div className="mb-4">
+                  <div className="flex items-center gap-4 mb-2 border-b-[3px] border-black pb-2 relative">
+                    <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain" />
+                    <div className="flex-1 text-center">
+                      <h3 className="text-lg font-bold text-slate-800 tracking-tight">Yayasan NU Miftakhul Khoir Damarjati</h3>
+                      <h2 className="text-2xl font-bold text-green-700 tracking-tight mt-0.5">MI Miftahul Khoir 1 Karangrejo</h2>
+                      <p className="text-[10px] text-slate-600 mt-1 tracking-wide font-medium">NPSN: 60716857 | Jl. Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo, Kec. Purwosari, Kabupaten Pasuruan</p>
+                    </div>
+                    <div className="absolute bottom-0 left-0 w-full border-b border-black mt-0.5"></div>
                   </div>
-                  <div className="absolute bottom-0 left-0 w-full border-b border-black mt-0.5"></div>
+                  
+                  <div className="text-center mt-3 mb-3">
+                    <h3 className="text-base font-bold text-slate-800">Laporan Rekapitulasi Presensi Bulanan</h3>
+                    <p className="text-xs text-slate-600 mt-0.5">{getTahunPelajaran()}</p>
+                    <p className="text-xs text-slate-600 mt-0.5">Periode: {formatDateString(tglMulai)} s.d. {formatDateString(tglAkhir)}</p>
+                    <p className="text-xs text-slate-600 mt-0.5">Kelas/Rombel: <span className="font-bold text-green-700">{rName}</span></p>
+                  </div>
+                  
+                  <h4 className="font-bold text-green-800 text-[11px] mb-2 flex items-center gap-2">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+                    </svg>
+                    REKAPITULASI KEHADIRAN SISWA
+                  </h4>
                 </div>
-                
-                <div className="text-center mt-3 mb-3">
-                  <h3 className="text-base font-bold text-slate-800">Laporan Rekapitulasi Presensi Bulanan</h3>
-                  <p className="text-xs text-slate-600 mt-0.5">{getTahunPelajaran()}</p>
-                  <p className="text-xs text-slate-600 mt-0.5">Periode: {formatDateString(tglMulai)} s.d. {formatDateString(tglAkhir)}</p>
-                  <p className="text-xs text-slate-600 mt-0.5">Kelas/Rombel: <span className="font-bold text-green-700">{rName}</span></p>
-                </div>
-                
-                <h4 className="font-bold text-green-800 text-[11px] mb-2 flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
-                  </svg>
-                  REKAPITULASI KEHADIRAN SISWA
-                </h4>
-              </div>
-
-              {/* Tabel Khusus Print (Tanpa kolom rombel) */}
-              <div className="overflow-visible">
-                <table className="w-full text-left border-collapse print:text-black print:bg-white print:table-auto">
-                  <thead>
-                    <tr className="print:bg-gray-200 print:border-black">
-                      <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">No</th>
-                      <th className="text-xs font-bold print:text-black uppercase tracking-wider col-nama">Nama Murid</th>
-                      <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">NISN</th>
-                      <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">Hadir</th>
-                      <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">Sakit</th>
-                      <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">Izin</th>
-                      <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">Alfa</th>
-                      <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">Total</th>
-                      <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">%</th>
-                    </tr>
-                  </thead>
-                  <tbody className="print:divide-black/20">
-                    {rMuridData.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="p-8 text-center text-slate-500 font-medium">Tidak ada data murid di rentang tanggal & rombel ini.</td>
+  
+                {/* Tabel Khusus Print (Tanpa kolom rombel) */}
+                <div className="overflow-visible">
+                  <table className="w-full text-left border-collapse print:text-black print:bg-white print:table-auto">
+                    <thead>
+                      <tr className="print:bg-gray-200 print:border-black">
+                        <th className="text-xs font-bold print:text-black uppercase tracking-wider text-center">No</th>
+                        <th className="text-xs font-bold print:text-black uppercase tracking-wider col-nama">Nama Murid</th>
+                        <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">NISN</th>
+                        <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">Hadir</th>
+                        <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">Sakit</th>
+                        <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">Izin</th>
+                        <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">Alfa</th>
+                        <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">Total</th>
+                        <th className="text-xs font-bold print:text-black text-center uppercase tracking-wider">%</th>
                       </tr>
-                    ) : (
-                      <>
-                        {rMuridData.map((m, idx) => {
-                          const r = rekapData[m.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
-                          const hadir = r.Hadir || 0;
-                          const sakit = r.Sakit || 0;
-                          const izin = r.Izin || 0;
-                          const alfa = r.Alfa || 0;
-                          const total = hadir + sakit + izin + alfa;
-                          const persentase = total > 0 ? ((hadir / total) * 100).toFixed(1) + '%' : '-';
-
-                          return (
-                            <tr key={m.id_user} className="print:hover:bg-transparent">
-                              <td className="text-sm print:text-black print:px-2 print:py-2 text-center">{idx + 1}</td>
-                              <td className="text-sm print:text-black font-semibold print:px-2 print:py-2 col-nama">{m.nama}</td>
-                              <td className="text-sm print:text-black print:px-2 print:py-2 text-center font-mono">{m.id_user || '-'}</td>
-                              <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{hadir || '-'}</td>
-                              <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{sakit || '-'}</td>
-                              <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{izin || '-'}</td>
-                              <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{alfa || '-'}</td>
-                              <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{total || '-'}</td>
-                              <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{persentase}</td>
-                            </tr>
-                          );
-                        })}
-                        {/* Baris Tanda Tangan Menyatu dengan Tabel (Tanpa Border) */}
-                        <tr className="print:table-row print-no-border">
-                          <td colSpan={8} className="pt-12 pb-2">
-                            <div className="flex justify-between items-end px-12 text-center text-xs text-black w-full">
-                              <div className="flex flex-col items-center">
-                                <p className="text-transparent select-none">.</p>
-                                <p>Disiapkan Oleh,</p>
-                                <p className="font-bold uppercase mt-1">WALI KELAS {rName},</p>
-                                <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">{rWaliName}</div>
-                                <p className="mt-1">-</p>
-                              </div>
-                              <div className="flex flex-col items-center">
-                                <p>Karangrejo, {formatDateString(new Date().toISOString())}</p>
-                                <p>Mengetahui Kepala Madrasah,</p>
-                                <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
-                                <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">Nur Su'ud, S.Pd.I.</div>
-                                <p className="mt-1">-</p>
-                              </div>
-                            </div>
-                          </td>
+                    </thead>
+                    <tbody className="print:divide-black/20">
+                      {rMuridData.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="p-8 text-center text-slate-500 font-medium">Tidak ada data murid di rentang tanggal & rombel ini.</td>
                         </tr>
-                      </>
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        <>
+                          {rMuridData.map((m, idx) => {
+                            const r = rekapData[m.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
+                            const hadir = r.Hadir || 0;
+                            const sakit = r.Sakit || 0;
+                            const izin = r.Izin || 0;
+                            const alfa = r.Alfa || 0;
+                            const total = hadir + sakit + izin + alfa;
+                            const persentase = total > 0 ? ((hadir / total) * 100).toFixed(1) + '%' : '-';
+  
+                            return (
+                              <tr key={m.id_user} className="print:hover:bg-transparent">
+                                <td className="text-sm print:text-black print:px-2 print:py-2 text-center">{idx + 1}</td>
+                                <td className="text-sm print:text-black font-semibold print:px-2 print:py-2 col-nama">{m.nama}</td>
+                                <td className="text-sm print:text-black print:px-2 print:py-2 text-center font-mono">{m.id_user || '-'}</td>
+                                <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{hadir || '-'}</td>
+                                <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{sakit || '-'}</td>
+                                <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{izin || '-'}</td>
+                                <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{alfa || '-'}</td>
+                                <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{total || '-'}</td>
+                                <td className="text-sm print:text-black text-center font-bold print:bg-transparent print:px-2 print:py-2">{persentase}</td>
+                              </tr>
+                            );
+                          })}
+                          {/* Baris Tanda Tangan Menyatu dengan Tabel (Tanpa Border) */}
+                          <tr className="print:table-row print-no-border">
+                            <td colSpan={8} className="pt-12 pb-2">
+                              <div className="flex justify-between items-end px-12 text-center text-xs text-black w-full">
+                                <div className="flex flex-col items-center">
+                                  <p className="text-transparent select-none">.</p>
+                                  <p>Disiapkan Oleh,</p>
+                                  <p className="font-bold uppercase mt-1">WALI KELAS {rName},</p>
+                                  <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">{rWaliName}</div>
+                                  <p className="mt-1">-</p>
+                                </div>
+                                <div className="flex flex-col items-center">
+                                  <p>Karangrejo, {formatDateString(new Date().toISOString())}</p>
+                                  <p>Mengetahui Kepala Madrasah,</p>
+                                  <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
+                                  <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">Nur Su'ud, S.Pd.I.</div>
+                                  <p className="mt-1">-</p>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        </>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        ) : (
+          /* ===== Print Mode Mapel ===== */
+          (() => {
+            if (!rekapMapelData || rekapMapelData.jurnal.length === 0) return null;
+            const { murid: mapelMurid, jurnal: mapelJurnal, absenMap } = rekapMapelData;
+            const rName = rombel === 'Semua' ? 'Semua Rombel' : rombel;
+            return (
+              <div>
+                <div className="mb-4">
+                  <div className="flex items-center gap-4 mb-2 border-b-[3px] border-black pb-2 relative">
+                    <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain" />
+                    <div className="flex-1 text-center">
+                      <h3 className="text-lg font-bold text-slate-800 tracking-tight">Yayasan NU Miftakhul Khoir Damarjati</h3>
+                      <h2 className="text-2xl font-bold text-green-700 tracking-tight mt-0.5">MI Miftahul Khoir 1 Karangrejo</h2>
+                      <p className="text-[10px] text-slate-600 mt-1 tracking-wide font-medium">NPSN: 60716857 | Jl. Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo, Kec. Purwosari, Kabupaten Pasuruan</p>
+                    </div>
+                    <div className="absolute bottom-0 left-0 w-full border-b border-black mt-0.5"></div>
+                  </div>
+                  
+                  <div className="text-center mt-3 mb-3">
+                    <h3 className="text-base font-bold text-slate-800">Laporan Rekapitulasi Presensi Mata Pelajaran</h3>
+                    <p className="text-xs text-slate-600 mt-0.5">{getTahunPelajaran()}</p>
+                    <p className="text-xs text-slate-600 mt-0.5">Mata Pelajaran: <span className="font-bold text-green-700">{filterMapel}</span></p>
+                    <p className="text-xs text-slate-600 mt-0.5">Periode: {formatDateString(tglMulai)} s.d. {formatDateString(tglAkhir)}</p>
+                    <p className="text-xs text-slate-600 mt-0.5">Kelas/Rombel: <span className="font-bold text-green-700">{rName}</span></p>
+                  </div>
+                </div>
+
+                <div className="overflow-visible">
+                  <table className="w-full text-left border-collapse print:text-black print:bg-white print:table-auto">
+                    <thead>
+                      <tr className="print:bg-gray-200 print:border-black">
+                        <th className="text-xs font-bold print:text-black uppercase tracking-wider text-left">Nama Murid</th>
+                        {mapelJurnal.map((j, i) => (
+                          <th key={j.id} className="text-[10px] font-bold print:text-black text-center uppercase tracking-wider">
+                            P{i + 1}<br/><span className="text-[8px] font-normal">{j.tanggal.slice(8)}/{j.tanggal.slice(5, 7)}</span>
+                          </th>
+                        ))}
+                        <th className="text-[10px] font-bold print:text-black text-center uppercase tracking-wider">H</th>
+                        <th className="text-[10px] font-bold print:text-black text-center uppercase tracking-wider">S</th>
+                        <th className="text-[10px] font-bold print:text-black text-center uppercase tracking-wider">I</th>
+                        <th className="text-[10px] font-bold print:text-black text-center uppercase tracking-wider">A</th>
+                        <th className="text-[10px] font-bold print:text-black text-center uppercase tracking-wider">%</th>
+                      </tr>
+                    </thead>
+                    <tbody className="print:divide-black/20">
+                      {mapelMurid.map((m) => {
+                        let H = 0, S = 0, I = 0, A = 0;
+                        mapelJurnal.forEach(j => {
+                          const st = absenMap[j.id]?.[m.id_user] || 'Hadir';
+                          if (st === 'Hadir') H++; else if (st === 'Sakit') S++; else if (st === 'Izin') I++; else A++;
+                        });
+                        const pct = mapelJurnal.length > 0 ? Math.round((H / mapelJurnal.length) * 100) : 100;
+                        return (
+                          <tr key={m.id_user} className="print:hover:bg-transparent">
+                            <td className="text-[11px] print:text-black font-semibold print:px-2 print:py-1">{m.nama}</td>
+                            {mapelJurnal.map(j => {
+                              const st = absenMap[j.id]?.[m.id_user] || 'Hadir';
+                              const char = st === 'Hadir' ? 'H' : st.charAt(0);
+                              return <td key={j.id} className="text-[11px] print:text-black text-center print:px-1 print:py-1">{char}</td>;
+                            })}
+                            <td className="text-[11px] print:text-black text-center font-bold print:px-1 print:py-1">{H || '-'}</td>
+                            <td className="text-[11px] print:text-black text-center font-bold print:px-1 print:py-1">{S || '-'}</td>
+                            <td className="text-[11px] print:text-black text-center font-bold print:px-1 print:py-1">{I || '-'}</td>
+                            <td className="text-[11px] print:text-black text-center font-bold print:px-1 print:py-1">{A || '-'}</td>
+                            <td className="text-[11px] print:text-black text-center font-bold print:px-1 print:py-1">{pct}%</td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="print:table-row print-no-border">
+                        <td colSpan={mapelJurnal.length + 6} className="pt-12 pb-2">
+                          <div className="flex justify-between items-end px-12 text-center text-xs text-black w-full">
+                            <div className="flex flex-col items-center">
+                              <p className="text-transparent select-none">.</p>
+                              <p>Disiapkan Oleh,</p>
+                              <p className="font-bold uppercase mt-1">GURU MATA PELAJARAN,</p>
+                              <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">{user?.nama || '.............................................'}</div>
+                              <p className="mt-1">-</p>
+                            </div>
+                            <div className="flex flex-col items-center">
+                              <p>Karangrejo, {formatDateString(new Date().toISOString())}</p>
+                              <p>Mengetahui Kepala Madrasah,</p>
+                              <p className="font-bold uppercase mt-1">MI Miftahul Khoir 1 Karangrejo,</p>
+                              <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">Nur Su'ud, S.Pd.I.</div>
+                              <p className="mt-1">-</p>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()
+        )}
       </div>
       
       {/* Modal Riwayat Detail */}
