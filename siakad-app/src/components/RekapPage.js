@@ -25,6 +25,9 @@ export default function RekapPage() {
   const [rombel, setRombel] = useState(user?.role === 'Admin' ? 'Semua' : user?.rombel || '');
   const [rombelOptions, setRombelOptions] = useState([]);
   const [selectedHistory, setSelectedHistory] = useState(null);
+  // Injeksi 3: Mode Toggle
+  const [mode, setMode] = useState('harian'); // 'harian' | 'mapel'
+  const [filterMapel, setFilterMapel] = useState('Semua');
   
   // Ambil daftar rombel untuk Admin
   useEffect(() => {
@@ -89,6 +92,38 @@ export default function RekapPage() {
     return { muridData: murid || [], rekapData: rekap, waliKelas: waliKelasData, waliKelasMap };
   });
 
+  // Injeksi 3: Fetch daftar mapel + rekap mapel
+  const { data: masterMapel } = useSWR('master_mapel_list', async () => {
+    const { data } = await supabase.from('master_mapel').select('nama_mapel').order('nama_mapel');
+    return (data || []).map(m => m.nama_mapel);
+  });
+  const mapelOptions = masterMapel || [];
+
+  // Jika mode mapel: ambil jurnal + absensi mapel
+  const rekapMapelKey = mode === 'mapel' && tglMulai && tglAkhir && rombel && filterMapel !== 'Semua'
+    ? `rekap_mapel_${rombel}_${filterMapel}_${tglMulai}_${tglAkhir}` : null;
+  const { data: rekapMapelData, isLoading: loadingMapel } = useSWR(rekapMapelKey, async () => {
+    // 1. Ambil murid
+    let qMurid = supabase.from('master_user').select('id_user, nama, rombel').eq('role', 'Murid').eq('status_aktif', 'Aktif');
+    if (rombel !== 'Semua') qMurid = qMurid.eq('rombel', rombel);
+    const { data: murid } = await qMurid.order('nama');
+    // 2. Ambil jurnal untuk mapel + kelas
+    let qJurnal = supabase.from('jurnal_guru').select('id, tanggal, jam_pelajaran, rombel, mata_pelajaran')
+      .eq('mata_pelajaran', filterMapel).gte('tanggal', tglMulai).lte('tanggal', tglAkhir).order('tanggal');
+    if (rombel !== 'Semua') qJurnal = qJurnal.eq('rombel', rombel);
+    const { data: jurnal } = await qJurnal;
+    if (!jurnal || jurnal.length === 0) return { murid: murid || [], jurnal: [], absenMap: {} };
+    // 3. Ambil data_absensi_mapel untuk jurnal-jurnal tersebut
+    const jurnalIds = jurnal.map(j => j.id);
+    const { data: absen } = await supabase.from('data_absensi_mapel')
+      .select('id_jurnal, nisn, status').in('id_jurnal', jurnalIds);
+    const absenMap = {};
+    (absen || []).forEach(a => {
+      if (!absenMap[a.id_jurnal]) absenMap[a.id_jurnal] = {};
+      absenMap[a.id_jurnal][a.nisn] = a.status;
+    });
+    return { murid: murid || [], jurnal, absenMap };
+  });
   const muridData = swrData?.muridData || [];
   const rekapData = swrData?.rekapData || {};
   const waliKelasName = swrData?.waliKelas || '.............................................';
@@ -330,16 +365,39 @@ export default function RekapPage() {
                     <option key={r} value={r} className="bg-white dark:bg-slate-900">{r}</option>
                   ))}
                 </select>
-                <svg className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <svg className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
                 </svg>
               </div>
             )}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-2 border-t border-slate-100 dark:border-white/10 mt-2 w-full">
+              <div className="flex rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-sm shrink-0">
+                <button onClick={() => setMode('harian')} className={`px-4 py-2 text-xs font-bold transition-colors ${mode === 'harian' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'}`}>
+                  Rekap Harian
+                </button>
+                <button onClick={() => setMode('mapel')} className={`px-4 py-2 text-xs font-bold transition-colors ${mode === 'mapel' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'}`}>
+                  Rekap Mapel
+                </button>
+              </div>
+              {mode === 'mapel' && (
+                <div className="relative w-full sm:w-auto">
+                  <select value={filterMapel} onChange={e => setFilterMapel(e.target.value)}
+                    style={{ backgroundImage: 'none' }}
+                    className="appearance-none w-full sm:w-auto pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-sm">
+                    <option value="Semua">-- Pilih Mata Pelajaran --</option>
+                    {(user?.role === 'Guru Mapel' ? (user.mapel ? [user.mapel] : mapelOptions) : mapelOptions).map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                  <svg className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Tabel Layar (Screen) */}
+      {mode === 'harian' ? (
       <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm print:hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -416,8 +474,79 @@ export default function RekapPage() {
           </table>
         </div>
       </div>
-      
-      {/* Container Khusus Cetak Massal (Print) */}
+      ) : (
+      /* ===== INJEKSI 3: Tabel Mode Rekap Mapel ===== */
+      <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm print:hidden">
+        {filterMapel === 'Semua' ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <svg className="w-10 h-10 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 10.741-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" /></svg>
+            <p className="text-slate-400 dark:text-slate-500 font-medium text-sm">Pilih Mata Pelajaran untuk melihat rekap kehadiran per pertemuan</p>
+          </div>
+        ) : loadingMapel ? (
+          <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" /></div>
+        ) : !rekapMapelData || rekapMapelData.jurnal.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 dark:text-slate-500 font-medium text-sm">Tidak ada jurnal mengajar untuk mata pelajaran <strong>{filterMapel}</strong> dalam rentang tanggal ini.</div>
+        ) : (() => {
+          const { murid: mapelMurid, jurnal: mapelJurnal, absenMap } = rekapMapelData;
+          const statusCell = (status) => {
+            const s = { Hadir: 'text-emerald-600 dark:text-emerald-400', Sakit: 'text-amber-600 dark:text-amber-400', Izin: 'text-blue-600 dark:text-blue-400', Alfa: 'text-rose-600 dark:text-rose-400', Dispen: 'text-purple-600 dark:text-purple-400' };
+            return <span className={`font-bold text-xs ${s[status] || 'text-slate-500'}`}>{status === 'Hadir' ? 'H' : status?.charAt(0) || 'H'}</span>;
+          };
+          return (
+            <div className="overflow-x-auto">
+              <div className="px-5 py-3 border-b border-slate-100 dark:border-white/10">
+                <p className="text-sm font-bold text-slate-700 dark:text-white">{filterMapel}</p>
+                <p className="text-xs text-slate-400">{mapelJurnal.length} pertemuan · {mapelMurid.length} siswa</p>
+              </div>
+              <table className="w-full text-left border-collapse min-w-[600px]">
+                <thead>
+                  <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
+                    <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky left-0 bg-slate-50 dark:bg-slate-900 z-10 min-w-[160px]">Nama</th>
+                    {mapelJurnal.map((j, i) => (
+                      <th key={j.id} className="px-3 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400" title={`${j.tanggal} ${j.jam_pelajaran}`}>
+                        <div>P{i + 1}</div>
+                        <div className="text-[9px] font-normal text-slate-400">{j.tanggal.slice(8)}/{j.tanggal.slice(5, 7)}</div>
+                      </th>
+                    ))}
+                    <th className="px-3 py-3 text-center text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">H</th>
+                    <th className="px-3 py-3 text-center text-xs font-bold text-amber-600 dark:text-amber-400 uppercase">S</th>
+                    <th className="px-3 py-3 text-center text-xs font-bold text-blue-600 dark:text-blue-400 uppercase">I</th>
+                    <th className="px-3 py-3 text-center text-xs font-bold text-rose-600 dark:text-rose-400 uppercase">A</th>
+                    <th className="px-3 py-3 text-center text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase">%</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                  {mapelMurid.map((m) => {
+                    let H = 0, S = 0, I = 0, A = 0;
+                    mapelJurnal.forEach(j => {
+                      const st = absenMap[j.id]?.[m.id_user] || 'Hadir';
+                      if (st === 'Hadir') H++; else if (st === 'Sakit') S++; else if (st === 'Izin') I++; else A++;
+                    });
+                    const pct = mapelJurnal.length > 0 ? Math.round((H / mapelJurnal.length) * 100) : 100;
+                    return (
+                      <tr key={m.id_user} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+                        <td className="px-4 py-3 text-sm font-semibold text-slate-800 dark:text-white sticky left-0 bg-white dark:bg-slate-900 z-10">{m.nama}</td>
+                        {mapelJurnal.map(j => (
+                          <td key={j.id} className="px-3 py-3 text-center">
+                            {statusCell(absenMap[j.id]?.[m.id_user] || 'Hadir')}
+                          </td>
+                        ))}
+                        <td className="px-3 py-3 text-center text-xs font-bold text-emerald-600 dark:text-emerald-400">{H || '-'}</td>
+                        <td className="px-3 py-3 text-center text-xs font-bold text-amber-600 dark:text-amber-400">{S || '-'}</td>
+                        <td className="px-3 py-3 text-center text-xs font-bold text-blue-600 dark:text-blue-400">{I || '-'}</td>
+                        <td className="px-3 py-3 text-center text-xs font-bold text-rose-600 dark:text-rose-400">{A || '-'}</td>
+                        <td className="px-3 py-3 text-center text-xs font-bold text-indigo-600 dark:text-indigo-400">{pct}%</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
+      </div>
+      )}
+
       <div className="print-container hidden print:block">
         {rombelsToPrint.map((rName, rIdx) => {
           const rMuridData = rombel === 'Semua' ? muridData.filter(m => m.rombel === rName) : muridData;

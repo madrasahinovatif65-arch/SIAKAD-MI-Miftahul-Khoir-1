@@ -65,6 +65,22 @@ export default function RiwayatMuridPage() {
 
   const data = swrData || [];
 
+  // Injeksi 2: Riwayat Ketidakhadiran Mata Pelajaran
+  const { data: absenMapelData, isLoading: loadingMapel } = useSWR(
+    user && tglMulai && tglAkhir ? `absen_mapel_murid_${user.id_user}_${tglMulai}_${tglAkhir}` : null,
+    async () => {
+      const { data } = await supabase
+        .from('data_absensi_mapel')
+        .select('status, catatan, jurnal_guru!inner(tanggal, jam_pelajaran, mata_pelajaran, rombel)')
+        .eq('nisn', user.id_user)
+        .gte('jurnal_guru.tanggal', tglMulai)
+        .lte('jurnal_guru.tanggal', tglAkhir)
+        .order('jurnal_guru(tanggal)', { ascending: false });
+      return (data || []).filter(d => d.status !== 'Hadir');
+    }
+  );
+  const absenMapel = absenMapelData || [];
+
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     const [y, m, d] = dateStr.split('-');
@@ -222,6 +238,53 @@ export default function RiwayatMuridPage() {
           ))}
           {data.filter(d => filterStatus === 'Semua' || d.status === filterStatus).length === 0 && (
             <div className="text-center py-8 text-slate-600 dark:text-white/30 text-sm">Tidak ada absensi dengan status {filterStatus}</div>
+          )}
+        </div>
+      )}
+      {/* === INJEKSI 2: Riwayat Ketidakhadiran Mata Pelajaran === */}
+      {(absenMapel.length > 0 || loadingMapel) && (
+        <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-4 sm:p-6 shadow-sm space-y-4">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
+            <h3 className="text-sm font-bold text-slate-800 dark:text-white">Ketidakhadiran Mata Pelajaran</h3>
+            <span className="ml-auto text-xs text-slate-400">{absenMapel.length} catatan</span>
+          </div>
+          {loadingMapel ? (
+            <div className="flex justify-center py-6"><div className="w-6 h-6 border-4 border-rose-500/30 border-t-rose-500 rounded-full animate-spin" /></div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[480px]">
+                <thead>
+                  <tr className="border-b border-slate-100 dark:border-white/10">
+                    <th className="pb-2 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Tanggal</th>
+                    <th className="pb-2 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Jam</th>
+                    <th className="pb-2 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Mata Pelajaran</th>
+                    <th className="pb-2 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50 dark:divide-white/5">
+                  {absenMapel.map((a, i) => {
+                    const jurnal = a.jurnal_guru;
+                    const statusColors = {
+                      Sakit: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400',
+                      Izin: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400',
+                      Alfa: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400',
+                      Dispen: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400',
+                    };
+                    return (
+                      <tr key={i}>
+                        <td className="py-2.5 pr-3 text-slate-700 dark:text-slate-300 font-mono text-xs">{jurnal ? formatDate(jurnal.tanggal) : '-'}</td>
+                        <td className="py-2.5 pr-3 text-slate-500 dark:text-slate-400 text-xs">{jurnal ? (jurnal.jam_pelajaran || '-').replace(/\s*\(.*\)/, '') : '-'}</td>
+                        <td className="py-2.5 pr-3 text-slate-700 dark:text-white font-medium text-xs">{jurnal?.mata_pelajaran || '-'}</td>
+                        <td className="py-2.5 text-center">
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColors[a.status] || 'text-slate-500'}`}>{a.status}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}

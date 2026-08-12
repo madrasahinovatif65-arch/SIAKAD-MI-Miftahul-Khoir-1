@@ -173,7 +173,7 @@ export default function RiwayatGuruPage() {
     async () => {
       let query = supabase
         .from('jurnal_guru')
-        .select('*, master_user(nama), data_absensi_mapel(nisn)')
+        .select('*, master_user(nama), data_absensi_mapel(status, master_user!data_absensi_mapel_nisn_fkey(nama))')
         .gte('tanggal', jurnalTglMulai)
         .lte('tanggal', jurnalTglAkhir)
         .order('tanggal', { ascending: false });
@@ -877,13 +877,36 @@ export default function RiwayatGuruPage() {
                             <div className="text-xs italic text-slate-500 dark:text-slate-400 mt-1">Catatan: {j.catatan}</div>
                           )}
                         </td>
-                        <td className="px-5 py-4 text-sm text-center font-bold text-slate-700 dark:text-white print:text-black">
+                        <td className="px-5 py-4 text-sm print:text-black">
                           {(() => {
+                            const absenList = j.data_absensi_mapel || [];
                             const totalSiswa = masterData?.rombelCounts?.[j.rombel] || 1;
-                            const absenCount = j.data_absensi_mapel?.length || 0;
-                            const hadirCount = Math.max(0, totalSiswa - absenCount);
-                            const persentase = totalSiswa > 0 ? Math.round((hadirCount / totalSiswa) * 100) : 100;
-                            return `${persentase}%`;
+                            const hadirCount = Math.max(0, totalSiswa - absenList.length);
+                            const pct = totalSiswa > 0 ? Math.round((hadirCount / totalSiswa) * 100) : 100;
+                            const statusColors = {
+                              Sakit: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/20',
+                              Izin: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/20',
+                              Alfa: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20',
+                              Dispen: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-500/20',
+                            };
+                            if (absenList.length === 0) return (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-200 dark:border-emerald-500/20">
+                                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                                Hadir Semua ({pct}%)
+                              </span>
+                            );
+                            return (
+                              <div className="space-y-1">
+                                <span className="text-xs font-bold text-slate-500">{pct}% hadir</span>
+                                <div className="flex flex-wrap gap-1">
+                                  {absenList.map((a, i) => (
+                                    <span key={i} className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border ${statusColors[a.status] || ''}`}>
+                                      {a.master_user?.nama || '?'} · {a.status}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            );
                           })()}
                         </td>
                       </tr>
