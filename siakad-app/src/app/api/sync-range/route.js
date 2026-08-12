@@ -99,8 +99,11 @@ export async function POST(request) {
     let added = 0;
     let skipped = 0;
 
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const currentDateString = d.toISOString().split('T')[0];
+    for (let d = new Date(tglMulai + 'T00:00:00'); d <= new Date(tglAkhir + 'T00:00:00'); d.setDate(d.getDate() + 1)) {
+      const y = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, '0');
+      const dy = String(d.getDate()).padStart(2, '0');
+      const currentDateString = `${y}-${mo}-${dy}`;
       if (d.getDay() === 0) continue;
       if (liburSet.has(currentDateString)) continue;
 
