@@ -32,6 +32,15 @@ export default function PresensiPage() {
   const [isProcessingRange, setIsProcessingRange] = useState(false);
   const [rangeMessage, setRangeMessage] = useState(null);
 
+  // Fetch dates that already have data in data_absensi for the selected rangeRombel
+  const { data: verifiedRangeDates, mutate: mutateRangeDates } = useSWR(
+    rangeRombel ? `verified_range_dates_${rangeRombel}` : null,
+    async () => {
+      const { data } = await supabase.from('data_absensi').select('tanggal').eq('rombel', rangeRombel);
+      return new Set((data || []).map(d => d.tanggal));
+    }
+  );
+
   const { data: rombelData } = useSWR('master_rombel', async () => {
     if (user?.role === 'Wali Kelas' && user?.rombel && user.rombel !== '-') {
       return [user.rombel];
@@ -62,6 +71,22 @@ export default function PresensiPage() {
 
     if (date.getDay() === 0 || (liburDates && liburDates.includes(dateStr))) {
       return 'react-datepicker__day--holiday !text-rose-500 font-bold';
+    }
+    return undefined;
+  };
+
+  // Calendar indicator for range modal: marks days already verified in data_absensi
+  const getDayClassNameRange = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${y}-${m}-${d}`;
+
+    if (date.getDay() === 0 || (liburDates && liburDates.includes(dateStr))) {
+      return 'react-datepicker__day--holiday !text-rose-500 font-bold';
+    }
+    if (verifiedRangeDates && verifiedRangeDates.has(dateStr)) {
+      return '!bg-emerald-100 dark:!bg-emerald-900/40 !text-emerald-700 dark:!text-emerald-300 font-semibold rounded-full';
     }
     return undefined;
   };
@@ -150,8 +175,15 @@ export default function PresensiPage() {
     setRangeMessage(null);
 
     try {
-      const tglMulaiStr = new Date(startDate.getTime() - (startDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-      const tglAkhirStr = new Date(endDate.getTime() - (endDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+      // Build date string safely (no UTC shift)
+      const fmtDate = (d) => {
+        const y = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const dy = String(d.getDate()).padStart(2, '0');
+        return `${y}-${mo}-${dy}`;
+      };
+      const tglMulaiStr = fmtDate(startDate);
+      const tglAkhirStr = fmtDate(endDate);
 
       const res = await fetch('/api/sync-range', {
         method: 'POST',
@@ -165,6 +197,7 @@ export default function PresensiPage() {
       }
 
       setRangeMessage({ type: 'success', text: data.message });
+      mutateRangeDates(); // refresh calendar indicators
       reloadData();
     } catch (err) {
       setRangeMessage({ type: 'error', text: err.message });
@@ -456,7 +489,11 @@ export default function PresensiPage() {
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
             <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Verifikasi Rentang Waktu</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Otomatisasi absen "Hadir" untuk tanggal yang terlewat. Maksimal 1 bulan berjalan.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Otomatisasi absen "Hadir" untuk tanggal yang terlewat. Pilih rentang dalam satu bulan yang sama (bisa bulan lampau).</p>
+            <div className="flex items-center gap-2 mb-5 text-xs text-slate-400">
+              <span className="inline-block w-4 h-4 rounded-full bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-500/40 shrink-0"></span>
+              <span>Hari yang sudah memiliki data absensi</span>
+            </div>
             
             {rangeMessage && (
               <div className={`p-4 rounded-xl mb-6 text-sm font-medium border ${rangeMessage.type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400'}`}>
@@ -494,7 +531,7 @@ export default function PresensiPage() {
                   dateFormat="dd-MM-yyyy"
                   locale="id"
                   todayButton="Hari Ini"
-                  dayClassName={getDayClassName}
+                  dayClassName={getDayClassNameRange}
                   placeholderText="Pilih tgl mulai - akhir"
                   className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm text-left font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm"
                 />
