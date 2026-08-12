@@ -1,6 +1,6 @@
 'use client';
 
-import { getTodayDate, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import useSWR from 'swr';
@@ -8,7 +8,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { id } from 'date-fns/locale/id';
-import { getTahunPelajaran } , getTodayDate } from '@/lib/dateUtils';
+import { getTahunPelajaran, getTodayDate } from '@/lib/dateUtils';
 
 registerLocale('id', id);
 

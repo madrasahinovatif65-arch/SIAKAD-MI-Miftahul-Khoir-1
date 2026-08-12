@@ -1,4 +1,3 @@
-import { getTodayDate } from '@/lib/dateUtils';
 'use client';
 
 import { useEffect } from 'react';

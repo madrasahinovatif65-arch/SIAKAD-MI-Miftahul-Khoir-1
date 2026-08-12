@@ -1,9 +1,9 @@
 'use client';
 
-import { getTodayDate, useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import { formatTimeShort } , getTodayDate } from '@/lib/dateUtils';
+import { formatTimeShort, getTodayDate } from '@/lib/dateUtils';
 import useSWR from 'swr';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import DatePicker, { registerLocale } from 'react-datepicker';
