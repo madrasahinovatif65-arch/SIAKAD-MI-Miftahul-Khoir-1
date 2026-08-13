@@ -262,7 +262,7 @@ export default function JadwalPage() {
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">Jadwal Pelajaran</h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-            {isAdmin ? 'Kelola jadwal mengajar guru — acuan persentase jurnal di dashboard' : isWaliKelas ? `Jadwal Kelas ${waliRombel || 'Anda'}` : 'Jadwal mengajar Anda — acuan kelengkapan jurnal'}
+            {isAdmin ? 'Kelola jadwal mengajar guru — acuan persentase jurnal di dashboard' : isWaliKelas ? `Jadwal ${waliRombel || 'kelas Anda'}` : 'Jadwal mengajar Anda — acuan kelengkapan jurnal'}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -351,7 +351,7 @@ export default function JadwalPage() {
       {isWaliKelas && waliRombel && (
         <div className="flex items-center gap-3 px-4 py-3 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 rounded-2xl">
           <svg className="w-5 h-5 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 3.741-1.342m-7.482 0a50.74 50.74 0 0 0-7.482 0" /></svg>
-          <p className="text-indigo-700 dark:text-indigo-300 text-sm font-semibold">Menampilkan jadwal Kelas <span className="font-bold">{waliRombel}</span></p>
+          <p className="text-indigo-700 dark:text-indigo-300 text-sm font-semibold">Menampilkan jadwal <span className="font-bold">{waliRombel}</span></p>
         </div>
       )}
 
@@ -442,7 +442,7 @@ export default function JadwalPage() {
           <h3 className="text-slate-800 dark:text-white font-bold flex items-center gap-2 text-sm uppercase tracking-wide">
             <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
             Jadwal Mingguan
-            {effectiveMode === 'kelas' && activeRombel && <span className="ml-1 text-indigo-500 dark:text-indigo-400 normal-case">— Kelas {activeRombel}</span>}
+            {effectiveMode === 'kelas' && activeRombel && <span className="ml-1 text-indigo-500 dark:text-indigo-400 normal-case">— {activeRombel}</span>}
           </h3>
 
           {jadwal.length === 0 ? (
