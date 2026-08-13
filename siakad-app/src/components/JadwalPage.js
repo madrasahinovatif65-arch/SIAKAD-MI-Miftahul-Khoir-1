@@ -62,6 +62,7 @@ export default function JadwalPage() {
   const [hari,         setHari]         = useState('');
   const [rombel,       setRombel]       = useState('');
   const [mapel,        setMapel]        = useState('');
+  const [jam,          setJam]          = useState('');
   const [saving,       setSaving]       = useState(false);
   const [message,      setMessage]      = useState(null);
   const [deletingId,   setDeletingId]   = useState(null);
@@ -73,7 +74,7 @@ export default function JadwalPage() {
 
   // ── master data ──
   const { data: masterData } = useSWR('jadwal_master', async () => {
-    const [guruRes, mapelRes, rombelRes] = await Promise.all([
+    const [guruRes, mapelRes, rombelRes, jamRes] = await Promise.all([
       supabase
         .from('master_user')
         .select('id_user, nama')
@@ -82,6 +83,7 @@ export default function JadwalPage() {
         .order('nama'),
       supabase.from('master_mapel').select('id_mapel, nama_mapel').order('nama_mapel'),
       supabase.from('master_user').select('rombel').eq('role', 'Murid'),
+      supabase.from('master_jam_pelajaran').select('id_jam, nama_jam').order('id_jam'),
     ]);
     const uniqueRombel = [
       ...new Set((rombelRes.data || []).map(d => d.rombel).filter(Boolean)),
@@ -90,11 +92,13 @@ export default function JadwalPage() {
       guru:   guruRes.data  || [],
       mapel:  mapelRes.data || [],
       rombel: uniqueRombel,
+      jam:    jamRes.data   || [],
     };
   });
 
   const mapelOptions  = masterData?.mapel  || [];
   const rombelOptions = masterData?.rombel || [];
+  const jamOptions    = masterData?.jam    || [];
 
   const activeGuruId = isAdmin ? selectedGuru : user?.id_user;
   const jadwalKey    = activeGuruId ? `jadwal_${activeGuruId}` : null;
@@ -119,8 +123,8 @@ export default function JadwalPage() {
 
   // ── handlers ──
   const handleAdd = async () => {
-    if (!activeGuruId || !hari || !rombel || !mapel) {
-      setMessage({ type: 'error', text: 'Semua field wajib diisi.' });
+    if (!activeGuruId || !hari || !rombel || !mapel || !jam) {
+      setMessage({ type: 'error', text: 'Semua field wajib diisi termasuk Jam Pelajaran.' });
       return;
     }
     setSaving(true);
@@ -130,6 +134,7 @@ export default function JadwalPage() {
       hari:           parseInt(hari),
       rombel,
       mata_pelajaran: mapel,
+      nama_jam:       jam,
     });
     setSaving(false);
     if (error) {
@@ -142,6 +147,7 @@ export default function JadwalPage() {
       setHari('');
       setRombel('');
       setMapel('');
+      setJam('');
       mutateJadwal();
     }
   };
@@ -167,8 +173,14 @@ export default function JadwalPage() {
     const guruNama = masterData?.guru?.find(g => g.id_user === activeGuruId)?.nama || activeGuruId;
     downloadXLSX(
       `jadwal_${guruNama.replace(/\s+/g, '_')}.xlsx`,
-      ['Nama Guru', 'Hari', 'Rombel', 'Mata Pelajaran'],
-      jadwal.map(j => [guruNama, HARI_LABEL[j.hari] || j.hari, j.rombel, j.mata_pelajaran]),
+      ['Nama Guru', 'Hari', 'Jam Pelajaran', 'Rombel', 'Mata Pelajaran'],
+      jadwal.map(j => [
+        guruNama,
+        HARI_LABEL[j.hari] || j.hari,
+        j.nama_jam || '-',
+        j.rombel,
+        j.mata_pelajaran,
+      ]),
       'Jadwal'
     );
   };
@@ -177,11 +189,11 @@ export default function JadwalPage() {
   const handleDownloadTemplate = () => {
     downloadXLSX(
       'template_jadwal_pelajaran.xlsx',
-      ['Nama Guru', 'Hari', 'Rombel', 'Mata Pelajaran'],
+      ['Nama Guru', 'Hari', 'Jam Pelajaran', 'Rombel', 'Mata Pelajaran'],
       [
-        ['Ahmad Fauzi', 'Senin', '5A', 'Matematika'],
-        ['Siti Rahayu', 'Selasa', '4B', 'Bahasa Indonesia'],
-        ['Budi Santoso', 'Rabu', '6C', 'IPA'],
+        ['Ahmad Fauzi',  'Senin',  'Jam 1 (07.00-07.35)', '5A', 'Matematika'],
+        ['Siti Rahayu',  'Selasa', 'Jam 2 (07.35-08.10)', '4B', 'Bahasa Indonesia'],
+        ['Budi Santoso', 'Rabu',   'Jam 3 (08.10-08.45)', '6C', 'IPA'],
       ],
       'Template'
     );
@@ -215,6 +227,7 @@ export default function JadwalPage() {
 
       const namaGuruIdx = headers.findIndex(h => h.includes('nama_guru') || h.includes('guru'));
       const hariIdx     = headers.findIndex(h => h === 'hari');
+      const jamIdx      = headers.findIndex(h => h.includes('jam_pelajaran') || h.includes('jam'));
       const rombelIdx   = headers.findIndex(h => h.includes('rombel') || h.includes('kelas'));
       const mapelIdx    = headers.findIndex(h => h.includes('mata_pelajaran') || h.includes('mapel') || h.includes('pelajaran'));
 
@@ -234,6 +247,7 @@ export default function JadwalPage() {
 
         const namaGuru  = String(row[namaGuruIdx] ?? '').trim();
         const hariRaw   = String(row[hariIdx]     ?? '').trim();
+        const jamVal    = jamIdx >= 0 ? String(row[jamIdx] ?? '').trim() : '';
         const rombelVal = String(row[rombelIdx]   ?? '').trim();
         const mapelVal  = String(row[mapelIdx]    ?? '').trim();
 
@@ -259,6 +273,7 @@ export default function JadwalPage() {
         const { error } = await supabase.from('jadwal_pelajaran').insert({
           id_guru:        guru.id_user,
           hari:           hariNum,
+          nama_jam:       jamVal || null,
           rombel:         rombelVal,
           mata_pelajaran: mapelVal,
         });
@@ -456,14 +471,12 @@ export default function JadwalPage() {
         <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-white/60 dark:border-white/10 rounded-[1.5rem] p-6 shadow-sm space-y-4">
           <h3 className="text-slate-800 dark:text-white font-bold text-sm flex items-center gap-2">
             <div className="w-7 h-7 bg-emerald-100 dark:bg-emerald-500/20 rounded-lg flex items-center justify-center">
-              <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
+              <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
             </div>
             Tambah Slot Jadwal
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Hari */}
             <div className="space-y-1.5">
               <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Hari</label>
@@ -477,9 +490,24 @@ export default function JadwalPage() {
                   <option value="">Pilih Hari</option>
                   {HARI_OPTIONS.map(h => <option key={h.value} value={h.value}>{h.label}</option>)}
                 </select>
-                <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                </svg>
+                <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+              </div>
+            </div>
+
+            {/* Jam Pelajaran */}
+            <div className="space-y-1.5">
+              <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Jam Pelajaran</label>
+              <div className="relative">
+                <select
+                  value={jam}
+                  onChange={e => setJam(e.target.value)}
+                  style={{ backgroundImage: 'none' }}
+                  className="appearance-none w-full pl-4 pr-8 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+                >
+                  <option value="">Pilih Jam</option>
+                  {jamOptions.map(j => <option key={j.id_jam} value={j.nama_jam}>{j.nama_jam}</option>)}
+                </select>
+                <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
               </div>
             </div>
 
@@ -496,9 +524,7 @@ export default function JadwalPage() {
                   <option value="">Pilih Rombel</option>
                   {rombelOptions.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
-                <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                </svg>
+                <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
               </div>
             </div>
 
@@ -515,9 +541,7 @@ export default function JadwalPage() {
                   <option value="">Pilih Mapel</option>
                   {mapelOptions.map(m => <option key={m.id_mapel} value={m.nama_mapel}>{m.nama_mapel}</option>)}
                 </select>
-                <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                </svg>
+                <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
               </div>
             </div>
           </div>
@@ -594,6 +618,12 @@ export default function JadwalPage() {
                               {slot.mata_pelajaran}
                             </p>
                             <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{slot.rombel}</p>
+                            {slot.nama_jam && (
+                              <p className="text-slate-400 dark:text-slate-500 text-xs mt-0.5 flex items-center gap-1">
+                                <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                                {slot.nama_jam}
+                              </p>
+                            )}
                           </div>
 
                           {/* Tombol hapus — HANYA ADMIN */}
