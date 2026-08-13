@@ -64,6 +64,8 @@ export default function JadwalPage() {
   const [mapel,        setMapel]        = useState('');
   const [jamMulai,     setJamMulai]     = useState('');
   const [jamSelesai,   setJamSelesai]   = useState('');
+  const [viewMode,     setViewMode]     = useState('guru'); // 'guru' | 'kelas'
+  const [selectedRombel, setSelectedRombel] = useState('');
   const [saving,       setSaving]       = useState(false);
   const [message,      setMessage]      = useState(null);
   const [deletingId,   setDeletingId]   = useState(null);
@@ -101,17 +103,33 @@ export default function JadwalPage() {
   const rombelOptions = masterData?.rombel || [];
   const jamOptions    = masterData?.jam    || [];
 
+  const getJamLabel = (mulaiId, selesaiId) => {
+    if (!mulaiId) return '-';
+    const jamObjMulai = jamOptions.find(j => j.id_jam === mulaiId);
+    const jamObjSelesai = jamOptions.find(j => j.id_jam === selesaiId);
+    if (!jamObjMulai) return mulaiId;
+    if (!jamObjSelesai || mulaiId === selesaiId) {
+      return `${jamObjMulai.nama_jam} (${jamObjMulai.waktu_mulai}-${jamObjMulai.waktu_selesai})`;
+    }
+    return `${jamObjMulai.nama_jam} s/d ${jamObjSelesai.nama_jam} (${jamObjMulai.waktu_mulai}-${jamObjSelesai.waktu_selesai})`;
+  };
+
   const activeGuruId = isAdmin ? selectedGuru : user?.id_user;
-  const jadwalKey    = activeGuruId ? `jadwal_${activeGuruId}` : null;
+  const jadwalKey = viewMode === 'guru' && activeGuruId 
+    ? `jadwal_guru_${activeGuruId}`
+    : viewMode === 'kelas' && selectedRombel
+    ? `jadwal_kelas_${selectedRombel}`
+    : null;
 
   // ── jadwal data ──
   const { data: jadwalData, mutate: mutateJadwal } = useSWR(jadwalKey, async () => {
-    const { data } = await supabase
-      .from('jadwal_pelajaran')
-      .select('*')
-      .eq('id_guru', activeGuruId)
-      .order('hari')
-      .order('rombel');
+    let query = supabase.from('jadwal_pelajaran').select('*').order('hari');
+    if (viewMode === 'guru') {
+      query = query.eq('id_guru', activeGuruId).order('rombel');
+    } else {
+      query = query.eq('rombel', selectedRombel);
+    }
+    const { data } = await query;
     return data || [];
   });
 
@@ -128,17 +146,6 @@ export default function JadwalPage() {
       setMessage({ type: 'error', text: 'Semua field wajib diisi termasuk Jam Mulai.' });
       return;
     }
-    // Bangun string jam
-    const jamObjMulai   = jamOptions.find(j => j.id_jam === jamMulai);
-    const jamObjSelesai = jamOptions.find(j => j.id_jam === (jamSelesai || jamMulai));
-    let namaJamFinal = '';
-    if (jamObjMulai && jamObjSelesai) {
-      if (jamObjMulai.id_jam === jamObjSelesai.id_jam) {
-        namaJamFinal = `${jamObjMulai.nama_jam} (${jamObjMulai.waktu_mulai}-${jamObjMulai.waktu_selesai})`;
-      } else {
-        namaJamFinal = `${jamObjMulai.nama_jam} s/d ${jamObjSelesai.nama_jam} (${jamObjMulai.waktu_mulai}-${jamObjSelesai.waktu_selesai})`;
-      }
-    }
     setSaving(true);
     setMessage(null);
     const { error } = await supabase.from('jadwal_pelajaran').insert({
@@ -146,7 +153,8 @@ export default function JadwalPage() {
       hari:           parseInt(hari),
       rombel,
       mata_pelajaran: mapel,
-      nama_jam:       namaJamFinal || null,
+      jam_mulai:      jamMulai || null,
+      jam_selesai:    (jamSelesai || jamMulai) || null,
     });
     setSaving(false);
     if (error) {
@@ -185,15 +193,19 @@ export default function JadwalPage() {
     }
     const guruNama = masterData?.guru?.find(g => g.id_user === activeGuruId)?.nama || activeGuruId;
     downloadXLSX(
-      `jadwal_${guruNama.replace(/\s+/g, '_')}.xlsx`,
-      ['Nama Guru', 'Hari', 'Jam Pelajaran', 'Rombel', 'Mata Pelajaran'],
-      jadwal.map(j => [
-        guruNama,
-        HARI_LABEL[j.hari] || j.hari,
-        j.nama_jam || '-',
-        j.rombel,
-        j.mata_pelajaran,
-      ]),
+      `jadwal_${viewMode}_${viewMode === 'guru' ? guruNama.replace(/\s+/g, '_') : selectedRombel}.xlsx`,
+      ['Nama Guru', 'Hari', 'Jam Mulai', 'Jam Selesai', 'Rombel', 'Mata Pelajaran'],
+      jadwal.map(j => {
+        const namaGuruMap = masterData?.guru?.find(g => g.id_user === j.id_guru)?.nama || j.id_guru;
+        return [
+          namaGuruMap,
+          HARI_LABEL[j.hari] || j.hari,
+          j.jam_mulai || '-',
+          j.jam_selesai || '-',
+          j.rombel,
+          j.mata_pelajaran,
+        ];
+      }),
       'Jadwal'
     );
   };
@@ -202,11 +214,11 @@ export default function JadwalPage() {
   const handleDownloadTemplate = () => {
     downloadXLSX(
       'template_jadwal_pelajaran.xlsx',
-      ['Nama Guru', 'Hari', 'Jam Pelajaran', 'Rombel', 'Mata Pelajaran'],
+      ['Nama Guru', 'Hari', 'Jam Mulai', 'Jam Selesai', 'Rombel', 'Mata Pelajaran'],
       [
-        ['Ahmad Fauzi',  'Senin',  'Jam 1 s/d Jam 2 (07.00-08.10)', '5A', 'Matematika'],
-        ['Siti Rahayu',  'Selasa', 'Jam 3 (08.10-08.45)',           '4B', 'Bahasa Indonesia'],
-        ['Budi Santoso', 'Rabu',   'Jam 4 (08.45-09.20)',           '6C', 'IPA'],
+        ['Ahmad Fauzi',  'Senin',  'J01', 'J02', '5A', 'Matematika'],
+        ['Siti Rahayu',  'Selasa', 'J03', 'J03', '4B', 'Bahasa Indonesia'],
+        ['Budi Santoso', 'Rabu',   'J04', 'J05', '6C', 'IPA'],
       ],
       'Template'
     );
@@ -238,11 +250,12 @@ export default function JadwalPage() {
         String(h).toLowerCase().trim().replace(/\s+/g, '_')
       );
 
-      const namaGuruIdx = headers.findIndex(h => h.includes('nama_guru') || h.includes('guru'));
-      const hariIdx     = headers.findIndex(h => h === 'hari');
-      const jamIdx      = headers.findIndex(h => h.includes('jam_pelajaran') || h.includes('jam'));
-      const rombelIdx   = headers.findIndex(h => h.includes('rombel') || h.includes('kelas'));
-      const mapelIdx    = headers.findIndex(h => h.includes('mata_pelajaran') || h.includes('mapel') || h.includes('pelajaran'));
+      const namaGuruIdx   = headers.findIndex(h => h.includes('nama_guru') || h.includes('guru'));
+      const hariIdx       = headers.findIndex(h => h === 'hari');
+      const jamMulaiIdx   = headers.findIndex(h => h.includes('jam_mulai') || h === 'mulai');
+      const jamSelesaiIdx = headers.findIndex(h => h.includes('jam_selesai') || h === 'selesai');
+      const rombelIdx     = headers.findIndex(h => h.includes('rombel') || h.includes('kelas'));
+      const mapelIdx      = headers.findIndex(h => h.includes('mata_pelajaran') || h.includes('mapel') || h.includes('pelajaran'));
 
       if ([namaGuruIdx, hariIdx, rombelIdx, mapelIdx].includes(-1)) {
         setMessage({ type: 'error', text: 'Header Excel tidak valid. Gunakan template yang disediakan.' });
@@ -260,7 +273,8 @@ export default function JadwalPage() {
 
         const namaGuru  = String(row[namaGuruIdx] ?? '').trim();
         const hariRaw   = String(row[hariIdx]     ?? '').trim();
-        const jamVal    = jamIdx >= 0 ? String(row[jamIdx] ?? '').trim() : '';
+        const jamMulaiVal   = jamMulaiIdx >= 0 ? String(row[jamMulaiIdx] ?? '').trim() : '';
+        const jamSelesaiVal = jamSelesaiIdx >= 0 ? String(row[jamSelesaiIdx] ?? '').trim() : '';
         const rombelVal = String(row[rombelIdx]   ?? '').trim();
         const mapelVal  = String(row[mapelIdx]    ?? '').trim();
 
@@ -286,7 +300,8 @@ export default function JadwalPage() {
         const { error } = await supabase.from('jadwal_pelajaran').insert({
           id_guru:        guru.id_user,
           hari:           hariNum,
-          nama_jam:       jamVal || null,
+          jam_mulai:      jamMulaiVal || null,
+          jam_selesai:    (jamSelesaiVal || jamMulaiVal) || null,
           rombel:         rombelVal,
           mata_pelajaran: mapelVal,
         });
@@ -454,9 +469,33 @@ export default function JadwalPage() {
         </div>
       )}
 
+      {/* ── Toggle Mode ── */}
+      <div className="flex bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-xl w-fit mx-auto mb-6">
+        <button
+          onClick={() => setViewMode('guru')}
+          className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all ${
+            viewMode === 'guru'
+              ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm'
+              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+          }`}
+        >
+          Per Guru
+        </button>
+        <button
+          onClick={() => setViewMode('kelas')}
+          className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all ${
+            viewMode === 'kelas'
+              ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm'
+              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+          }`}
+        >
+          Per Kelas
+        </button>
+      </div>
+
       {/* ── Pilih Guru (Admin only) ── */}
-      {isAdmin && (
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-white/60 dark:border-white/10 rounded-[1.5rem] p-5 shadow-sm">
+      {viewMode === 'guru' && isAdmin && (
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-white/60 dark:border-white/10 rounded-[1.5rem] p-5 shadow-sm mb-6">
           <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold block mb-2">
             Pilih Guru
           </label>
@@ -470,6 +509,31 @@ export default function JadwalPage() {
               <option value="">-- Pilih Guru --</option>
               {(masterData?.guru || []).map(g => (
                 <option key={g.id_user} value={g.id_user}>{g.nama}</option>
+              ))}
+            </select>
+            <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+            </svg>
+          </div>
+        </div>
+      )}
+
+      {/* ── Pilih Kelas ── */}
+      {viewMode === 'kelas' && (
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-white/60 dark:border-white/10 rounded-[1.5rem] p-5 shadow-sm mb-6">
+          <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold block mb-2">
+            Pilih Kelas / Rombel
+          </label>
+          <div className="relative">
+            <select
+              value={selectedRombel}
+              onChange={e => setSelectedRombel(e.target.value)}
+              style={{ backgroundImage: 'none' }}
+              className="appearance-none w-full pl-4 pr-10 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+            >
+              <option value="">-- Pilih Kelas --</option>
+              {rombelOptions.map(r => (
+                <option key={r} value={r}>{r}</option>
               ))}
             </select>
             <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -612,7 +676,7 @@ export default function JadwalPage() {
       )}
 
       {/* ── Jadwal Mingguan ── */}
-      {activeGuruId && (
+      {(viewMode === 'guru' ? activeGuruId : selectedRombel) && (
         <div className="space-y-3">
           <h3 className="text-slate-800 dark:text-white font-bold flex items-center gap-2 text-sm uppercase tracking-wide">
             <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -658,11 +722,17 @@ export default function JadwalPage() {
                             <p className="text-slate-800 dark:text-white font-semibold text-sm truncate">
                               {slot.mata_pelajaran}
                             </p>
-                            <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{slot.rombel}</p>
-                            {slot.nama_jam && (
+                            {viewMode === 'guru' ? (
+                              <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{slot.rombel}</p>
+                            ) : (
+                              <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5 font-medium text-indigo-600 dark:text-indigo-400">
+                                {masterData?.guru?.find(g => g.id_user === slot.id_guru)?.nama || slot.id_guru}
+                              </p>
+                            )}
+                            {(slot.jam_mulai || slot.jam_selesai) && (
                               <p className="text-slate-400 dark:text-slate-500 text-xs mt-0.5 flex items-center gap-1">
                                 <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-                                {slot.nama_jam}
+                                {getJamLabel(slot.jam_mulai, slot.jam_selesai)}
                               </p>
                             )}
                           </div>
