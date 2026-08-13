@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import useSWR from 'swr';
@@ -26,37 +27,29 @@ const HARI_COLOR = {
   6: 'from-cyan-500 to-sky-500',
 };
 
-// ─── CSV helper ────────────────────────────────────────────────────────────────
-function parseCSVLine(line) {
-  const result = [];
-  let current = '';
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  result.push(current.trim());
-  return result;
-}
+// ─── XLSX helper ───────────────────────────────────────────────────────────────
+function downloadXLSX(filename, headers, rows, sheetName = 'Jadwal') {
+  const wb = XLSX.utils.book_new();
+  const wsData = [headers, ...rows];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-function downloadCSV(filename, rows) {
-  const csvContent = rows
-    .map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
-    .join('\n');
-  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  // Bold header row
+  const headerRange = XLSX.utils.decode_range(ws['!ref']);
+  for (let c = headerRange.s.c; c <= headerRange.e.c; c++) {
+    const cell = ws[XLSX.utils.encode_cell({ r: 0, c })];
+    if (cell) cell.s = { font: { bold: true } };
+  }
+
+  // Auto column width
+  ws['!cols'] = headers.map((h, i) => ({
+    wch: Math.max(
+      h.length,
+      ...rows.map(r => String(r[i] ?? '').length)
+    ) + 4,
+  }));
+
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, filename);
 }
 // ───────────────────────────────────────────────────────────────────────────────
 
@@ -165,32 +158,36 @@ export default function JadwalPage() {
     }
   };
 
-  // ── Ekspor ──
+  // ── Ekspor XLSX ──
   const handleExport = () => {
     if (jadwal.length === 0) {
       setMessage({ type: 'error', text: 'Tidak ada data untuk diekspor.' });
       return;
     }
     const guruNama = masterData?.guru?.find(g => g.id_user === activeGuruId)?.nama || activeGuruId;
-    downloadCSV(
-      `jadwal_${guruNama.replace(/\s+/g, '_')}.csv`,
-      [
-        ['nama_guru', 'hari', 'rombel', 'mata_pelajaran'],
-        ...jadwal.map(j => [guruNama, HARI_LABEL[j.hari] || j.hari, j.rombel, j.mata_pelajaran]),
-      ]
+    downloadXLSX(
+      `jadwal_${guruNama.replace(/\s+/g, '_')}.xlsx`,
+      ['Nama Guru', 'Hari', 'Rombel', 'Mata Pelajaran'],
+      jadwal.map(j => [guruNama, HARI_LABEL[j.hari] || j.hari, j.rombel, j.mata_pelajaran]),
+      'Jadwal'
     );
   };
 
-  // ── Template ──
+  // ── Template XLSX ──
   const handleDownloadTemplate = () => {
-    downloadCSV('template_jadwal_pelajaran.csv', [
-      ['nama_guru', 'hari', 'rombel', 'mata_pelajaran'],
-      ['Ahmad Fauzi', 'Senin', '5A', 'Matematika'],
-      ['Siti Rahayu', 'Selasa', '4B', 'Bahasa Indonesia'],
-    ]);
+    downloadXLSX(
+      'template_jadwal_pelajaran.xlsx',
+      ['Nama Guru', 'Hari', 'Rombel', 'Mata Pelajaran'],
+      [
+        ['Ahmad Fauzi', 'Senin', '5A', 'Matematika'],
+        ['Siti Rahayu', 'Selasa', '4B', 'Bahasa Indonesia'],
+        ['Budi Santoso', 'Rabu', '6C', 'IPA'],
+      ],
+      'Template'
+    );
   };
 
-  // ── Impor ──
+  // ── Impor XLSX ──
   const handleImport = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -199,84 +196,93 @@ export default function JadwalPage() {
     setImportResult(null);
     setMessage(null);
 
-    const text  = await file.text();
-    const lines = text.trim().split(/\r?\n/);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const wb = XLSX.read(arrayBuffer, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rawData = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
-    if (lines.length < 2) {
-      setMessage({ type: 'error', text: 'File CSV kosong atau tidak valid.' });
-      setImporting(false);
-      return;
-    }
-
-    const headers    = parseCSVLine(lines[0]).map(h => h.toLowerCase().replace(/\s+/g, '_'));
-    const namaGuruIdx = headers.indexOf('nama_guru');
-    const hariIdx    = headers.indexOf('hari');
-    const rombelIdx  = headers.indexOf('rombel');
-    const mapelIdx   = headers.indexOf('mata_pelajaran');
-
-    if ([namaGuruIdx, hariIdx, rombelIdx, mapelIdx].includes(-1)) {
-      setMessage({ type: 'error', text: 'Header CSV tidak valid. Gunakan template yang disediakan.' });
-      setImporting(false);
-      return;
-    }
-
-    const guruList  = masterData?.guru || [];
-    let success = 0;
-    let skipped = 0;
-    let failed  = 0;
-    const failedRows = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      if (!lines[i].trim()) continue;
-
-      const cols      = parseCSVLine(lines[i]);
-      const namaGuru  = cols[namaGuruIdx]?.trim();
-      const hariRaw   = cols[hariIdx]?.trim();
-      const rombelVal = cols[rombelIdx]?.trim();
-      const mapelVal  = cols[mapelIdx]?.trim();
-
-      const hariNum   = HARI_MAP[hariRaw?.toLowerCase()] ?? parseInt(hariRaw);
-      const guru      = guruList.find(g => g.nama?.toLowerCase() === namaGuru?.toLowerCase());
-
-      if (!guru) {
-        failed++;
-        failedRows.push(`Baris ${i + 1}: Guru "${namaGuru}" tidak ditemukan di master data.`);
-        continue;
-      }
-      if (!hariNum || hariNum < 1 || hariNum > 6) {
-        failed++;
-        failedRows.push(`Baris ${i + 1}: Hari "${hariRaw}" tidak valid (gunakan Senin–Sabtu).`);
-        continue;
-      }
-      if (!rombelVal || !mapelVal) {
-        failed++;
-        failedRows.push(`Baris ${i + 1}: Rombel atau mata pelajaran kosong.`);
-        continue;
+      if (rawData.length < 2) {
+        setMessage({ type: 'error', text: 'File Excel kosong atau tidak valid.' });
+        setImporting(false);
+        return;
       }
 
-      const { error } = await supabase.from('jadwal_pelajaran').insert({
-        id_guru:        guru.id_user,
-        hari:           hariNum,
-        rombel:         rombelVal,
-        mata_pelajaran: mapelVal,
-      });
+      // Normalize header: lowercase + underscore
+      const headers = (rawData[0] || []).map(h =>
+        String(h).toLowerCase().trim().replace(/\s+/g, '_')
+      );
 
-      if (error) {
-        if (error.code === '23505') {
-          skipped++; // duplikat — lewati
-        } else {
+      const namaGuruIdx = headers.findIndex(h => h.includes('nama_guru') || h.includes('guru'));
+      const hariIdx     = headers.findIndex(h => h === 'hari');
+      const rombelIdx   = headers.findIndex(h => h.includes('rombel') || h.includes('kelas'));
+      const mapelIdx    = headers.findIndex(h => h.includes('mata_pelajaran') || h.includes('mapel') || h.includes('pelajaran'));
+
+      if ([namaGuruIdx, hariIdx, rombelIdx, mapelIdx].includes(-1)) {
+        setMessage({ type: 'error', text: 'Header Excel tidak valid. Gunakan template yang disediakan.' });
+        setImporting(false);
+        return;
+      }
+
+      const guruList = masterData?.guru || [];
+      let success = 0, skipped = 0, failed = 0;
+      const failedRows = [];
+
+      for (let i = 1; i < rawData.length; i++) {
+        const row = rawData[i];
+        if (row.every(c => String(c).trim() === '')) continue; // skip baris kosong
+
+        const namaGuru  = String(row[namaGuruIdx] ?? '').trim();
+        const hariRaw   = String(row[hariIdx]     ?? '').trim();
+        const rombelVal = String(row[rombelIdx]   ?? '').trim();
+        const mapelVal  = String(row[mapelIdx]    ?? '').trim();
+
+        const hariNum = HARI_MAP[hariRaw.toLowerCase()] ?? parseInt(hariRaw);
+        const guru    = guruList.find(g => g.nama?.toLowerCase() === namaGuru.toLowerCase());
+
+        if (!guru) {
           failed++;
-          failedRows.push(`Baris ${i + 1}: ${error.message}`);
+          failedRows.push(`Baris ${i + 1}: Guru "${namaGuru}" tidak ditemukan di master data.`);
+          continue;
         }
-      } else {
-        success++;
-      }
-    }
+        if (!hariNum || hariNum < 1 || hariNum > 6) {
+          failed++;
+          failedRows.push(`Baris ${i + 1}: Hari "${hariRaw}" tidak valid (gunakan Senin–Sabtu).`);
+          continue;
+        }
+        if (!rombelVal || !mapelVal) {
+          failed++;
+          failedRows.push(`Baris ${i + 1}: Rombel atau mata pelajaran kosong.`);
+          continue;
+        }
 
-    setImportResult({ success, skipped, failed, failedRows });
-    setImporting(false);
-    mutateJadwal();
-    if (fileInputRef.current) fileInputRef.current.value = '';
+        const { error } = await supabase.from('jadwal_pelajaran').insert({
+          id_guru:        guru.id_user,
+          hari:           hariNum,
+          rombel:         rombelVal,
+          mata_pelajaran: mapelVal,
+        });
+
+        if (error) {
+          if (error.code === '23505') {
+            skipped++;
+          } else {
+            failed++;
+            failedRows.push(`Baris ${i + 1}: ${error.message}`);
+          }
+        } else {
+          success++;
+        }
+      }
+
+      setImportResult({ success, skipped, failed, failedRows });
+      mutateJadwal();
+    } catch (err) {
+      setMessage({ type: 'error', text: `Gagal membaca file: ${err.message}` });
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   // ── render ──
@@ -337,13 +343,13 @@ export default function JadwalPage() {
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
                     </svg>
-                    Impor CSV
+                    Impor XLSX
                   </>
                 )}
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".csv,text/csv"
+                  accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                   className="hidden"
                   onChange={handleImport}
                   disabled={importing}
