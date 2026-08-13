@@ -65,6 +65,7 @@ export default function JadwalPage() {
   const [selectedGuru, setSelectedGuru] = useState('');
   const [hari, setHari] = useState('');
   const [rombel, setRombel] = useState('');
+  const [guruForm, setGuruForm] = useState('');
   const [mapel, setMapel] = useState('');
   const [jamMulai, setJamMulai] = useState('');
   const [jamSelesai, setJamSelesai] = useState('');
@@ -125,7 +126,7 @@ export default function JadwalPage() {
   // activeGuruId hanya untuk mode 'guru' (Admin pilih guru, atau Guru Mapel lihat diri sendiri)
   const activeGuruId = isAdmin ? selectedGuru : (isGuruMapel ? user?.id_user : '');
   const waliRombel = user?.rombel?.replace(/^Kelas\s+/i, '') || '';
-  const activeRombel = isWaliKelas ? waliRombel : selectedRombel;
+  const activeRombel = isWaliKelas ? waliRombel : selectedRombel?.replace(/^Kelas\s+/i, '');
   const effectiveMode = isAdmin ? viewMode : defaultMode;
 
   // jadwalKey: Wali Kelas → pakai activeRombel, Guru Mapel → pakai activeGuruId
@@ -158,15 +159,18 @@ export default function JadwalPage() {
   }, {});
 
   const handleAdd = async () => {
-    if (!activeGuruId || !hari || !rombel || !mapel || !jamMulai) {
+    const submitGuru = effectiveMode === 'kelas' ? guruForm : activeGuruId;
+    const submitRombel = effectiveMode === 'kelas' ? activeRombel : rombel.replace(/^Kelas\s+/i, '');
+
+    if (!submitGuru || !hari || !submitRombel || !mapel || !jamMulai) {
       setMessage({ type: 'error', text: 'Semua field wajib diisi termasuk Jam Mulai.' });
       return;
     }
     setSaving(true);
     const { error } = await supabase.from('jadwal_pelajaran').insert({
-      id_guru: activeGuruId,
+      id_guru: submitGuru,
       hari: parseInt(hari),
-      rombel,
+      rombel: submitRombel,
       mata_pelajaran: mapel,
       jam_mulai: jamMulai || null,
       jam_selesai: (jamSelesai || jamMulai) || null,
@@ -245,7 +249,7 @@ export default function JadwalPage() {
           hari: hariNum,
           jam_mulai: String(row[jamMulaiIdx] ?? '').trim() || null,
           jam_selesai: String(row[jamSelesaiIdx] ?? '').trim() || null,
-          rombel: String(row[rombelIdx] ?? '').trim(),
+          rombel: String(row[rombelIdx] ?? '').trim().replace(/^Kelas\s+/i, ''),
           mata_pelajaran: String(row[mapelIdx] ?? '').trim(),
         });
         if (!error) success++; else { failed++; failedRows.push(`Baris ${i + 1}: ${error.message}`); }
@@ -356,7 +360,7 @@ export default function JadwalPage() {
       )}
 
       {/* ── Form Tambah Slot — HANYA ADMIN ── */}
-      {isAdmin && (effectiveMode === 'guru' ? activeGuruId : true) && (
+      {isAdmin && (effectiveMode === 'guru' ? activeGuruId : activeRombel) && (
         <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-white/60 dark:border-white/10 rounded-[1.5rem] p-6 shadow-sm space-y-4">
           <h3 className="text-slate-800 dark:text-white font-bold text-sm flex items-center gap-2">
             <div className="w-7 h-7 bg-emerald-100 dark:bg-emerald-500/20 rounded-lg flex items-center justify-center">
@@ -402,17 +406,30 @@ export default function JadwalPage() {
                 <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
               </div>
             </div>
-            {/* Rombel */}
-            <div className="space-y-1.5">
-              <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Rombel</label>
-              <div className="relative">
-                <select value={rombel} onChange={e => setRombel(e.target.value)} style={{ backgroundImage: 'none' }} className="appearance-none w-full pl-4 pr-8 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all">
-                  <option value="">Pilih Rombel</option>
-                  {rombelOptions.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
-                <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+            {/* Rombel / Guru */}
+            {effectiveMode === 'guru' ? (
+              <div className="space-y-1.5">
+                <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Rombel</label>
+                <div className="relative">
+                  <select value={rombel} onChange={e => setRombel(e.target.value)} style={{ backgroundImage: 'none' }} className="appearance-none w-full pl-4 pr-8 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all">
+                    <option value="">Pilih Rombel</option>
+                    {rombelOptions.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                  <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-1.5">
+                <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Guru</label>
+                <div className="relative">
+                  <select value={guruForm} onChange={e => setGuruForm(e.target.value)} style={{ backgroundImage: 'none' }} className="appearance-none w-full pl-4 pr-8 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all">
+                    <option value="">Pilih Guru</option>
+                    {(masterData?.guru || []).map(g => <option key={g.id_user} value={g.id_user}>{g.nama}</option>)}
+                  </select>
+                  <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                </div>
+              </div>
+            )}
             {/* Mapel */}
             <div className="space-y-1.5">
               <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Mata Pelajaran</label>
