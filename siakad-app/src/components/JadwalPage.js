@@ -62,7 +62,8 @@ export default function JadwalPage() {
   const [hari,         setHari]         = useState('');
   const [rombel,       setRombel]       = useState('');
   const [mapel,        setMapel]        = useState('');
-  const [jam,          setJam]          = useState('');
+  const [jamMulai,     setJamMulai]     = useState('');
+  const [jamSelesai,   setJamSelesai]   = useState('');
   const [saving,       setSaving]       = useState(false);
   const [message,      setMessage]      = useState(null);
   const [deletingId,   setDeletingId]   = useState(null);
@@ -123,9 +124,20 @@ export default function JadwalPage() {
 
   // ── handlers ──
   const handleAdd = async () => {
-    if (!activeGuruId || !hari || !rombel || !mapel || !jam) {
-      setMessage({ type: 'error', text: 'Semua field wajib diisi termasuk Jam Pelajaran.' });
+    if (!activeGuruId || !hari || !rombel || !mapel || !jamMulai) {
+      setMessage({ type: 'error', text: 'Semua field wajib diisi termasuk Jam Mulai.' });
       return;
+    }
+    // Bangun string jam
+    const jamObjMulai   = jamOptions.find(j => j.id_jam === jamMulai);
+    const jamObjSelesai = jamOptions.find(j => j.id_jam === (jamSelesai || jamMulai));
+    let namaJamFinal = '';
+    if (jamObjMulai && jamObjSelesai) {
+      if (jamObjMulai.id_jam === jamObjSelesai.id_jam) {
+        namaJamFinal = `${jamObjMulai.nama_jam} (${jamObjMulai.waktu_mulai}-${jamObjMulai.waktu_selesai})`;
+      } else {
+        namaJamFinal = `${jamObjMulai.nama_jam} s/d ${jamObjSelesai.nama_jam} (${jamObjMulai.waktu_mulai}-${jamObjSelesai.waktu_selesai})`;
+      }
     }
     setSaving(true);
     setMessage(null);
@@ -134,7 +146,7 @@ export default function JadwalPage() {
       hari:           parseInt(hari),
       rombel,
       mata_pelajaran: mapel,
-      nama_jam:       jam,
+      nama_jam:       namaJamFinal || null,
     });
     setSaving(false);
     if (error) {
@@ -147,7 +159,8 @@ export default function JadwalPage() {
       setHari('');
       setRombel('');
       setMapel('');
-      setJam('');
+      setJamMulai('');
+      setJamSelesai('');
       mutateJadwal();
     }
   };
@@ -191,9 +204,9 @@ export default function JadwalPage() {
       'template_jadwal_pelajaran.xlsx',
       ['Nama Guru', 'Hari', 'Jam Pelajaran', 'Rombel', 'Mata Pelajaran'],
       [
-        ['Ahmad Fauzi',  'Senin',  'Jam 1 (07.00 – 07.35)', '5A', 'Matematika'],
-        ['Siti Rahayu',  'Selasa', 'Jam 2 (07.35 – 08.10)', '4B', 'Bahasa Indonesia'],
-        ['Budi Santoso', 'Rabu',   'Jam 3 (08.10 – 08.45)', '6C', 'IPA'],
+        ['Ahmad Fauzi',  'Senin',  'Jam 1 s/d Jam 2 (07.00-08.10)', '5A', 'Matematika'],
+        ['Siti Rahayu',  'Selasa', 'Jam 3 (08.10-08.45)',           '4B', 'Bahasa Indonesia'],
+        ['Budi Santoso', 'Rabu',   'Jam 4 (08.45-09.20)',           '6C', 'IPA'],
       ],
       'Template'
     );
@@ -494,25 +507,48 @@ export default function JadwalPage() {
               </div>
             </div>
 
-            {/* Jam Pelajaran */}
-            <div className="space-y-1.5">
-              <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Jam Pelajaran</label>
-              <div className="relative">
-                <select
-                  value={jam}
-                  onChange={e => setJam(e.target.value)}
-                  style={{ backgroundImage: 'none' }}
-                  className="appearance-none w-full pl-4 pr-8 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
-                >
-                  <option value="">Pilih Jam</option>
-                  {jamOptions.map(j => {
-                    const label = j.waktu_mulai && j.waktu_selesai
-                      ? `${j.nama_jam} (${j.waktu_mulai} – ${j.waktu_selesai})`
-                      : j.nama_jam;
-                    return <option key={j.id_jam} value={label}>{label}</option>;
-                  })}
-                </select>
-                <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+            {/* Jam Mulai & Jam Selesai */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                  Mulai
+                </label>
+                <div className="relative">
+                  <select
+                    value={jamMulai}
+                    onChange={e => setJamMulai(e.target.value)}
+                    style={{ backgroundImage: 'none' }}
+                    className="appearance-none w-full pl-3 pr-8 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+                  >
+                    <option value="">Mulai...</option>
+                    {jamOptions.map(j => (
+                      <option key={j.id_jam} value={j.id_jam}>{j.nama_jam} ({j.waktu_mulai} - {j.waktu_selesai})</option>
+                    ))}
+                  </select>
+                  <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                  Selesai
+                </label>
+                <div className="relative">
+                  <select
+                    value={jamSelesai}
+                    onChange={e => setJamSelesai(e.target.value)}
+                    style={{ backgroundImage: 'none' }}
+                    className="appearance-none w-full pl-3 pr-8 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+                  >
+                    <option value="">Selesai...</option>
+                    {jamOptions.map(j => (
+                      <option key={j.id_jam} value={j.id_jam}>{j.nama_jam} ({j.waktu_mulai} - {j.waktu_selesai})</option>
+                    ))}
+                  </select>
+                  <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                </div>
               </div>
             </div>
 
