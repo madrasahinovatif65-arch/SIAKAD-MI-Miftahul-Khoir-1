@@ -122,11 +122,13 @@ export default function JadwalPage() {
     return idx === -1 ? 9999 : idx;
   };
 
-  const activeGuruId = isAdmin ? selectedGuru : (isGuruMapel || isWaliKelas ? user?.id_user : '');
+  // activeGuruId hanya untuk mode 'guru' (Admin pilih guru, atau Guru Mapel lihat diri sendiri)
+  const activeGuruId = isAdmin ? selectedGuru : (isGuruMapel ? user?.id_user : '');
   const waliRombel = user?.rombel || '';
   const activeRombel = isWaliKelas ? waliRombel : selectedRombel;
   const effectiveMode = isAdmin ? viewMode : defaultMode;
 
+  // jadwalKey: Wali Kelas → pakai activeRombel, Guru Mapel → pakai activeGuruId
   const jadwalKey =
     effectiveMode === 'guru' && activeGuruId
       ? `jadwal_guru_${activeGuruId}`
