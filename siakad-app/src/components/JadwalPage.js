@@ -83,7 +83,7 @@ export default function JadwalPage() {
         .order('nama'),
       supabase.from('master_mapel').select('id_mapel, nama_mapel').order('nama_mapel'),
       supabase.from('master_user').select('rombel').eq('role', 'Murid'),
-      supabase.from('master_jam_pelajaran').select('id_jam, nama_jam').order('id_jam'),
+      supabase.from('master_jam_pelajaran').select('id_jam, nama_jam, waktu_mulai, waktu_selesai').order('id_jam'),
     ]);
     const uniqueRombel = [
       ...new Set((rombelRes.data || []).map(d => d.rombel).filter(Boolean)),
@@ -191,9 +191,9 @@ export default function JadwalPage() {
       'template_jadwal_pelajaran.xlsx',
       ['Nama Guru', 'Hari', 'Jam Pelajaran', 'Rombel', 'Mata Pelajaran'],
       [
-        ['Ahmad Fauzi',  'Senin',  'Jam 1 (07.00-07.35)', '5A', 'Matematika'],
-        ['Siti Rahayu',  'Selasa', 'Jam 2 (07.35-08.10)', '4B', 'Bahasa Indonesia'],
-        ['Budi Santoso', 'Rabu',   'Jam 3 (08.10-08.45)', '6C', 'IPA'],
+        ['Ahmad Fauzi',  'Senin',  'Jam 1 (07.00 – 07.35)', '5A', 'Matematika'],
+        ['Siti Rahayu',  'Selasa', 'Jam 2 (07.35 – 08.10)', '4B', 'Bahasa Indonesia'],
+        ['Budi Santoso', 'Rabu',   'Jam 3 (08.10 – 08.45)', '6C', 'IPA'],
       ],
       'Template'
     );
@@ -505,7 +505,12 @@ export default function JadwalPage() {
                   className="appearance-none w-full pl-4 pr-8 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
                 >
                   <option value="">Pilih Jam</option>
-                  {jamOptions.map(j => <option key={j.id_jam} value={j.nama_jam}>{j.nama_jam}</option>)}
+                  {jamOptions.map(j => {
+                    const label = j.waktu_mulai && j.waktu_selesai
+                      ? `${j.nama_jam} (${j.waktu_mulai} – ${j.waktu_selesai})`
+                      : j.nama_jam;
+                    return <option key={j.id_jam} value={label}>{label}</option>;
+                  })}
                 </select>
                 <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
               </div>
