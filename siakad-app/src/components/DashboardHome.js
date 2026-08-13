@@ -140,15 +140,62 @@ export default function DashboardHome() {
           .map(a => a.tanggal));
         resStats.persentaseHadirGuru = hariEfektif > 0 ? Math.min(100, Math.round((hadirGuruDates.size / hariEfektif) * 100)) : 0;
 
-        // Ambil jurnal guru keseluruhan
-        const { data: jurnalData } = await supabase.from('jurnal_guru')
-          .select('tanggal')
-          .eq('id_guru', user.id_user)
-          .gte('tanggal', calcStart)
-          .lte('tanggal', today);
-        const uniqueJurnalDates = new Set((jurnalData || []).map(j => j.tanggal));
-        resStats.persentaseJurnal = hariEfektif > 0 ? Math.min(100, Math.round((uniqueJurnalDates.size / hariEfektif) * 100)) : 0;
-        resStats.jurnal = jurnalData ? jurnalData.length : 0;
+        // Hitung persentase jurnal
+        if (user.role === 'Wali Kelas') {
+          // Wali Kelas: tolok ukur = hariEfektif (hari sekolah aktif)
+          const { data: jurnalData } = await supabase.from('jurnal_guru')
+            .select('tanggal')
+            .eq('id_guru', user.id_user)
+            .gte('tanggal', calcStart)
+            .lte('tanggal', today);
+          const uniqueJurnalDates = new Set((jurnalData || []).map(j => j.tanggal));
+          resStats.persentaseJurnal = hariEfektif > 0 ? Math.min(100, Math.round((uniqueJurnalDates.size / hariEfektif) * 100)) : 0;
+          resStats.jurnal = jurnalData ? jurnalData.length : 0;
+        } else {
+          // Guru Mapel: tolok ukur dihitung dari deduksi jadwal otomatis
+          // berdasarkan pasangan unik (hari_dalam_seminggu, rombel) di riwayat jurnal
+          const { data: jurnalDataGM } = await supabase.from('jurnal_guru')
+            .select('tanggal, rombel')
+            .eq('id_guru', user.id_user)
+            .gte('tanggal', calcStart)
+            .lte('tanggal', today);
+          const jurnalArr = jurnalDataGM || [];
+
+          // Deduksi jadwal: pasangan unik (dayOfWeek, rombel)
+          const scheduleSet = new Set();
+          jurnalArr.forEach(j => {
+            const dow = new Date(j.tanggal + 'T00:00:00').getDay(); // 0=Minggu, 1=Sen, dst
+            scheduleSet.add(`${dow}__${j.rombel}`);
+          });
+
+          // Hitung berapa kali setiap hari-dalam-seminggu muncul antara calcStart s.d. today
+          // (tidak termasuk Minggu & hari libur)
+          const dowOccurrences = {};
+          let cur2 = new Date(calcStart + 'T00:00:00');
+          const endDate2 = new Date(today + 'T00:00:00');
+          while (cur2 <= endDate2) {
+            const dow = cur2.getDay();
+            const ds = cur2.toISOString().split('T')[0];
+            if (dow !== 0 && !liburSet.has(ds)) {
+              dowOccurrences[dow] = (dowOccurrences[dow] || 0) + 1;
+            }
+            cur2.setDate(cur2.getDate() + 1);
+          }
+
+          // Total yang diharapkan = jumlah kemunculan hari untuk setiap (hari, rombel) dalam jadwal
+          let totalExpected = 0;
+          scheduleSet.forEach(key => {
+            const dow = parseInt(key.split('__')[0], 10);
+            totalExpected += dowOccurrences[dow] || 0;
+          });
+
+          // Total aktual = pasangan unik (tanggal, rombel) yang sudah diisi jurnal
+          const uniqueTanggalRombel = new Set(jurnalArr.map(j => `${j.tanggal}__${j.rombel}`));
+          const totalActual = uniqueTanggalRombel.size;
+
+          resStats.persentaseJurnal = totalExpected > 0 ? Math.min(100, Math.round((totalActual / totalExpected) * 100)) : 0;
+          resStats.jurnal = jurnalArr.length;
+        }
 
         // Ambil absensi murid keseluruhan
         if (user.role === 'Wali Kelas') {
@@ -252,7 +299,7 @@ export default function DashboardHome() {
     'Guru Mapel': [
       { label: 'Kehadiran Anda', value: `${stats.persentaseHadirGuru || 0}%`, sub: 'Keseluruhan', gradient: 'from-emerald-500 to-teal-600' },
       { label: 'Kehadiran Murid', value: `${stats.persentaseHadirMurid || 0}%`, sub: 'Seluruh Sekolah', gradient: 'from-blue-500 to-indigo-600' },
-      { label: 'Jurnal Guru', value: `${stats.persentaseJurnal || 0}%`, sub: 'Keseluruhan', gradient: 'from-amber-500 to-orange-500' },
+      { label: 'Jurnal Guru', value: `${stats.persentaseJurnal || 0}%`, sub: 'Per Hari & Kelas', gradient: 'from-amber-500 to-orange-500' },
     ],
     Murid: [
       { label: 'Hari Ini', value: new Date().getDate(), sub: new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }), gradient: 'from-emerald-500 to-teal-600' },
