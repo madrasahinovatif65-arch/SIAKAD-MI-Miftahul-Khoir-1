@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { getTodayDate } from '@/lib/dateUtils';
 import useSWR from 'swr';
 import Link from 'next/link';
 import AbsenGPSWidget from '@/components/AbsenGPSWidget';
@@ -134,26 +135,28 @@ export default function DashboardHome() {
       };
 
       if (['Wali Kelas', 'Guru Mapel'].includes(user.role)) {
-        // Ambil absensi guru
+        // Ambil absensi guru bulan ini (hanya sampai hari ini)
         const { data: guruAbsen } = await supabase.from('verifikasi_guru')
           .select('status, tanggal')
           .eq('id_guru', user.id_user)
-          .gte('tanggal', monthStart);
+          .gte('tanggal', monthStart)
+          .lte('tanggal', today);
         const hadirGuruDates = new Set((guruAbsen || [])
           .filter(a => ['Hadir', 'Terlambat', 'hadir', 'terlambat'].includes(a.status))
           .map(a => a.tanggal));
         resStats.persentaseHadirGuru = hariEfektif > 0 ? Math.min(100, Math.round((hadirGuruDates.size / hariEfektif) * 100)) : 0;
 
-        // Ambil jurnal guru
+        // Ambil jurnal guru bulan ini (hanya sampai hari ini)
         const { data: jurnalData } = await supabase.from('jurnal_guru')
           .select('tanggal')
           .eq('id_guru', user.id_user)
-          .gte('tanggal', monthStart);
+          .gte('tanggal', monthStart)
+          .lte('tanggal', today);
         const uniqueJurnalDates = new Set((jurnalData || []).map(j => j.tanggal));
         resStats.persentaseJurnal = hariEfektif > 0 ? Math.min(100, Math.round((uniqueJurnalDates.size / hariEfektif) * 100)) : 0;
         resStats.jurnal = jurnalData ? jurnalData.length : 0;
 
-        // Ambil absensi murid
+        // Ambil absensi murid bulan ini (hanya sampai hari ini)
         if (user.role === 'Wali Kelas') {
           const { data: muridRombel } = await supabase.from('master_user').select('id_user').eq('role', 'Murid').eq('rombel', user.rombel).eq('status_aktif', 'Aktif');
           const nisnList = muridRombel ? muridRombel.map(m => m.id_user) : [];
@@ -161,7 +164,8 @@ export default function DashboardHome() {
             const { data: absenMurid } = await supabase.from('data_absensi')
               .select('status')
               .in('nisn', nisnList)
-              .gte('tanggal', monthStart);
+              .gte('tanggal', monthStart)
+              .lte('tanggal', today);
             const hadirMurid = (absenMurid || []).filter(a => ['Hadir', 'Terlambat', 'hadir', 'terlambat'].includes(a.status)).length;
             const totalPossible = hariEfektif * nisnList.length;
             resStats.persentaseHadirMurid = totalPossible > 0 ? Math.min(100, Math.round((hadirMurid / totalPossible) * 100)) : 0;
@@ -170,7 +174,8 @@ export default function DashboardHome() {
           const { count: totalMasuk } = await supabase.from('data_absensi')
             .select('id', { count: 'exact', head: true })
             .in('status', ['Hadir', 'Terlambat', 'hadir', 'terlambat'])
-            .gte('tanggal', monthStart);
+            .gte('tanggal', monthStart)
+            .lte('tanggal', today);
             
           const { count: totalMuridAktif } = await supabase.from('master_user')
             .select('id', { count: 'exact', head: true })
