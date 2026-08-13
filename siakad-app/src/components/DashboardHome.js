@@ -82,22 +82,16 @@ export default function DashboardHome() {
       return { muridStats: { hadir: h, izin: i, sakit: s, alpa: a, persentase: pct } };
     } else {
       // Logic untuk Admin, Wali Kelas, Guru Mapel
-      const [pengaturanRes, liburRes] = await Promise.all([
-        supabase.from('pengaturan_sekolah').select('*').limit(1).maybeSingle(),
-        supabase.from('master_libur').select('tanggal').gte('tanggal', monthStart).lte('tanggal', today)
-      ]);
-      const pengaturan = pengaturanRes.data || {};
-      const liburData = liburRes.data || [];
-      const liburSet = new Set(liburData.map(l => l.tanggal));
+      // Ambil pengaturan sekolah untuk mendapatkan hari pertama tahun ajaran
+      const { data: pengaturanData } = await supabase.from('pengaturan_sekolah').select('tgl_mulai_efektif').limit(1).maybeSingle();
+      const pengaturan = pengaturanData || {};
 
-      // Hitung Hari Efektif Bulan Ini
-      // Mulai dari tgl 1 bulan ini, KECUALI jika tgl_mulai_efektif ada di bulan ini dan lebih dari tgl 1
-      let calcStart = monthStart;
-      if (pengaturan.tgl_mulai_efektif && pengaturan.tgl_mulai_efektif.startsWith(monthStart.slice(0, 7))) {
-        if (pengaturan.tgl_mulai_efektif > monthStart) {
-          calcStart = pengaturan.tgl_mulai_efektif;
-        }
-      }
+      // Keseluruhan Hari Efektif: Dari tgl_mulai_efektif sampai hari ini
+      let calcStart = pengaturan.tgl_mulai_efektif || monthStart;
+      if (calcStart > today) calcStart = monthStart; // fallback jika tgl efektif di masa depan
+
+      const { data: liburData } = await supabase.from('master_libur').select('tanggal').gte('tanggal', calcStart).lte('tanggal', today);
+      const liburSet = new Set((liburData || []).map(l => l.tanggal));
 
       let hariEfektif = 0;
       let curr = new Date(calcStart);
@@ -135,28 +129,28 @@ export default function DashboardHome() {
       };
 
       if (['Wali Kelas', 'Guru Mapel'].includes(user.role)) {
-        // Ambil absensi guru bulan ini (hanya sampai hari ini)
+        // Ambil absensi guru keseluruhan
         const { data: guruAbsen } = await supabase.from('verifikasi_guru')
           .select('status, tanggal')
           .eq('id_guru', user.id_user)
-          .gte('tanggal', monthStart)
+          .gte('tanggal', calcStart)
           .lte('tanggal', today);
         const hadirGuruDates = new Set((guruAbsen || [])
           .filter(a => ['Hadir', 'Terlambat', 'hadir', 'terlambat'].includes(a.status))
           .map(a => a.tanggal));
         resStats.persentaseHadirGuru = hariEfektif > 0 ? Math.min(100, Math.round((hadirGuruDates.size / hariEfektif) * 100)) : 0;
 
-        // Ambil jurnal guru bulan ini (hanya sampai hari ini)
+        // Ambil jurnal guru keseluruhan
         const { data: jurnalData } = await supabase.from('jurnal_guru')
           .select('tanggal')
           .eq('id_guru', user.id_user)
-          .gte('tanggal', monthStart)
+          .gte('tanggal', calcStart)
           .lte('tanggal', today);
         const uniqueJurnalDates = new Set((jurnalData || []).map(j => j.tanggal));
         resStats.persentaseJurnal = hariEfektif > 0 ? Math.min(100, Math.round((uniqueJurnalDates.size / hariEfektif) * 100)) : 0;
         resStats.jurnal = jurnalData ? jurnalData.length : 0;
 
-        // Ambil absensi murid bulan ini (hanya sampai hari ini)
+        // Ambil absensi murid keseluruhan
         if (user.role === 'Wali Kelas') {
           const { data: muridRombel } = await supabase.from('master_user').select('id_user').eq('role', 'Murid').eq('rombel', user.rombel).eq('status_aktif', 'Aktif');
           const nisnList = muridRombel ? muridRombel.map(m => m.id_user) : [];
@@ -164,7 +158,7 @@ export default function DashboardHome() {
             const { data: absenMurid } = await supabase.from('data_absensi')
               .select('status')
               .in('nisn', nisnList)
-              .gte('tanggal', monthStart)
+              .gte('tanggal', calcStart)
               .lte('tanggal', today);
             const hadirMurid = (absenMurid || []).filter(a => ['Hadir', 'Terlambat', 'hadir', 'terlambat'].includes(a.status)).length;
             const totalPossible = hariEfektif * nisnList.length;
@@ -174,7 +168,7 @@ export default function DashboardHome() {
           const { count: totalMasuk } = await supabase.from('data_absensi')
             .select('id', { count: 'exact', head: true })
             .in('status', ['Hadir', 'Terlambat', 'hadir', 'terlambat'])
-            .gte('tanggal', monthStart)
+            .gte('tanggal', calcStart)
             .lte('tanggal', today);
             
           const { count: totalMuridAktif } = await supabase.from('master_user')
@@ -251,14 +245,14 @@ export default function DashboardHome() {
       { label: 'Perlu Verifikasi', value: stats.pending, sub: 'Hari ini', gradient: 'from-rose-500 to-red-600' },
     ],
     'Wali Kelas': [
-      { label: 'Kehadiran Anda', value: `${stats.persentaseHadirGuru || 0}%`, sub: 'Bulan Ini', gradient: 'from-emerald-500 to-teal-600' },
+      { label: 'Kehadiran Anda', value: `${stats.persentaseHadirGuru || 0}%`, sub: 'Keseluruhan', gradient: 'from-emerald-500 to-teal-600' },
       { label: 'Kehadiran Murid', value: `${stats.persentaseHadirMurid || 0}%`, sub: `Rombel ${user.rombel}`, gradient: 'from-blue-500 to-indigo-600' },
-      { label: 'Jurnal Guru', value: `${stats.persentaseJurnal || 0}%`, sub: 'Kelengkapan', gradient: 'from-amber-500 to-orange-500' },
+      { label: 'Jurnal Guru', value: `${stats.persentaseJurnal || 0}%`, sub: 'Keseluruhan', gradient: 'from-amber-500 to-orange-500' },
     ],
     'Guru Mapel': [
-      { label: 'Kehadiran Anda', value: `${stats.persentaseHadirGuru || 0}%`, sub: 'Bulan Ini', gradient: 'from-emerald-500 to-teal-600' },
+      { label: 'Kehadiran Anda', value: `${stats.persentaseHadirGuru || 0}%`, sub: 'Keseluruhan', gradient: 'from-emerald-500 to-teal-600' },
       { label: 'Kehadiran Murid', value: `${stats.persentaseHadirMurid || 0}%`, sub: 'Seluruh Sekolah', gradient: 'from-blue-500 to-indigo-600' },
-      { label: 'Jurnal Guru', value: `${stats.persentaseJurnal || 0}%`, sub: 'Kelengkapan', gradient: 'from-amber-500 to-orange-500' },
+      { label: 'Jurnal Guru', value: `${stats.persentaseJurnal || 0}%`, sub: 'Keseluruhan', gradient: 'from-amber-500 to-orange-500' },
     ],
     Murid: [
       { label: 'Hari Ini', value: new Date().getDate(), sub: new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }), gradient: 'from-emerald-500 to-teal-600' },
