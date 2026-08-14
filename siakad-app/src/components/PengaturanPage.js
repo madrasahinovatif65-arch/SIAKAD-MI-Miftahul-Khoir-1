@@ -27,7 +27,7 @@ export default function PengaturanPage() {
   });
 
   useEffect(() => {
-    if (user && user.role !== 'Admin' && user.role !== 'Kepala Madrasah') {
+    if (user && user.role !== 'Admin') {
       router.push('/dashboard');
     }
   }, [user, router]);

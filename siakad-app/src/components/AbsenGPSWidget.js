@@ -14,6 +14,7 @@ export default function AbsenGPSWidget() {
   const [mode, setMode] = useState('masuk'); // masuk | pulang
   const [existingGpsData, setExistingGpsData] = useState(null);
   const [times, setTimes] = useState(null);
+  const [methods, setMethods] = useState(null);
 
   const SCHOOL_LAT = parseFloat(process.env.NEXT_PUBLIC_SCHOOL_LAT || '-7.123456');
   const SCHOOL_LNG = parseFloat(process.env.NEXT_PUBLIC_SCHOOL_LNG || '112.123456');
@@ -43,53 +44,76 @@ export default function AbsenGPSWidget() {
     let hasPulang = false;
     let timeMasuk = null;
     let timePulang = null;
-    let checkinMethod = null;
-    let checkoutMethod = null;
+    let methodMasuk = null;
+    let methodPulang = null;
 
-    if (gpsData?.waktu) { hasMasuk = true; timeMasuk = formatTimeShort(gpsData.waktu); checkinMethod = 'GPS'; }
-    if (nfcData?.jam_datang) { hasMasuk = true; timeMasuk = formatTimeShort(nfcData.jam_datang); checkinMethod = 'kartu (NFC)'; }
+    // 1. Cek Verifikasi Guru (Final status Sakit/Izin/Alfa)
+    if (verData && ['Sakit', 'Izin', 'Alfa'].includes(verData.status)) {
+       return { 
+         type: 'error', 
+         message: `📝 Absensi Anda hari ini telah ditetapkan secara manual dengan status: ${verData.status}.`, 
+         times: { masuk: '-', pulang: '-' },
+         methods: { masuk: verData.verifikator || 'Admin', pulang: verData.verifikator || 'Admin' }
+       };
+    }
 
-    if (gpsData?.waktu_pulang) { hasPulang = true; timePulang = formatTimeShort(gpsData.waktu_pulang); checkoutMethod = 'GPS'; }
-    if (nfcData?.jam_pulang) { hasPulang = true; timePulang = formatTimeShort(nfcData.jam_pulang); checkoutMethod = 'kartu (NFC)'; }
+    // 2. Data GPS
+    if (gpsData?.waktu) {
+      hasMasuk = true;
+      timeMasuk = formatTimeShort(gpsData.waktu);
+      methodMasuk = 'GPS';
+    }
+    if (gpsData?.waktu_pulang) {
+      hasPulang = true;
+      timePulang = formatTimeShort(gpsData.waktu_pulang);
+      methodPulang = 'GPS';
+    }
 
-    // Verifikasi oleh admin (manual) → verifikator = 'Admin' dan statusnya final
-    const isAdminVerified = verData && verData.verifikator === 'Admin';
-    const isPendingGPS = verData && (verData.status === 'Menunggu Verifikasi' || verData.status === 'Di Luar Radius');
+    // 3. Data NFC (Prioritas untuk presence fisik - timpa GPS jika ada)
+    if (nfcData?.jam_datang) {
+      hasMasuk = true;
+      timeMasuk = formatTimeShort(nfcData.jam_datang);
+      methodMasuk = 'kartu (NFC)';
+    }
+    if (nfcData?.jam_pulang) {
+      hasPulang = true;
+      timePulang = formatTimeShort(nfcData.jam_pulang);
+      methodPulang = 'kartu (NFC)';
+    }
 
-    if (!hasMasuk && isAdminVerified && verData.status === 'Hadir') {
+    // Jika Admin verifikasi Hadir manual tapi tidak ada record GPS/NFC
+    if (verData && verData.status === 'Hadir' && !hasMasuk) {
       hasMasuk = true;
       timeMasuk = verData.waktu ? formatTimeShort(verData.waktu) : '-';
-      checkinMethod = 'Admin';
+      methodMasuk = verData.verifikator || 'Admin';
+    }
+    
+    // Check if waiting for admin verification from GPS (pending status)
+    if (verData && (verData.status === 'Menunggu Verifikasi' || verData.status === 'Di Luar Radius')) {
+      if (hasMasuk && methodMasuk === 'GPS') methodMasuk = 'GPS (menunggu verifikasi)';
+      if (hasPulang && methodPulang === 'GPS') methodPulang = 'GPS (menunggu verifikasi)';
     }
 
     const times = { masuk: timeMasuk, pulang: timePulang };
+    const methods = { masuk: methodMasuk, pulang: methodPulang };
 
-    // Jika admin sudah verifikasi dengan status non-Hadir → blokir GPS
-    if (isAdminVerified && verData.status !== 'Hadir') {
-      return { type: 'error', message: `📝 Absensi Anda hari ini telah ditetapkan admin dengan status: ${verData.status}.`, times };
-    }
-
-    // Jika GPS sudah dikirim tapi menunggu verifikasi admin → tampilkan info, izinkan pulang jika perlu
-    if (isPendingGPS) {
-      hasMasuk = true;
-      if (!timeMasuk) timeMasuk = verData.waktu ? formatTimeShort(verData.waktu) : '-';
-      if (!checkinMethod) checkinMethod = 'GPS (menunggu verifikasi)';
-    }
-
-    if (hasMasuk && hasPulang) {
-      if (checkinMethod === checkoutMethod) {
-        return { type: 'done', message: `✅ Anda sudah absen datang dan pulang menggunakan ${checkinMethod} hari ini.`, times };
-      }
-      return { type: 'done', message: `✅ Anda sudah absen datang menggunakan ${checkinMethod} dan pulang menggunakan ${checkoutMethod} hari ini.`, times };
-    }
-
+    // Belum absen masuk
     if (!hasMasuk) {
       if (todayDate.getHours() < 6) {
-         return { type: 'error', message: 'Absen masuk pagi baru dibuka pukul 06:00.', times };
+         return { type: 'error', message: 'Absen masuk pagi baru dibuka pukul 06:00.', times, methods };
       }
-      return { type: 'idle', mode: 'masuk', gpsData, message: 'Silakan lakukan absen kehadiran (masuk).', times };
-    } 
+      return { type: 'idle', mode: 'masuk', gpsData, message: 'Silakan lakukan absen kehadiran (masuk).', times, methods };
+    }
 
+    // Sudah absen masuk dan pulang
+    if (hasMasuk && hasPulang) {
+      if (methodMasuk === methodPulang) {
+        return { type: 'done', message: `✅ Anda sudah absen datang dan pulang menggunakan ${methodMasuk} hari ini.`, times, methods };
+      }
+      return { type: 'done', message: `✅ Anda sudah absen datang menggunakan ${methodMasuk} dan pulang menggunakan ${methodPulang} hari ini.`, times, methods };
+    }
+
+    // Sudah absen masuk, cek batasan waktu absen pulang
     const isFriday = todayDate.getDay() === 5;
     const h = todayDate.getHours();
     const m = todayDate.getMinutes();
@@ -99,17 +123,17 @@ export default function AbsenGPSWidget() {
     
     if (isFriday) {
        if (h > 10 || (h === 10 && m >= 30)) canPulang = true;
-       else msg = `Anda sudah absen datang menggunakan ${checkinMethod}. Absen pulang hari Jumat dibuka jam 10:30.`;
+       else msg = `Anda sudah absen datang menggunakan ${methodMasuk}. Absen pulang hari Jumat dibuka jam 10:30.`;
     } else {
        if (h >= 12) canPulang = true;
-       else msg = `Anda sudah absen datang menggunakan ${checkinMethod}. Absen pulang dibuka jam 12:00.`;
+       else msg = `Anda sudah absen datang menggunakan ${methodMasuk}. Absen pulang dibuka jam 12:00.`;
     }
 
     if (!canPulang) {
-       return { type: 'error', message: msg, times };
+       return { type: 'error', message: msg, times, methods };
     }
     
-    return { type: 'idle', mode: 'pulang', gpsData, message: `Anda sudah absen datang menggunakan ${checkinMethod}. Silakan lakukan absen pulang.`, times };
+    return { type: 'idle', mode: 'pulang', gpsData, message: `Anda sudah absen datang menggunakan ${methodMasuk}. Silakan lakukan absen pulang.`, times, methods };
   });
 
   useEffect(() => {
@@ -119,6 +143,7 @@ export default function AbsenGPSWidget() {
       if (todayStatus.mode) setMode(todayStatus.mode);
       if (todayStatus.gpsData) setExistingGpsData(todayStatus.gpsData);
       if (todayStatus.times) setTimes(todayStatus.times);
+      if (todayStatus.methods) setMethods(todayStatus.methods);
     }
   }, [todayStatus]);
 
@@ -258,11 +283,13 @@ export default function AbsenGPSWidget() {
             </p>
             {times && (times.masuk || times.pulang) && (
               <div className="mt-3 flex items-center gap-2 text-[11px] sm:text-xs font-semibold flex-wrap">
-                <span className="bg-slate-100 dark:bg-white/5 px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
-                  Masuk: <span className="text-emerald-600 dark:text-emerald-400">{times.masuk || '-'}</span>
+                <span className="flex items-center bg-slate-100 dark:bg-white/5 px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
+                  Masuk: <span className="text-emerald-600 dark:text-emerald-400 ml-1">{times.masuk || '-'}</span>
+                  {methods?.masuk && <span className="ml-1 text-slate-400 dark:text-slate-500 text-[10px] font-medium">({methods.masuk})</span>}
                 </span>
-                <span className="bg-slate-100 dark:bg-white/5 px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
-                  Pulang: <span className="text-emerald-600 dark:text-emerald-400">{times.pulang || '-'}</span>
+                <span className="flex items-center bg-slate-100 dark:bg-white/5 px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
+                  Pulang: <span className="text-emerald-600 dark:text-emerald-400 ml-1">{times.pulang || '-'}</span>
+                  {methods?.pulang && <span className="ml-1 text-slate-400 dark:text-slate-500 text-[10px] font-medium">({methods.pulang})</span>}
                 </span>
               </div>
             )}

@@ -4,10 +4,12 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import useSWR from 'swr';
+import { useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
 
 export default function MasterUserPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [message, setMessage] = useState(null);
 
   // Filters
@@ -43,7 +45,13 @@ export default function MasterUserPage() {
 
   const rombelOptions = users.length > 0 ? [...new Set(users.map(d => d.rombel).filter(r => r && r !== '-'))].sort() : [];
 
-  if (user?.role !== 'Admin' && user?.role !== 'Kepala Madrasah') {
+  useEffect(() => {
+    if (user && user.role !== 'Admin') {
+      router.push('/dashboard');
+    }
+  }, [user, router]);
+
+  if (user?.role !== 'Admin') {
     return <div className="p-8 text-center text-red-500">Akses ditolak.</div>;
   }
 

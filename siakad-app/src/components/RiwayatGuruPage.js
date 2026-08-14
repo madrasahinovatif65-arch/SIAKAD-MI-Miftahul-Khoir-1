@@ -45,7 +45,7 @@ export default function RiwayatGuruPage() {
       const { data: guruData } = await supabase
         .from('master_user')
         .select('*')
-        .in('role', ['Wali Kelas', 'Guru Mapel'])
+        .in('role', ['Wali Kelas', 'Guru Mapel', 'Kepala Madrasah'])
         .eq('status_aktif', 'Aktif')
         .order('nama');
 
@@ -255,14 +255,14 @@ export default function RiwayatGuruPage() {
     if (isAdmin) {
       html += `
         <tr>
-          <th>No</th>
-          <th>Nama Guru</th>
-          <th>Hadir</th>
-          <th>Sakit</th>
-          <th>Izin</th>
-          <th>Alfa</th>
-          <th>Total</th>
-          <th>%</th>
+          <th style="width: 5%;">No</th>
+          <th style="width: 47%; text-align: left;">Nama Guru</th>
+          <th style="width: 8%;">Hadir</th>
+          <th style="width: 8%;">Sakit</th>
+          <th style="width: 8%;">Izin</th>
+          <th style="width: 8%;">Alfa</th>
+          <th style="width: 8%;">Total</th>
+          <th style="width: 8%;">%</th>
         </tr>
       </thead><tbody>
       `;
@@ -724,8 +724,8 @@ export default function RiwayatGuruPage() {
         </div>
       )}
 
-      {/* Jurnal Section for Admin */}
-      {isAdmin && (
+      {/* Jurnal Section for Admin (Hidden as requested) */}
+      {false && (
         <div className={`mt-16 print:mt-0 ${printTarget === 'rekap' ? 'print:hidden' : ''}`}>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 print:hidden">
             <div>
