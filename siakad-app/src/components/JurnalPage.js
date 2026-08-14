@@ -35,6 +35,7 @@ export default function JurnalPage() {
   const [jamMulai, setJamMulai] = useState('');
   const [jamSelesai, setJamSelesai] = useState('');
   const [rombel, setRombel] = useState(user?.rombel !== '-' ? user?.rombel : '');
+  const [rombel, setRombel] = useState('');
   const [mapel, setMapel] = useState('');
   const [materi, setMateri] = useState('');
   const [catatan, setCatatan] = useState('');
@@ -211,7 +212,7 @@ export default function JurnalPage() {
     };
 
     fetchActiveSlot();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [masterData, user, editId]);
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -531,12 +532,12 @@ export default function JurnalPage() {
             <td style="text-align: left;">${j.materi || '-'}</td>
             <td style="text-align: center;">
               ${(() => {
-                const totalSiswa = rombelCounts?.[j.rombel] || 1;
-                const absenCount = j.data_absensi_mapel?.length || 0;
-                const hadirCount = Math.max(0, totalSiswa - absenCount);
-                const persentase = totalSiswa > 0 ? Math.round((hadirCount / totalSiswa) * 100) : 100;
-                return `${persentase}%`;
-              })()}
+            const totalSiswa = rombelCounts?.[j.rombel] || 1;
+            const absenCount = j.data_absensi_mapel?.length || 0;
+            const hadirCount = Math.max(0, totalSiswa - absenCount);
+            const persentase = totalSiswa > 0 ? Math.round((hadirCount / totalSiswa) * 100) : 100;
+            return `${persentase}%`;
+          })()}
             </td>
           </tr>
         `;
