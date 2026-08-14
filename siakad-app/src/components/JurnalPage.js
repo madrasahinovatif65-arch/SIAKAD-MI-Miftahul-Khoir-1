@@ -34,7 +34,6 @@ export default function JurnalPage() {
   const [tanggal, setTanggal] = useState(() => getTodayDate());
   const [jamMulai, setJamMulai] = useState('');
   const [jamSelesai, setJamSelesai] = useState('');
-  const [rombel, setRombel] = useState(user?.rombel !== '-' ? user?.rombel : '');
   const [rombel, setRombel] = useState('');
   const [mapel, setMapel] = useState('');
   const [materi, setMateri] = useState('');
@@ -208,6 +207,9 @@ export default function JurnalPage() {
         setRombel(activeSlot.rombel || '');
         setMapel(activeSlot.mata_pelajaran || '');
         setAutoFillSlot(activeSlot);
+      } else if (user.role === 'Wali Kelas' && user.rombel && user.rombel !== '-') {
+        // Fallback Wali Kelas: isi rombel dari profil meski tidak ada slot jadwal aktif
+        setRombel(user.rombel.replace(/^Kelas\s+/i, ''));
       }
     };
 
