@@ -44,7 +44,7 @@ export async function POST(request) {
     const { data: guruList } = await supabase
       .from('master_user')
       .select('id_user, nama, role')
-      .in('role', ['Wali Kelas', 'Guru Mapel'])
+      .in('role', ['Wali Kelas', 'Guru Mapel', 'Kepala Madrasah'])
       .eq('status_aktif', 'Aktif');
 
     if (!guruList || guruList.length === 0) {
