@@ -126,9 +126,20 @@ export default function JurnalPage() {
     ? (masterData?.mapel || []).filter(m => user.mapel.includes(m.nama_mapel))
     : (masterData?.mapel || []);
 
-  const rombelOptions = user?.role === 'Wali Kelas' && user?.rombel && user.rombel !== '-'
-    ? [user.rombel]
-    : (masterData?.rombel || []);
+  const { data: jadwalGuru } = useSWR(user?.role === 'Guru Mapel' ? `jadwal_guru_rombel_${user.id_user}` : null, async () => {
+    const { data } = await supabase.from('jadwal_pelajaran').select('rombel').eq('id_guru', user.id_user);
+    const uniqueRombel = [...new Set((data || []).map(d => d.rombel).filter(Boolean))].sort();
+    return uniqueRombel;
+  });
+
+  let rombelOptions = masterData?.rombel || [];
+  if (user?.role === 'Wali Kelas' && user?.rombel && user.rombel !== '-') {
+    rombelOptions = [user.rombel];
+  } else if (user?.role === 'Guru Mapel' && jadwalGuru) {
+    const guruRombelStripped = jadwalGuru.map(r => r.replace(/^Kelas\s+/i, ''));
+    const filtered = (masterData?.rombel || []).filter(opt => guruRombelStripped.includes(opt.replace(/^Kelas\s+/i, '')));
+    rombelOptions = filtered.length > 0 ? filtered : jadwalGuru.map(r => r.toLowerCase().startsWith('kelas') ? r : `Kelas ${r}`);
+  }
 
   useEffect(() => {
     if (!mapel && mapelOptions.length === 1) {
@@ -204,18 +215,23 @@ export default function JurnalPage() {
         setTanggal(today);
         setJamMulai(activeSlot.jam_mulai || '');
         setJamSelesai(activeSlot.jam_selesai || activeSlot.jam_mulai || '');
-        setRombel(activeSlot.rombel || '');
+        
+        // Cari opsi rombel yang cocok dari rombelOptions (misal: "5A" -> "Kelas 5A")
+        const strippedDbRombel = (activeSlot.rombel || '').replace(/^Kelas\s+/i, '');
+        const matchedRombelOption = rombelOptions.find(opt => opt.replace(/^Kelas\s+/i, '') === strippedDbRombel) || activeSlot.rombel;
+        
+        setRombel(matchedRombelOption);
         setMapel(activeSlot.mata_pelajaran || '');
         setAutoFillSlot(activeSlot);
       } else if (user.role === 'Wali Kelas' && user.rombel && user.rombel !== '-') {
         // Fallback Wali Kelas: isi rombel dari profil meski tidak ada slot jadwal aktif
-        setRombel(user.rombel.replace(/^Kelas\s+/i, ''));
+        setRombel(user.rombel);
       }
     };
 
     fetchActiveSlot();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [masterData, user, editId]);
+  }, [masterData, user, editId, jadwalGuru]);
   // ──────────────────────────────────────────────────────────────────────────
 
   const { data: riwayatData, isLoading: loadingRiwayat, mutate: mutateRiwayat } = useSWR(user ? `jurnal_riwayat_${user.id_user}_${filterTglMulai}_${filterTglAkhir}_${filterRombel}_${filterMapel}` : null, async () => {
