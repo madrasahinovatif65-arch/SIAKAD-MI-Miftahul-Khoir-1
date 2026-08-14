@@ -45,6 +45,8 @@ export default function JurnalPage() {
   const [editId, setEditId] = useState(null);
   const [absensiMapel, setAbsensiMapel] = useState({});
   const [isAbsenModalOpen, setIsAbsenModalOpen] = useState(false);
+  const [autoFillSlot, setAutoFillSlot] = useState(null);
+  const [autoFillDismissed, setAutoFillDismissed] = useState(false);
 
   const [filterTglMulai, setFilterTglMulai] = useState(() => {
     const today = new Date();
@@ -134,12 +136,84 @@ export default function JurnalPage() {
     }
   }, [mapel, mapelOptions]);
 
+  // ── Auto-fill form dari jadwal aktif saat ini ──────────────────────────────
   useEffect(() => {
-    if (!jamMulai && jamOptions.length > 0) {
-      setJamMulai(jamOptions[0].id_jam);
-      setJamSelesai(jamOptions[0].id_jam);
-    }
-  }, [jamOptions, jamMulai]);
+    if (!user || !masterData || masterData.jam.length === 0 || editId) return;
+    // Hanya berlaku untuk Guru Mapel dan Wali Kelas
+    if (!['Guru Mapel', 'Wali Kelas'].includes(user.role)) return;
+
+    const fetchActiveSlot = async () => {
+      const now = new Date();
+      // JS: 0=Minggu, 1=Senin, ..., 6=Sabtu
+      // jadwal_pelajaran: 1=Senin, ..., 6=Sabtu
+      const todayDow = now.getDay(); // 0-6
+      if (todayDow === 0) return; // Minggu tidak ada jadwal
+
+      const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
+
+      // Ambil jadwal guru hari ini
+      const { data: jadwalHariIni } = await supabase
+        .from('jadwal_pelajaran')
+        .select('id, rombel, mata_pelajaran, jam_mulai, jam_selesai')
+        .eq('id_guru', user.id_user)
+        .eq('hari', todayDow);
+
+      if (!jadwalHariIni || jadwalHariIni.length === 0) return;
+
+      const jamMap = {};
+      masterData.jam.forEach(j => { jamMap[j.id_jam] = j; });
+
+      // Cari slot yang sedang aktif (waktu sekarang dalam rentang jam_mulai s/d jam_selesai)
+      let activeSlot = null;
+      for (const slot of jadwalHariIni) {
+        const jamMulaiObj = jamMap[slot.jam_mulai];
+        const jamSelesaiObj = jamMap[slot.jam_selesai] || jamMulaiObj;
+        if (!jamMulaiObj) continue;
+
+        const slotStart = jamMulaiObj.waktu_mulai;
+        const slotEnd = jamSelesaiObj.waktu_selesai;
+
+        if (currentTimeStr >= slotStart && currentTimeStr <= slotEnd) {
+          activeSlot = slot;
+          break;
+        }
+      }
+
+      // Jika tidak ada yang aktif persis, ambil slot berikutnya (grace period 15 menit sebelum mulai)
+      if (!activeSlot) {
+        const graceMs = 15 * 60 * 1000;
+        const nowMs = now.getHours() * 3600000 + now.getMinutes() * 60000 + now.getSeconds() * 1000;
+        let closest = null;
+        let minDiff = Infinity;
+        for (const slot of jadwalHariIni) {
+          const jamMulaiObj = jamMap[slot.jam_mulai];
+          if (!jamMulaiObj) continue;
+          const [h, m, s] = jamMulaiObj.waktu_mulai.split(':').map(Number);
+          const slotStartMs = h * 3600000 + m * 60000 + (s || 0) * 1000;
+          const diff = slotStartMs - nowMs;
+          if (diff >= 0 && diff <= graceMs && diff < minDiff) {
+            minDiff = diff;
+            closest = slot;
+          }
+        }
+        activeSlot = closest;
+      }
+
+      if (activeSlot) {
+        const today = getTodayDate();
+        setTanggal(today);
+        setJamMulai(activeSlot.jam_mulai || '');
+        setJamSelesai(activeSlot.jam_selesai || activeSlot.jam_mulai || '');
+        setRombel(activeSlot.rombel || '');
+        setMapel(activeSlot.mata_pelajaran || '');
+        setAutoFillSlot(activeSlot);
+      }
+    };
+
+    fetchActiveSlot();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [masterData, user, editId]);
+  // ──────────────────────────────────────────────────────────────────────────
 
   const { data: riwayatData, isLoading: loadingRiwayat, mutate: mutateRiwayat } = useSWR(user ? `jurnal_riwayat_${user.id_user}_${filterTglMulai}_${filterTglAkhir}_${filterRombel}_${filterMapel}` : null, async () => {
     let query = supabase.from('jurnal_guru').select('*, master_user(nama), data_absensi_mapel(status, catatan, master_user!data_absensi_mapel_nisn_fkey(nama))').order('tanggal', { ascending: true }).order('jam_pelajaran');
@@ -600,6 +674,20 @@ export default function JurnalPage() {
 
       {user?.role !== 'Admin' && (
         <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 print:hidden relative shadow-sm">
+          {/* Banner Auto-fill */}
+          {autoFillSlot && !autoFillDismissed && !editId && (
+            <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-2xl px-4 py-3.5 text-emerald-700 dark:text-emerald-300 text-sm flex items-center justify-between gap-3 font-medium shadow-sm animate-in fade-in slide-in-from-top-2">
+              <span className="flex items-center gap-2">
+                <svg className="w-5 h-5 flex-shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+                <span>Form diisi otomatis dari jadwal aktif: <strong>{autoFillSlot.mata_pelajaran}</strong> — Kelas <strong>{autoFillSlot.rombel}</strong>. Silakan isi Materi &amp; Catatan.</span>
+              </span>
+              <button onClick={() => setAutoFillDismissed(true)} className="text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-200 transition-colors shrink-0" title="Tutup">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+          )}
           {isHoliday && (
             <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-2xl px-4 py-3.5 text-amber-600 dark:text-amber-300 text-sm flex items-center gap-3 font-medium shadow-sm">
               <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
