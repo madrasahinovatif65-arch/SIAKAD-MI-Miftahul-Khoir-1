@@ -144,6 +144,26 @@ export default function AbsenGPSWidget() {
       if (todayStatus.gpsData) setExistingGpsData(todayStatus.gpsData);
       if (todayStatus.times) setTimes(todayStatus.times);
       if (todayStatus.methods) setMethods(todayStatus.methods);
+      
+      // Auto check permission
+      if (todayStatus.type !== 'error' && todayStatus.type !== 'done') {
+        if (navigator.permissions && navigator.permissions.query) {
+          navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+            if (result.state === 'granted') {
+               handleRefreshGPS();
+            } else if (result.state === 'denied') {
+               setStatus('error');
+               setMessage('⚠️ Akses lokasi diblokir. Harap izinkan akses lokasi di pengaturan browser.');
+            }
+            result.onchange = function() {
+               if (this.state === 'denied') {
+                 setStatus('error');
+                 setMessage('⚠️ Akses lokasi diblokir. Harap izinkan akses lokasi di pengaturan browser.');
+               }
+            };
+          }).catch(() => {});
+        }
+      }
     }
   }, [todayStatus]);
 
@@ -195,7 +215,11 @@ export default function AbsenGPSWidget() {
       (err) => {
         if (isServerError) return;
         setStatus('error');
-        setMessage('Gagal mendapatkan lokasi GPS: ' + err.message);
+        if (err.code === 1) { // PERMISSION_DENIED
+          setMessage('⚠️ Akses lokasi ditolak. Izinkan akses di pengaturan browser Anda.');
+        } else {
+          setMessage('Gagal mendapatkan lokasi GPS: ' + err.message);
+        }
       },
       { enableHighAccuracy: true, timeout: 15000 }
     );

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 import { fetchMasterLibur, fetchVerifiedDatesGuru, fetchVerifikasiGuru } from '@/lib/fetchers';
 import { formatTimeShort, getTodayDate } from '@/lib/dateUtils';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -123,6 +123,8 @@ export default function VerifikasiPage() {
       setMessage({ type: 'error', text: 'Gagal menyimpan: ' + error.message });
     } else {
       setMessage({ type: 'success', text: `Verifikasi tanggal ${formatDate(tanggal)} berhasil disimpan!` });
+      // Invalidate riwayat_guru cache globally
+      mutate((key) => typeof key === 'string' && key.startsWith('riwayat_guru_'), undefined, { revalidate: true });
     }
   };
 
@@ -157,6 +159,9 @@ export default function VerifikasiPage() {
 
       setRangeMessage({ type: 'success', text: data.message });
       reloadData();
+      
+      // Invalidate riwayat_guru cache globally
+      mutate((key) => typeof key === 'string' && key.startsWith('riwayat_guru_'), undefined, { revalidate: true });
     } catch (err) {
       setRangeMessage({ type: 'error', text: err.message });
     } finally {
