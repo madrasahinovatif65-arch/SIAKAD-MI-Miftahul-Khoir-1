@@ -121,7 +121,7 @@ export const fetchVerifikasiGuru = async ([_key, tanggal]) => {
   const { data: allGuru } = await supabase
     .from('master_user')
     .select('id_user, nama, role, rombel, rfid')
-    .in('role', ['Wali Kelas', 'Guru Mapel'])
+    .in('role', ['Wali Kelas', 'Guru Mapel', 'Kepala Madrasah'])
     .eq('status_aktif', 'Aktif')
     .order('nama');
 
@@ -214,13 +214,33 @@ export const fetchVerifikasiGuru = async ([_key, tanggal]) => {
       metode = ver.metode;
       catatan = ver.catatan || '';
     } else if (nfc || gps) {
-      currentStatus = 'Hadir';
-      metode = (nfc && gps) ? 'NFC+GPS' : (nfc ? 'NFC' : 'GPS');
-      catatan = isLate ? 'Terlambat' : 'Absen Mandiri';
+      if (nfc) {
+        currentStatus = 'Hadir';
+        metode = 'NFC';
+        catatan = isLate ? 'Terlambat' : 'Auto-verified via NFC';
+      } else if (gps) {
+        metode = 'GPS';
+        const radius = parseInt(process.env.NEXT_PUBLIC_GPS_RADIUS_METER || '50');
+        if (gps.status === 'Menunggu Verifikasi' || gps.status === 'Di Luar Radius') {
+          if (gps.jarak_meter !== null && gps.jarak_meter <= radius) {
+             currentStatus = 'Hadir';
+          } else if (gps.jarak_meter !== null && gps.jarak_meter > radius) {
+             currentStatus = 'Di Luar Radius';
+          } else {
+             currentStatus = gps.status;
+          }
+        } else {
+          currentStatus = gps.status;
+        }
+        catatan = isLate ? 'Terlambat' : 'Auto-verified via GPS';
+      }
+      if (nfc && gps) {
+        metode = 'NFC+GPS';
+      }
       waktu = waktu_datang || waktu_pulang || '-';
     } else {
       currentStatus = 'Hadir';
-      catatan = 'Hadir (Verifikasi Admin)';
+      catatan = 'Auto-verified by Admin';
       metode = 'Otomatis';
     }
 

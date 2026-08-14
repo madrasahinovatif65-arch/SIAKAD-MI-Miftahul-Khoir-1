@@ -75,7 +75,7 @@ export async function POST(request) {
 
     const { data: gpsData } = await supabase
       .from('log_gps_guru')
-      .select('id_guru, tanggal, waktu, status')
+      .select('id_guru, tanggal, waktu, status, jarak_meter')
       .gte('tanggal', tglMulai)
       .lte('tanggal', tglAkhir);
 
@@ -119,7 +119,22 @@ export async function POST(request) {
           } else if (gps) {
             metode = 'GPS';
             waktu = gps.waktu || '-';
-            catatan = 'Auto-verified via GPS';
+            catatan = 'Auto-verified by Admin';
+            
+            const radius = parseInt(process.env.NEXT_PUBLIC_GPS_RADIUS_METER || '50');
+            if (gps.status === 'Menunggu Verifikasi' || gps.status === 'Di Luar Radius') {
+              if (gps.jarak_meter !== null && gps.jarak_meter <= radius) {
+                status = 'Hadir';
+              } else if (gps.jarak_meter !== null && gps.jarak_meter > radius) {
+                status = 'Di Luar Radius';
+              } else {
+                status = gps.status;
+              }
+            } else {
+              status = gps.status;
+            }
+          } else {
+            catatan = 'Auto-verified by Admin';
           }
 
           toInsert.push({

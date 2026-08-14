@@ -255,14 +255,14 @@ export default function RiwayatGuruPage() {
     if (isAdmin) {
       html += `
         <tr>
-          <th style="width: 5%;">No</th>
-          <th style="width: 47%; text-align: left;">Nama Guru</th>
-          <th style="width: 8%;">Hadir</th>
-          <th style="width: 8%;">Sakit</th>
-          <th style="width: 8%;">Izin</th>
-          <th style="width: 8%;">Alfa</th>
-          <th style="width: 8%;">Total</th>
-          <th style="width: 8%;">%</th>
+          <th width="4%">No</th>
+          <th width="48%" style="text-align: left;">Nama Guru</th>
+          <th width="8%">Hadir</th>
+          <th width="8%">Sakit</th>
+          <th width="8%">Izin</th>
+          <th width="8%">Alfa</th>
+          <th width="8%">Total</th>
+          <th width="8%">%</th>
         </tr>
       </thead><tbody>
       `;
@@ -278,14 +278,14 @@ export default function RiwayatGuruPage() {
           
           html += `
             <tr>
-              <td style="width: 5%;">${idx + 1}</td>
-              <td class="text-left">${guru.nama}</td>
-              <td>${hadir || '-'}</td>
-              <td>${sakit || '-'}</td>
-              <td>${izin || '-'}</td>
-              <td>${alfa || '-'}</td>
-              <td>${total || '-'}</td>
-              <td>${persen > 0 ? persen + '%' : '-'}</td>
+              <td width="4%">${idx + 1}</td>
+              <td width="48%" class="text-left" style="white-space: nowrap;">${guru.nama}</td>
+              <td width="8%">${hadir || '-'}</td>
+              <td width="8%">${sakit || '-'}</td>
+              <td width="8%">${izin || '-'}</td>
+              <td width="8%">${alfa || '-'}</td>
+              <td width="8%">${total || '-'}</td>
+              <td width="8%">${persen > 0 ? persen + '%' : '-'}</td>
             </tr>
           `;
         });
