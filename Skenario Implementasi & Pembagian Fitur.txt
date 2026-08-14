@@ -1,0 +1,61 @@
+Skenario Implementasi & Pembagian Fitur
+Berikut adalah langkah-langkah dan alokasi fitur untuk kedua peran baru tersebut:
+
+Langkah 1: Modifikasi Struktur Data & Peran
+Update Tabel master_user:
+Perbarui CHECK constraint pada kolom role untuk memasukkan nilai baru: 'Kepala Madrasah'.
+Nilai yang ada saat ini, 'Admin', diubah namanya menjadi 'Staf TU' atau 'Operator' untuk merefleksikan peran teknisnya.
+Tunjuk satu atau beberapa pengguna yang ada untuk memiliki peran 'Kepala Madrasah'.
+Langkah 2: Alokasi Fitur per Halaman
+Berikut adalah pembagian fitur yang ideal untuk setiap peran di halaman-halaman yang ada:
+
+A. Halaman DashboardHome.js
+
+Kepala Madrasah:
+Melihat semua kartu statistik (Total Guru, Total Murid, Kehadiran, Jurnal).
+Melihat grafik tren kehadiran dan proporsi absensi.
+Melihat "Pantauan Kehadiran per Kelas".
+Melihat notifikasi "Perlu Verifikasi" dan memiliki akses cepat ke halaman verifikasi.
+Admin (Staf TU):
+Tampilan mirip dengan Kepala Madrasah, namun fokusnya lebih ke data operasional.
+Mungkin tidak perlu melihat kartu statistik persentase kehadiran guru, karena verifikasi bukan tugas utamanya.
+B. Halaman MasterUserPage.js (Kelola Pengguna)
+
+Kepala Madrasah:
+Akses Dibatasi (Read-Only): Hanya bisa melihat daftar pengguna dan detailnya. Tidak bisa menambah, mengubah, atau menghapus pengguna.
+Fitur Impor/Ekspor, Pindah Rombel, Hapus, dan Edit RFID disembunyikan.
+Admin (Staf TU):
+Akses Penuh (CRUD): Memiliki semua fungsionalitas yang ada saat ini: menambah, mengedit, menghapus pengguna, mengelola RFID, impor/ekspor data, dan melakukan aksi massal (bulk actions).
+C. Halaman JadwalPage.js (Kelola Jadwal)
+
+Kepala Madrasah:
+Akses Dibatasi (Read-Only): Bisa melihat jadwal semua guru dan semua kelas, namun tidak bisa menambah, mengubah, atau menghapus slot jadwal.
+Admin (Staf TU):
+Akses Penuh (CRUD): Memiliki semua fungsionalitas yang ada saat ini untuk mengelola jadwal pelajaran.
+D. Halaman VerifikasiPage.js (Verifikasi Kehadiran Guru)
+
+Kepala Madrasah:
+Akses Penuh: Ini adalah fitur utama bagi Kepala Madrasah. Mereka dapat melihat data absensi GPS/NFC guru dan melakukan verifikasi (mengubah status menjadi Hadir, Sakit, Izin, Alfa).
+Admin (Staf TU):
+Akses Dibatasi atau Dihilangkan: Idealnya, fitur ini hanya untuk Kepala Madrasah. Namun, jika diperlukan, Admin bisa diberi akses read-only untuk membantu pengecekan data, tetapi tombol "Simpan Verifikasi" dinonaktifkan.
+E. Halaman RekapPage.js & RiwayatGuruPage.js (Laporan)
+
+Kepala Madrasah:
+Akses Penuh: Bisa melihat dan mengekspor semua rekapitulasi absensi murid dan riwayat kehadiran guru tanpa batasan.
+Admin (Staf TU):
+Akses Penuh: Juga memiliki akses penuh untuk membantu Kepala Madrasah dalam menyiapkan laporan atau memeriksa data historis.
+F. Halaman PengaturanPage.js
+
+Kepala Madrasah:
+Akses Dibatasi (Read-Only): Hanya bisa melihat pengaturan tahun ajaran yang sedang aktif.
+Admin (Staf TU):
+Akses Penuh: Bisa mengubah Tahun Ajaran, Semester, dan Tanggal Mulai Efektif.
+Langkah 3: Penyesuaian Logika Aplikasi
+Update useAuth Context: Logika user.role di seluruh aplikasi perlu diperbarui untuk mengenali peran 'Kepala Madrasah'.
+Conditional Rendering: Gunakan if (user.role === 'Kepala Madrasah') atau if (user.role === 'Admin') untuk menampilkan atau menyembunyikan tombol, form, dan menu sesuai dengan alokasi fitur di atas.
+RLS (Row Level Security) di Supabase:
+Buat fungsi SQL baru is_kepala_madrasah().
+Perbarui policy yang ada. Contoh:
+UPDATE pada tabel verifikasi_guru hanya diizinkan jika is_kepala_madrasah() bernilai true.
+INSERT, UPDATE, DELETE pada master_user dan jadwal_pelajaran hanya diizinkan jika is_admin() (Staf TU) bernilai true.
+SELECT pada semua tabel diizinkan untuk kedua peran tersebut untuk keperluan monitoring.

@@ -56,8 +56,10 @@ function downloadXLSX(filename, headers, rows, sheetName = 'Jadwal') {
 export default function JadwalPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'Admin';
+  const isKepalaMadrasah = user?.role === 'Kepala Madrasah';
   const isWaliKelas = user?.role === 'Wali Kelas';
   const isGuruMapel = user?.role === 'Guru Mapel';
+  const canViewAll = isAdmin || isKepalaMadrasah;
 
   const defaultMode = isWaliKelas ? 'kelas' : 'guru';
 
@@ -123,11 +125,11 @@ export default function JadwalPage() {
     return idx === -1 ? 9999 : idx;
   };
 
-  // activeGuruId hanya untuk mode 'guru' (Admin pilih guru, atau Guru Mapel lihat diri sendiri)
-  const activeGuruId = isAdmin ? selectedGuru : (isGuruMapel ? user?.id_user : '');
+  // activeGuruId hanya untuk mode 'guru' (Admin/Kepsek pilih guru, atau Guru Mapel lihat diri sendiri)
+  const activeGuruId = canViewAll ? selectedGuru : (isGuruMapel ? user?.id_user : '');
   const waliRombel = user?.rombel?.replace(/^Kelas\s+/i, '') || '';
   const activeRombel = isWaliKelas ? waliRombel : selectedRombel?.replace(/^Kelas\s+/i, '');
-  const effectiveMode = isAdmin ? viewMode : defaultMode;
+  const effectiveMode = canViewAll ? viewMode : defaultMode;
 
   // jadwalKey: Wali Kelas → pakai activeRombel, Guru Mapel → pakai activeGuruId
   const jadwalKey =
@@ -266,7 +268,7 @@ export default function JadwalPage() {
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">Jadwal Pelajaran</h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-            {isAdmin ? 'Kelola jadwal mengajar guru — acuan persentase jurnal di dashboard' : isWaliKelas ? `Jadwal Kelas ${waliRombel || 'Anda'}` : 'Jadwal mengajar Anda — acuan kelengkapan jurnal'}
+            {canViewAll ? 'Kelola jadwal mengajar guru — acuan persentase jurnal di dashboard' : isWaliKelas ? `Jadwal Kelas ${waliRombel || 'Anda'}` : 'Jadwal mengajar Anda — acuan kelengkapan jurnal'}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -312,8 +314,8 @@ export default function JadwalPage() {
         </div>
       )}
 
-      {/* ── Toggle Mode — HANYA ADMIN ── */}
-      {isAdmin && (
+      {/* ── Toggle Mode — HANYA ADMIN & KEPSEK ── */}
+      {canViewAll && (
         <div className="flex bg-slate-100/70 dark:bg-slate-800/70 p-1 rounded-xl w-fit">
           {['guru', 'kelas'].map(m => (
             <button key={m} onClick={() => setViewMode(m)} className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all ${viewMode === m ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}>
@@ -323,8 +325,8 @@ export default function JadwalPage() {
         </div>
       )}
 
-      {/* ── Pilih Guru — Admin mode guru ── */}
-      {isAdmin && effectiveMode === 'guru' && (
+      {/* ── Pilih Guru — Admin/Kepsek mode guru ── */}
+      {canViewAll && effectiveMode === 'guru' && (
         <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-white/60 dark:border-white/10 rounded-[1.5rem] p-5 shadow-sm">
           <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold block mb-2">Pilih Guru</label>
           <div className="relative">
@@ -337,8 +339,8 @@ export default function JadwalPage() {
         </div>
       )}
 
-      {/* ── Pilih Kelas — Admin mode kelas ── */}
-      {isAdmin && effectiveMode === 'kelas' && (
+      {/* ── Pilih Kelas — Admin/Kepsek mode kelas ── */}
+      {canViewAll && effectiveMode === 'kelas' && (
         <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-white/60 dark:border-white/10 rounded-[1.5rem] p-5 shadow-sm">
           <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold block mb-2">Pilih Kelas / Rombel</label>
           <div className="relative">

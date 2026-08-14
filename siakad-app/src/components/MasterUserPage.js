@@ -29,7 +29,7 @@ export default function MasterUserPage() {
 
   // Fetch Data
   // Fetch Data using SWR
-  const { data: usersData, error: swrError, isLoading: loading, mutate } = useSWR(user?.role === 'Admin' ? 'master_user' : null, async () => {
+  const { data: usersData, error: swrError, isLoading: loading, mutate } = useSWR((user?.role === 'Admin' || user?.role === 'Kepala Madrasah') ? 'master_user' : null, async () => {
     const { data, error } = await supabase.from('master_user').select('*').order('role').order('nama');
     if (error) throw error;
     return data || [];
@@ -43,8 +43,8 @@ export default function MasterUserPage() {
 
   const rombelOptions = users.length > 0 ? [...new Set(users.map(d => d.rombel).filter(r => r && r !== '-'))].sort() : [];
 
-  if (user?.role !== 'Admin') {
-    return <div className="p-8 text-center text-red-500">Akses ditolak. Khusus Admin.</div>;
+  if (user?.role !== 'Admin' && user?.role !== 'Kepala Madrasah') {
+    return <div className="p-8 text-center text-red-500">Akses ditolak.</div>;
   }
 
   // Handle Scan / RFID Edit
@@ -221,20 +221,24 @@ export default function MasterUserPage() {
     <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">Kelola Data Pengguna</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Manajemen Master User, Impor Excel, & Registrasi RFID</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">Data Pengguna</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{user?.role === 'Admin' ? 'Manajemen Master User, Impor Excel, & Registrasi RFID' : 'Daftar Pengguna SIAKAD'}</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={downloadTemplate} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-semibold transition-colors">
-            Unduh Template
-          </button>
+          {user?.role === 'Admin' && (
+            <button onClick={downloadTemplate} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-semibold transition-colors">
+              Unduh Template
+            </button>
+          )}
           <button onClick={exportData} className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 rounded-xl text-sm font-semibold transition-colors">
             Export Excel
           </button>
-          <label className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-semibold cursor-pointer shadow-sm transition-colors">
-            Import Excel
-            <input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleFileUpload} />
-          </label>
+          {user?.role === 'Admin' && (
+            <label className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-semibold cursor-pointer shadow-sm transition-colors">
+              Import Excel
+              <input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleFileUpload} />
+            </label>
+          )}
         </div>
       </div>
 
@@ -294,7 +298,7 @@ export default function MasterUserPage() {
       </div>
 
       {/* Bulk Action Bar */}
-      {selectedIds.length > 0 && (
+      {user?.role === 'Admin' && selectedIds.length > 0 && (
         <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2">
           <div className="text-blue-700 dark:text-blue-300 font-medium text-sm">
             <span className="font-bold">{selectedIds.length}</span> pengguna terpilih
@@ -326,9 +330,11 @@ export default function MasterUserPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
-                <th className="px-4 py-4 w-12 text-center">
-                  <input type="checkbox" onChange={handleSelectAll} checked={selectedIds.length === filteredUsers.length && filteredUsers.length > 0} className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
-                </th>
+                {user?.role === 'Admin' && (
+                  <th className="px-4 py-4 w-12 text-center">
+                    <input type="checkbox" onChange={handleSelectAll} checked={selectedIds.length === filteredUsers.length && filteredUsers.length > 0} className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                  </th>
+                )}
                 <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">ID / NISN</th>
                 <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nama Lengkap</th>
                 <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Info Akademik</th>
@@ -355,9 +361,11 @@ export default function MasterUserPage() {
               ) : (
                 filteredUsers.map(u => (
                   <tr key={u.id} className={`transition-colors group ${selectedIds.includes(u.id) ? 'bg-emerald-50/50 dark:bg-emerald-500/10' : 'hover:bg-slate-50/50 dark:hover:bg-white/5'}`}>
-                    <td className="px-4 py-3 text-center">
-                      <input type="checkbox" checked={selectedIds.includes(u.id)} onChange={() => handleSelect(u.id)} className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
-                    </td>
+                    {user?.role === 'Admin' && (
+                      <td className="px-4 py-3 text-center">
+                        <input type="checkbox" checked={selectedIds.includes(u.id)} onChange={() => handleSelect(u.id)} className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                      </td>
+                    )}
                     <td className="px-5 py-3 text-sm text-slate-400 dark:text-slate-500 font-mono">{u.id_user}</td>
                     <td className="px-5 py-3 text-sm text-slate-800 dark:text-white font-semibold">{u.nama}</td>
                     <td className="px-5 py-3 max-w-[200px]">
@@ -368,7 +376,7 @@ export default function MasterUserPage() {
                       </div>
                     </td>
                     <td className="px-5 py-3 bg-emerald-50/30 dark:bg-emerald-500/5 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-500/10 transition-colors w-56">
-                      {editingRfidId === u.id ? (
+                      {editingRfidId === u.id && user?.role === 'Admin' ? (
                         <input
                           ref={rfidInputRef}
                           type="text"
@@ -382,20 +390,22 @@ export default function MasterUserPage() {
                       ) : (
                         <div className="flex items-center gap-2">
                           <div
-                            onClick={() => handleRfidClick(u.id, u.rfid)}
-                            className={`flex-1 px-2 py-1.5 rounded-lg text-sm font-mono cursor-text border border-transparent hover:border-emerald-200 dark:hover:border-emerald-500/30 transition-colors ${u.rfid ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-500 italic'}`}
+                            onClick={() => user?.role === 'Admin' && handleRfidClick(u.id, u.rfid)}
+                            className={`flex-1 px-2 py-1.5 rounded-lg text-sm font-mono border border-transparent transition-colors ${user?.role === 'Admin' ? 'cursor-text hover:border-emerald-200 dark:hover:border-emerald-500/30' : ''} ${u.rfid ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-500 italic'}`}
                           >
                             {u.rfid || 'Belum ada RFID'}
                           </div>
-                          <button
-                            onClick={() => handleRfidClick(u.id, u.rfid)}
-                            className="p-1.5 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/40 text-emerald-600 dark:text-emerald-400 rounded-lg transition-colors shadow-sm"
-                            title="Scan RFID"
-                          >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
-                            </svg>
-                          </button>
+                          {user?.role === 'Admin' && (
+                            <button
+                              onClick={() => handleRfidClick(u.id, u.rfid)}
+                              className="p-1.5 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/40 text-emerald-600 dark:text-emerald-400 rounded-lg transition-colors shadow-sm"
+                              title="Scan RFID"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
+                              </svg>
+                            </button>
+                          )}
                         </div>
                       )}
                     </td>

@@ -27,7 +27,7 @@ export default function PengaturanPage() {
   });
 
   useEffect(() => {
-    if (user && user.role !== 'Admin') {
+    if (user && user.role !== 'Admin' && user.role !== 'Kepala Madrasah') {
       router.push('/dashboard');
     }
   }, [user, router]);
@@ -74,12 +74,14 @@ export default function PengaturanPage() {
     }
   };
 
-  if (!user || user.role !== 'Admin') return null;
+  if (!user || (user.role !== 'Admin' && user.role !== 'Kepala Madrasah')) return null;
+
+  const isAdmin = user.role === 'Admin';
 
   return (
     <div className="h-full flex flex-col space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Pengaturan Admin</h2>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{isAdmin ? 'Pengaturan Admin' : 'Pengaturan Sekolah'}</h2>
         <p className="text-slate-600 dark:text-white/40 text-sm mt-1">Kelola konfigurasi tahun ajaran dan periode efektif.</p>
       </div>
 
@@ -99,7 +101,8 @@ export default function PengaturanPage() {
                     value={formData.tahun_ajaran}
                     onChange={handleChange}
                     placeholder="Contoh: 2026/2027"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
+                    disabled={!isAdmin}
+                    className={`w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors ${!isAdmin ? 'opacity-80' : ''}`}
                     required
                   />
                 </div>
@@ -110,7 +113,8 @@ export default function PengaturanPage() {
                     name="semester"
                     value={formData.semester}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
+                    disabled={!isAdmin}
+                    className={`w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors ${!isAdmin ? 'opacity-80' : ''}`}
                   >
                     <option value="Ganjil">Ganjil</option>
                     <option value="Genap">Genap</option>
@@ -125,7 +129,8 @@ export default function PengaturanPage() {
                   name="tgl_mulai_efektif"
                   value={formData.tgl_mulai_efektif}
                   onChange={handleChange}
-                  className="w-full md:w-1/2 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
+                  disabled={!isAdmin}
+                  className={`w-full md:w-1/2 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors ${!isAdmin ? 'opacity-80' : ''}`}
                   required
                 />
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Tanggal ini digunakan sebagai acuan awal perhitungan persentase kartu ringkasan untuk absensi guru bulan pertama.</p>
@@ -144,15 +149,17 @@ export default function PengaturanPage() {
               </div>
             )}
 
-            <div className="pt-4 flex justify-end border-t border-slate-100 dark:border-white/5">
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {loading ? 'Menyimpan...' : 'Simpan Pengaturan'}
-              </button>
-            </div>
+            {isAdmin && (
+              <div className="pt-4 flex justify-end border-t border-slate-100 dark:border-white/5">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {loading ? 'Menyimpan...' : 'Simpan Pengaturan'}
+                </button>
+              </div>
+            )}
           </form>
         </div>
       </div>
