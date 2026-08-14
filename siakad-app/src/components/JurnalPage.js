@@ -34,7 +34,7 @@ export default function JurnalPage() {
   const [tanggal, setTanggal] = useState(() => getTodayDate());
   const [jamMulai, setJamMulai] = useState('');
   const [jamSelesai, setJamSelesai] = useState('');
-  const [rombel, setRombel] = useState('');
+  const [rombel, setRombel] = useState(user?.role === 'Wali Kelas' && user?.rombel && user.rombel !== '-' ? user.rombel : '');
   const [mapel, setMapel] = useState('');
   const [materi, setMateri] = useState('');
   const [catatan, setCatatan] = useState('');
@@ -135,10 +135,14 @@ export default function JurnalPage() {
   let rombelOptions = masterData?.rombel || [];
   if (user?.role === 'Wali Kelas' && user?.rombel && user.rombel !== '-') {
     rombelOptions = [user.rombel];
-  } else if (user?.role === 'Guru Mapel' && jadwalGuru) {
-    const guruRombelStripped = jadwalGuru.map(r => r.replace(/^Kelas\s+/i, ''));
-    const filtered = (masterData?.rombel || []).filter(opt => guruRombelStripped.includes(opt.replace(/^Kelas\s+/i, '')));
-    rombelOptions = filtered.length > 0 ? filtered : jadwalGuru.map(r => r.toLowerCase().startsWith('kelas') ? r : `Kelas ${r}`);
+  } else if (user?.role === 'Guru Mapel') {
+    if (jadwalGuru) {
+      const guruRombelStripped = jadwalGuru.map(r => r.replace(/^Kelas\s+/i, ''));
+      const filtered = (masterData?.rombel || []).filter(opt => guruRombelStripped.includes(opt.replace(/^Kelas\s+/i, '')));
+      rombelOptions = filtered.length > 0 ? filtered : jadwalGuru.map(r => r.toLowerCase().startsWith('kelas') ? r : `Kelas ${r}`);
+    } else {
+      rombelOptions = [];
+    }
   }
 
   useEffect(() => {
@@ -169,7 +173,12 @@ export default function JurnalPage() {
         .eq('id_guru', user.id_user)
         .eq('hari', todayDow);
 
-      if (!jadwalHariIni || jadwalHariIni.length === 0) return;
+      if (!jadwalHariIni || jadwalHariIni.length === 0) {
+        if (user.role === 'Wali Kelas' && user.rombel && user.rombel !== '-') {
+          setRombel(user.rombel);
+        }
+        return;
+      }
 
       const jamMap = {};
       masterData.jam.forEach(j => { jamMap[j.id_jam] = j; });

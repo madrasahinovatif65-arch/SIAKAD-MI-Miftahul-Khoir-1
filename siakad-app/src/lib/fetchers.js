@@ -39,9 +39,17 @@ export const fetchPresensiData = async ([_key, rombel, tanggal]) => {
     return { isHoliday: true, holidayName: libur.keterangan, murid: [], nfcMap: {}, mergedAbsensi: {} };
   }
 
-  const { data: murid } = await supabase.from('master_user').select('*').eq('rombel', rombel).eq('role', 'Murid').eq('status_aktif', 'Aktif').order('nama');
-  const { data: nfc } = await supabase.from('view_rekap_absensi_nfc').select('*').eq('tanggal', tanggal).eq('rombel', rombel);
-  const { data: existing } = await supabase.from('data_absensi').select('*').eq('tanggal', tanggal).eq('rombel', rombel);
+  let muridQuery = supabase.from('master_user').select('*').eq('role', 'Murid').eq('status_aktif', 'Aktif').order('nama');
+  if (rombel !== 'Semua') muridQuery = muridQuery.eq('rombel', rombel);
+  const { data: murid } = await muridQuery;
+
+  let nfcQuery = supabase.from('view_rekap_absensi_nfc').select('*').eq('tanggal', tanggal);
+  if (rombel !== 'Semua') nfcQuery = nfcQuery.eq('rombel', rombel);
+  const { data: nfc } = await nfcQuery;
+
+  let existingQuery = supabase.from('data_absensi').select('*').eq('tanggal', tanggal);
+  if (rombel !== 'Semua') existingQuery = existingQuery.eq('rombel', rombel);
+  const { data: existing } = await existingQuery;
 
   const startUTC = new Date(`${tanggal}T00:00:00+07:00`).toISOString();
   const endUTC = new Date(`${tanggal}T23:59:59+07:00`).toISOString();

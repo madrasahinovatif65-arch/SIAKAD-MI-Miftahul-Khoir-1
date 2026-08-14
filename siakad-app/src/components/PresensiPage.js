@@ -46,7 +46,11 @@ export default function PresensiPage() {
       return [user.rombel];
     }
     const { data } = await supabase.from('master_user').select('rombel').eq('role', 'Murid');
-    return [...new Set((data || []).map(d => d.rombel).filter(Boolean))].sort();
+    const classes = [...new Set((data || []).map(d => d.rombel).filter(Boolean))].sort();
+    if (user?.role === 'Admin') {
+      return ['Semua', ...classes];
+    }
+    return classes;
   });
   
   const rombelOptions = rombelData || [];
@@ -95,7 +99,11 @@ export default function PresensiPage() {
 
   useEffect(() => {
     if (!rombel && rombelOptions.length > 0) {
-      setRombel(user?.rombel && user.rombel !== '-' ? user.rombel : rombelOptions[0]);
+      if (user?.role === 'Admin') {
+        setRombel('Semua');
+      } else {
+        setRombel(user?.rombel && user.rombel !== '-' ? user.rombel : rombelOptions[0]);
+      }
     }
   }, [rombel, rombelOptions, user]);
 

@@ -100,8 +100,8 @@ export default function RiwayatGuruPage() {
 
         // Populate times from GPS
         if (gps) {
-          if (gps.waktu) waktu_datang = gps.waktu;
-          if (gps.waktu_pulang) waktu_pulang = gps.waktu_pulang;
+          if (gps.waktu) waktu_datang = formatTimeShort(gps.waktu);
+          if (gps.waktu_pulang) waktu_pulang = formatTimeShort(gps.waktu_pulang);
         }
 
         // Overwrite/Populate times from NFC (NFC overrides GPS if both exist for same timestamp)
