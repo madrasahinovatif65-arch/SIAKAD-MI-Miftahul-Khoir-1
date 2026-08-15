@@ -68,51 +68,54 @@ export default function DashboardHome() {
     const today = getTodayDate();
     const monthStart = today.slice(0, 7) + '-01';
 
+    // 1. Ambil pengaturan sekolah untuk mendapatkan hari pertama tahun ajaran (berlaku untuk semua)
+    const { data: pengaturanData } = await supabase.from('pengaturan_sekolah').select('tgl_mulai_efektif').limit(1).maybeSingle();
+    const pengaturan = pengaturanData || {};
+    let calcStart = pengaturan.tgl_mulai_efektif || monthStart;
+    if (calcStart > today) calcStart = monthStart; // fallback jika tgl efektif di masa depan
+
+    // Hitung Hari Efektif
+    const { data: liburData } = await supabase.from('master_libur').select('tanggal').gte('tanggal', calcStart).lte('tanggal', today);
+    const liburSet = new Set((liburData || []).map(l => l.tanggal));
+
+    let hariEfektif = 0;
+    const validDates = [];
+    let curr = new Date(calcStart);
+    const end = new Date(today);
+    while (curr <= end) {
+      if (curr.getDay() !== 0) { // Bukan Minggu
+        const dateStr = curr.toISOString().split('T')[0];
+        if (!liburSet.has(dateStr)) {
+          hariEfektif++;
+          validDates.push(dateStr);
+        }
+      }
+      curr.setDate(curr.getDate() + 1);
+    }
+
     if (user.role === 'Murid') {
       const { data: absenMurid } = await supabase
-        .from('data_absensi')
-        .select('status')
-        .eq('nisn', user.id_user);
+        .from('view_rekap_kehadiran_murid_final')
+        .select('status, tanggal')
+        .eq('id_murid', user.id_user)
+        .gte('tanggal', calcStart)
+        .lte('tanggal', today);
 
-      let h = 0, i = 0, s = 0, a = 0;
-      if (absenMurid) {
-        absenMurid.forEach(ab => {
-          if (ab.status === 'Hadir') h++;
+      let s = 0, i = 0, a = 0;
+      (absenMurid || []).forEach(ab => {
+        if (validDates.includes(ab.tanggal)) {
+          if (ab.status === 'Sakit') s++;
           else if (ab.status === 'Izin') i++;
-          else if (ab.status === 'Sakit') s++;
-          else if (ab.status === 'Alpa') a++;
-        });
-      }
-      const total = h + i + s + a;
-      const pct = total > 0 ? Math.round((h / total) * 100) : 0;
+          else if (ab.status === 'Alfa' || ab.status === 'Alpa') a++;
+        }
+      });
+      
+      const h = Math.max(0, hariEfektif - (s + i + a));
+      const pct = hariEfektif > 0 ? Math.round((h / hariEfektif) * 100) : 0;
       return { muridStats: { hadir: h, izin: i, sakit: s, alpa: a, persentase: pct } };
     } else {
-      // Logic untuk Admin, Wali Kelas, Guru Mapel
-      // Ambil pengaturan sekolah untuk mendapatkan hari pertama tahun ajaran
-      const { data: pengaturanData } = await supabase.from('pengaturan_sekolah').select('tgl_mulai_efektif').limit(1).maybeSingle();
-      const pengaturan = pengaturanData || {};
+      // Logic untuk Admin, Wali Kelas, Guru Mapel, Kepala Madrasah
 
-      // Keseluruhan Hari Efektif: Dari tgl_mulai_efektif sampai hari ini
-      let calcStart = pengaturan.tgl_mulai_efektif || monthStart;
-      if (calcStart > today) calcStart = monthStart; // fallback jika tgl efektif di masa depan
-
-      const { data: liburData } = await supabase.from('master_libur').select('tanggal').gte('tanggal', calcStart).lte('tanggal', today);
-      const liburSet = new Set((liburData || []).map(l => l.tanggal));
-
-      let hariEfektif = 0;
-      const validDates = [];
-      let curr = new Date(calcStart);
-      const end = new Date(today);
-      while (curr <= end) {
-        if (curr.getDay() !== 0) { // Bukan Minggu
-          const dateStr = curr.toISOString().split('T')[0];
-          if (!liburSet.has(dateStr)) {
-            hariEfektif++;
-            validDates.push(dateStr);
-          }
-        }
-        curr.setDate(curr.getDate() + 1);
-      }
 
       let muridQuery = supabase.from('master_user').select('id_user', { count: 'exact', head: true }).eq('role', 'Murid').eq('status_aktif', 'Aktif');
       if (user.role === 'Wali Kelas' && user.rombel && user.rombel !== '-') {
@@ -155,16 +158,21 @@ export default function DashboardHome() {
       };
 
       if (['Wali Kelas', 'Guru Mapel'].includes(user.role)) {
-        // Ambil absensi guru keseluruhan
-        const { data: guruAbsen } = await supabase.from('verifikasi_guru')
+        // Ambil absensi guru keseluruhan (menggunakan view Auto-Hadir)
+        const { data: guruAbsen } = await supabase.from('view_rekap_kehadiran_guru_final')
           .select('status, tanggal')
           .eq('id_guru', user.id_user)
           .gte('tanggal', calcStart)
           .lte('tanggal', today);
-        const hadirGuruDates = new Set((guruAbsen || [])
-          .filter(a => ['Hadir', 'Terlambat', 'hadir', 'terlambat'].includes(a.status))
-          .map(a => a.tanggal));
-        resStats.persentaseHadirGuru = hariEfektif > 0 ? Math.min(100, Math.round((hadirGuruDates.size / hariEfektif) * 100)) : 0;
+          
+        let tidakHadirGuruCount = 0;
+        (guruAbsen || []).forEach(a => {
+           if (validDates.includes(a.tanggal) && ['Sakit', 'Izin', 'Alfa'].includes(a.status)) {
+               tidakHadirGuruCount++;
+           }
+        });
+        const totalHadirGuru = Math.max(0, hariEfektif - tidakHadirGuruCount);
+        resStats.persentaseHadirGuru = hariEfektif > 0 ? Math.min(100, Math.round((totalHadirGuru / hariEfektif) * 100)) : 0;
 
         // Hitung persentase jurnal
         if (user.role === 'Wali Kelas') {
@@ -235,43 +243,59 @@ export default function DashboardHome() {
           const { data: muridRombel } = await supabase.from('master_user').select('id_user').eq('role', 'Murid').eq('rombel', user.rombel).eq('status_aktif', 'Aktif');
           const nisnList = muridRombel ? muridRombel.map(m => m.id_user) : [];
           if (nisnList.length > 0) {
-            const { data: absenMurid } = await supabase.from('data_absensi')
-              .select('status')
-              .in('nisn', nisnList)
+            const { data: absenMurid } = await supabase.from('view_rekap_kehadiran_murid_final')
+              .select('status, tanggal')
+              .in('id_murid', nisnList)
               .gte('tanggal', calcStart)
               .lte('tanggal', today);
-            const hadirMurid = (absenMurid || []).filter(a => ['Hadir', 'Terlambat', 'hadir', 'terlambat'].includes(a.status)).length;
+            
+            let tidakHadirMuridCount = 0;
+            (absenMurid || []).forEach(a => {
+              if (validDates.includes(a.tanggal) && ['Sakit', 'Izin', 'Alfa', 'Alpa'].includes(a.status)) {
+                tidakHadirMuridCount++;
+              }
+            });
             const totalPossible = hariEfektif * nisnList.length;
+            const hadirMurid = Math.max(0, totalPossible - tidakHadirMuridCount);
             resStats.persentaseHadirMurid = totalPossible > 0 ? Math.min(100, Math.round((hadirMurid / totalPossible) * 100)) : 0;
           }
         } else if (user.role === 'Guru Mapel') {
-          const { count: totalMasuk } = await supabase.from('data_absensi')
-            .select('id', { count: 'exact', head: true })
-            .in('status', ['Hadir', 'Terlambat', 'hadir', 'terlambat'])
+          const { data: absenMurid } = await supabase.from('view_rekap_kehadiran_murid_final')
+            .select('status, tanggal')
             .gte('tanggal', calcStart)
             .lte('tanggal', today);
-            
+          
+          let tidakHadirTotalCount = 0;
+          (absenMurid || []).forEach(a => {
+            if (validDates.includes(a.tanggal) && ['Sakit', 'Izin', 'Alfa', 'Alpa'].includes(a.status)) {
+              tidakHadirTotalCount++;
+            }
+          });
+          
           const { count: totalMuridAktif } = await supabase.from('master_user')
             .select('id', { count: 'exact', head: true })
             .eq('role', 'Murid')
             .eq('status_aktif', 'Aktif');
             
           const totalPossible = hariEfektif * (totalMuridAktif || 0);
-          resStats.persentaseHadirMurid = totalPossible > 0 ? Math.min(100, Math.round(((totalMasuk || 0) / totalPossible) * 100)) : 0;
-          resStats.totalHadirMurid = totalMasuk || 0;
+          const totalMasuk = Math.max(0, totalPossible - tidakHadirTotalCount);
+          resStats.persentaseHadirMurid = totalPossible > 0 ? Math.min(100, Math.round((totalMasuk / totalPossible) * 100)) : 0;
+          resStats.totalHadirMurid = totalMasuk;
         }
       }
 
       let resChartData = null;
       if (user.role === 'Admin' || user.role === 'Kepala Madrasah') {
-        const { data: todayAbsen } = await supabase.from('data_absensi').select('status').eq('tanggal', today);
-        let th = 0, ti = 0, ts = 0, ta = 0;
-        (todayAbsen || []).forEach(ab => {
-          if (ab.status === 'Hadir') th++;
+        const { count: totalMuridAktif } = await supabase.from('master_user').select('id_user', { count: 'exact', head: true }).eq('role', 'Murid').eq('status_aktif', 'Aktif');
+        const { data: todayMurid } = await supabase.from('view_rekap_kehadiran_murid_final').select('status').eq('tanggal', today);
+        
+        let ts = 0, ti = 0, ta = 0;
+        (todayMurid || []).forEach(ab => {
+          if (ab.status === 'Sakit') ts++;
           else if (ab.status === 'Izin') ti++;
-          else if (ab.status === 'Sakit') ts++;
-          else if (ab.status === 'Alpa') ta++;
+          else if (ab.status === 'Alfa' || ab.status === 'Alpa') ta++;
         });
+        const th = Math.max(0, (totalMuridAktif || 0) - (ts + ti + ta));
 
         const dates = [];
         for (let i = 6; i >= 0; i--) {
@@ -280,9 +304,15 @@ export default function DashboardHome() {
           dates.push(d.toISOString().split('T')[0]);
         }
 
-        const { data: weekAbsen } = await supabase.from('data_absensi').select('tanggal, status').in('tanggal', dates);
+        const { data: weekAbsen } = await supabase.from('view_rekap_kehadiran_murid_final').select('tanggal, status').in('tanggal', dates);
         const barData = dates.map(d => {
-          return (weekAbsen || []).filter(a => a.tanggal === d && a.status === 'Hadir').length;
+          let notHadir = 0;
+          (weekAbsen || []).forEach(a => {
+            if (a.tanggal === d && ['Sakit', 'Izin', 'Alfa', 'Alpa'].includes(a.status)) {
+              notHadir++;
+            }
+          });
+          return Math.max(0, (totalMuridAktif || 0) - notHadir);
         });
 
         resChartData = {
