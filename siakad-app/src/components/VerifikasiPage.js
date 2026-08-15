@@ -104,15 +104,32 @@ export default function VerifikasiPage() {
     setSaving(true);
     setMessage(null);
 
-    const rows = guruList.map(guru => ({
-      tanggal,
-      id_guru: guru.id_user,
-      status: absensi[guru.id_user]?.status || 'Hadir',
-      catatan: absensi[guru.id_user]?.catatan || '-',
-      waktu: absensi[guru.id_user]?.waktu || '-',
-      verifikator: 'Admin',
-      metode: absensi[guru.id_user]?.metode || '-',
-    }));
+    const rows = guruList
+      .filter(guru => {
+        const current = absensi[guru.id_user];
+        const initial = swrData.mergedAbsensi[guru.id_user];
+        if (!current || !initial) return false;
+        // Hanya save jika terjadi perubahan status atau catatan dari kondisi awal (kondisi view/auto-hadir)
+        return current.status !== initial.status || current.catatan !== initial.catatan;
+      })
+      .map(guru => {
+        const current = absensi[guru.id_user];
+        return {
+          tanggal,
+          id_guru: guru.id_user,
+          status: current.status,
+          catatan: current.catatan || '-',
+          waktu: current.waktu || '-',
+          verifikator: 'Admin',
+          metode: 'Manual',
+        };
+      });
+
+    if (rows.length === 0) {
+      setMessage({ type: 'success', text: `Tidak ada perubahan manual yang perlu disimpan untuk tanggal ${formatDate(tanggal)}.` });
+      setSaving(false);
+      return;
+    }
 
     const { error } = await supabase
       .from('verifikasi_guru')
@@ -122,13 +139,13 @@ export default function VerifikasiPage() {
     if (error) {
       setMessage({ type: 'error', text: 'Gagal menyimpan: ' + error.message });
     } else {
-      setMessage({ type: 'success', text: `Verifikasi tanggal ${formatDate(tanggal)} berhasil disimpan!` });
+      setMessage({ type: 'success', text: `Verifikasi manual tanggal ${formatDate(tanggal)} berhasil disimpan!` });
       // Invalidate riwayat_guru cache globally
       mutate((key) => typeof key === 'string' && key.startsWith('riwayat_guru_'), undefined, { revalidate: true });
     }
   };
 
-  const handleVerifikasiRentang = async () => {
+  const handleTandaiMassalAlfa = async () => {
     if (!startDate || !endDate) {
       setRangeMessage({ type: 'error', text: 'Pilih tanggal mulai dan akhir terlebih dahulu.' });
       return;
@@ -146,18 +163,64 @@ export default function VerifikasiPage() {
       const tglMulaiStr = new Date(startDate.getTime() - (startDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
       const tglAkhirStr = new Date(endDate.getTime() - (endDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
-      const res = await fetch('/api/sync-guru-range', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tglMulai: tglMulaiStr, tglAkhir: tglAkhirStr })
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Terjadi kesalahan.');
+      // Cari tanggal valid di rentang tsb
+      let curr = new Date(tglMulaiStr);
+      const end = new Date(tglAkhirStr);
+      const validDates = [];
+      const liburSet = new Set(liburDates || []);
+      
+      while (curr <= end) {
+        if (curr.getDay() !== 0) {
+          const dStr = curr.toISOString().split('T')[0];
+          if (!liburSet.has(dStr)) {
+            validDates.push(dStr);
+          }
+        }
+        curr.setDate(curr.getDate() + 1);
       }
 
-      setRangeMessage({ type: 'success', text: data.message });
+      if (validDates.length === 0) {
+        throw new Error('Tidak ada hari efektif dalam rentang tanggal tersebut.');
+      }
+
+      // Ambil guru aktif
+      const { data: activeTeachers } = await supabase.from('master_user').select('id_user').in('role', ['Wali Kelas', 'Guru Mapel', 'Kepala Madrasah']).eq('status_aktif', 'Aktif');
+      if (!activeTeachers || activeTeachers.length === 0) throw new Error('Tidak ada guru aktif.');
+
+      // Ambil data view yang sudah ada di rentang tsb
+      const { data: viewData, error: viewError } = await supabase.from('view_rekap_kehadiran_guru_final').select('tanggal, id_guru').gte('tanggal', tglMulaiStr).lte('tanggal', tglAkhirStr);
+      if (viewError) throw viewError;
+
+      const viewSet = new Set((viewData || []).map(v => `${v.tanggal}_${v.id_guru}`));
+      const payload = [];
+
+      for (const date of validDates) {
+         for (const teacher of activeTeachers) {
+            if (!viewSet.has(`${date}_${teacher.id_user}`)) {
+               payload.push({
+                 tanggal: date,
+                 id_guru: teacher.id_user,
+                 status: 'Alfa',
+                 metode: 'Manual',
+                 verifikator: 'Admin',
+                 catatan: 'Ditandai Alfa massal karena tidak ada absen',
+                 waktu: '-'
+               });
+            }
+         }
+      }
+
+      if (payload.length > 0) {
+        // Karena postgres punya limit parameter, kita slice jika terlalu besar (meski biasanya aman untuk beberapa ratus)
+        const chunkSize = 500;
+        for (let i = 0; i < payload.length; i += chunkSize) {
+           const chunk = payload.slice(i, i + chunkSize);
+           const { error } = await supabase.from('verifikasi_guru').upsert(chunk, { onConflict: 'tanggal,id_guru' });
+           if (error) throw error;
+        }
+      }
+
+      setRangeMessage({ type: 'success', text: `Berhasil menandai Alfa untuk ${payload.length} data absen kosong.` });
       reloadData();
       
       // Invalidate riwayat_guru cache globally
@@ -201,8 +264,8 @@ export default function VerifikasiPage() {
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
               </svg>
-              <span className="hidden sm:inline">Sinkronisasi Rentang</span>
-              <span className="sm:hidden">Sinkronisasi</span>
+              <span className="hidden sm:inline">Tandai Absen Massal (Alfa)</span>
+              <span className="sm:hidden">Massal (Alfa)</span>
             </button>
           )}
         </div>
@@ -453,9 +516,9 @@ export default function VerifikasiPage() {
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Verifikasi Rentang Waktu</h3>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Tandai Absen Massal (Alfa)</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-              Otomatis isi "Hadir" (Auto-Hadir) untuk guru yang tidak memiliki absen GPS/NFC pada rentang tanggal yang dipilih.
+              Otomatis mengisi status "Alfa" ke database untuk guru yang tidak memiliki rekam absen fisik (GPS/NFC) atau pengecualian manual pada rentang tanggal yang dipilih.
             </p>
 
             {rangeMessage && (
@@ -483,11 +546,11 @@ export default function VerifikasiPage() {
             </div>
 
             <button 
-              onClick={handleVerifikasiRentang}
+              onClick={handleTandaiMassalAlfa}
               disabled={isProcessingRange || !startDate || !endDate}
-              className="w-full mt-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/25 hover:shadow-emerald-500/40 transition-all disabled:opacity-50 flex justify-center items-center gap-2"
+              className="w-full mt-8 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl shadow-lg shadow-red-600/25 hover:shadow-red-500/40 transition-all disabled:opacity-50 flex justify-center items-center gap-2"
             >
-              {isProcessingRange ? 'Memproses...' : 'Simpan Rentang'}
+              {isProcessingRange ? 'Memproses...' : 'Tandai Alfa Sekarang'}
             </button>
           </div>
         </div>

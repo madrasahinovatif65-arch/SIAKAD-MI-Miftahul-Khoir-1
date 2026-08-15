@@ -40,6 +40,22 @@ export default function RiwayatGuruPage() {
   const [printTarget, setPrintTarget] = useState('all');
 
   const { data: swrData, isLoading: loading } = useSWR(user && tglMulai && tglAkhir ? `riwayat_guru_${user.id_user}_${tglMulai}_${tglAkhir}` : null, async () => {
+    
+    // Ambil data libur untuk menentukan Auto-Hadir
+    const { data: liburData } = await supabase.from('master_libur').select('tanggal').gte('tanggal', tglMulai).lte('tanggal', tglAkhir);
+    const liburSet = new Set((liburData || []).map(l => l.tanggal));
+    
+    let curr = new Date(tglMulai);
+    const end = new Date(tglAkhir);
+    const validDates = [];
+    while (curr <= end) {
+       if (curr.getDay() !== 0) {
+          const dStr = curr.toISOString().split('T')[0];
+          if (!liburSet.has(dStr)) validDates.push(dStr);
+       }
+       curr.setDate(curr.getDate() + 1);
+    }
+
     if (isAdmin) {
       // 1. Ambil data guru
       const { data: guruData } = await supabase
@@ -49,10 +65,10 @@ export default function RiwayatGuruPage() {
         .eq('status_aktif', 'Aktif')
         .order('nama');
 
-      // 2. Ambil data verifikasi_guru di rentang tanggal
-      const { data: verData } = await supabase
-        .from('verifikasi_guru')
-        .select('id_guru, tanggal, status, catatan')
+      // 2. Ambil data dari View
+      const { data: viewData } = await supabase
+        .from('view_rekap_kehadiran_guru_final')
+        .select('*')
         .gte('tanggal', tglMulai)
         .lte('tanggal', tglAkhir);
 
@@ -62,93 +78,78 @@ export default function RiwayatGuruPage() {
         rekap[g.id_user] = { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, detail: {}, history: { Sakit: [], Izin: [], Alfa: [] } };
       });
 
-      (verData || []).forEach(v => {
+      const viewMap = new Set();
+
+      (viewData || []).forEach(v => {
         if (rekap[v.id_guru] && rekap[v.id_guru][v.status] !== undefined) {
           rekap[v.id_guru][v.status] += 1;
           rekap[v.id_guru].detail[v.tanggal] = v.status.charAt(0);
           if (['Sakit', 'Izin', 'Alfa'].includes(v.status)) {
             rekap[v.id_guru].history[v.status].push(v);
           }
+          viewMap.add(`${v.tanggal}_${v.id_guru}`);
         }
       });
+      
+      // Inject Auto-Hadir
+      for (const date of validDates) {
+         for (const guru of guruData || []) {
+            if (!viewMap.has(`${date}_${guru.id_user}`)) {
+               rekap[guru.id_user]['Hadir'] += 1;
+               rekap[guru.id_user].detail[date] = 'H';
+            }
+         }
+      }
 
       return { guruList: guruData || [], rekapData: rekap, type: 'rekap' };
     } else {
       // Guru: riwayat harian
-      const [verRes, nfcRes, gpsRes] = await Promise.all([
-        supabase.from('verifikasi_guru').select('*').eq('id_guru', user.id_user).gte('tanggal', tglMulai).lte('tanggal', tglAkhir),
-        supabase.from('view_rekap_absensi_nfc').select('*').eq('id_user', user.id_user).gte('tanggal', tglMulai).lte('tanggal', tglAkhir),
-        supabase.from('log_gps_guru').select('*').eq('id_guru', user.id_user).gte('tanggal', tglMulai).lte('tanggal', tglAkhir)
-      ]);
+      const { data: viewData } = await supabase
+        .from('view_rekap_kehadiran_guru_final')
+        .select('*')
+        .eq('id_guru', user.id_user)
+        .gte('tanggal', tglMulai)
+        .lte('tanggal', tglAkhir);
 
-      const verData = verRes.data || [];
-      const nfcData = nfcRes.data || [];
-      const gpsData = gpsRes.data || [];
-
-      // Collect all unique dates
-      const dates = new Set([...verData.map(v => v.tanggal), ...nfcData.map(n => n.tanggal), ...gpsData.map(g => g.tanggal)]);
+      const viewMap = new Map((viewData || []).map(v => [v.tanggal, v]));
       const combined = [];
-
-      dates.forEach(date => {
-        const ver = verData.find(v => v.tanggal === date);
-        const nfc = nfcData.find(n => n.tanggal === date);
-        const gps = gpsData.find(g => g.tanggal === date);
-
-        let waktu_datang = null;
-        let waktu_pulang = null;
-        let isLate = false;
-
-        // Populate times from GPS
-        if (gps) {
-          if (gps.waktu) waktu_datang = formatTimeShort(gps.waktu);
-          if (gps.waktu_pulang) waktu_pulang = formatTimeShort(gps.waktu_pulang);
-        }
-
-        // Overwrite/Populate times from NFC (NFC overrides GPS if both exist for same timestamp)
-        if (nfc) {
-          if (nfc.jam_datang) waktu_datang = nfc.jam_datang;
-          if (nfc.jam_pulang) waktu_pulang = nfc.jam_pulang;
-        }
-
-        if (waktu_datang) {
-          const match = waktu_datang.match(/(\d{2})[:.](\d{2})/);
-          if (match) {
-            const h = parseInt(match[1], 10);
-            const m = parseInt(match[2], 10);
-            if (h > 7 || (h === 7 && m > 0)) isLate = true;
-          }
-        }
-
-        let currentStatus = 'Hadir';
-        let catatan = '';
-        let metode = '-';
-        let waktuStr = '-';
-
-        if (ver) {
-          currentStatus = ver.status;
-          metode = ver.metode || 'Admin';
-          catatan = ver.catatan || (currentStatus === 'Hadir' ? 'Ditetapkan Admin' : '');
-          if (currentStatus === 'Hadir' && (waktu_datang || waktu_pulang)) {
-             waktuStr = `${waktu_datang || '-'} s/d ${waktu_pulang || '-'}`;
-          } else {
-             waktuStr = ver.waktu || '-';
-          }
-        } else if (nfc || gps) {
-          currentStatus = 'Hadir';
-          metode = (nfc && gps) ? 'NFC+GPS' : (nfc ? 'NFC' : 'GPS');
-          catatan = isLate ? 'Terlambat' : 'Absen Mandiri';
-          waktuStr = `${waktu_datang || '-'} s/d ${waktu_pulang || '-'}`;
-        }
-
-        combined.push({
-          tanggal: date,
-          nama_guru: user.nama,
-          waktu: waktuStr,
-          status: currentStatus,
-          metode,
-          catatan
-        });
-      });
+      
+      for (const date of validDates) {
+         const v = viewMap.get(date);
+         if (v) {
+            combined.push({
+               tanggal: date,
+               nama_guru: user.nama,
+               waktu: v.waktu || '-',
+               status: v.status,
+               metode: v.metode || '-',
+               catatan: v.catatan || '-'
+            });
+         } else {
+            combined.push({
+               tanggal: date,
+               nama_guru: user.nama,
+               waktu: '-',
+               status: 'Hadir',
+               metode: 'Otomatis',
+               catatan: 'Auto-verified (Belum ada data fisik)'
+            });
+         }
+      }
+      
+      // Masukkan juga data di hari libur jika ternyata ada yang absen
+      for (const v of viewData || []) {
+         if (!validDates.includes(v.tanggal)) {
+            combined.push({
+               tanggal: v.tanggal,
+               nama_guru: user.nama,
+               waktu: v.waktu || '-',
+               status: v.status,
+               metode: v.metode || '-',
+               catatan: (v.catatan || '-') + ' (Hari Libur)'
+            });
+         }
+      }
 
       combined.sort((a, b) => b.tanggal.localeCompare(a.tanggal));
       return { history: combined, type: 'history' };

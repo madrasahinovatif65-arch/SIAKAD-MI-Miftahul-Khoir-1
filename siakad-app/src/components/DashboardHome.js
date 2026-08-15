@@ -324,7 +324,7 @@ export default function DashboardHome() {
       { label: 'Total Murid', value: stats.murid, sub: 'Aktif', gradient: 'from-amber-500 to-orange-500' },
     ],
     'Kepala Madrasah': [
-      { label: 'Hari Belum Terverifikasi', value: stats.unverifiedDays || 0, sub: 'Hari ini', gradient: 'from-rose-500 to-red-600' },
+      // { label: 'Hari Belum Terverifikasi', value: stats.unverifiedDays || 0, sub: 'Hari ini', gradient: 'from-rose-500 to-red-600' },
       { label: 'Total Guru', value: stats.guru, sub: 'Aktif', gradient: 'from-emerald-500 to-teal-600' },
       { label: 'Total Murid', value: stats.murid, sub: 'Aktif', gradient: 'from-amber-500 to-orange-500' },
     ],
