@@ -1179,7 +1179,7 @@ export default function RiwayatGuruPage() {
           /* Force all containers to be visible and not clip during print */
           * { overflow: visible !important; }
           
-          table { width: 100%; border-collapse: collapse; margin-top: 1rem; page-break-inside: auto; table-layout: fixed; }
+          table { width: 100%; border-collapse: collapse; margin-top: 1rem; page-break-inside: auto; table-layout: auto; }
           tr { page-break-inside: avoid; page-break-after: auto; }
           thead { display: table-header-group; }
           
