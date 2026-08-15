@@ -256,18 +256,7 @@ export default function VerifikasiPage() {
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Kelola dan verifikasi absensi guru (Otomatis & Manual)</p>
         </div>
         <div className="flex gap-2">
-          {canEdit && (
-            <button 
-              onClick={() => setShowRangeModal(true)}
-              className="px-4 py-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 rounded-xl text-sm font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all shadow-sm flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-              </svg>
-              <span className="hidden sm:inline">Tandai Absen Massal (Alfa)</span>
-              <span className="sm:hidden">Massal (Alfa)</span>
-            </button>
-          )}
+          {/* Tombol Tandai Absen Massal disembunyikan sesuai permintaan */}
         </div>
       </div>
 
@@ -395,21 +384,7 @@ export default function VerifikasiPage() {
                         <div className="text-slate-400 dark:text-slate-500 font-mono text-xs mt-0.5">{guru.role}</div>
                       </div>
                       <div className="md:hidden mt-1 text-right flex flex-col gap-1 items-end">
-                        {absensi[guru.id_user]?.waktu_datang && (
-                           <div className="flex items-center gap-1">
-                             <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">D</span>
-                             <span className="text-xs text-slate-500 font-mono">{formatTime(absensi[guru.id_user]?.waktu_datang)}</span>
-                           </div>
-                        )}
-                        {absensi[guru.id_user]?.waktu_pulang && (
-                           <div className="flex items-center gap-1">
-                             <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">P</span>
-                             <span className="text-xs text-slate-500 font-mono">{formatTime(absensi[guru.id_user]?.waktu_pulang)}</span>
-                           </div>
-                        )}
-                        {(!absensi[guru.id_user]?.waktu_datang && !absensi[guru.id_user]?.waktu_pulang) && (
-                          <span className="text-slate-300 dark:text-slate-600 text-[10px] border border-slate-100 dark:border-white/5 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5">-</span>
-                        )}
+                        <span className="text-xs text-slate-500 font-mono">{absensi[guru.id_user]?.waktu || '-'}</span>
                         {absensi[guru.id_user]?.metode && absensi[guru.id_user]?.metode !== '-' && absensi[guru.id_user]?.metode !== 'Otomatis' && (
                           <span className="text-[9px] font-bold bg-indigo-50 text-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400 px-1.5 py-0.5 rounded uppercase mt-0.5">{absensi[guru.id_user]?.metode}</span>
                         )}
@@ -418,21 +393,7 @@ export default function VerifikasiPage() {
                   </td>
                   <td className="hidden md:table-cell px-5 py-3">
                     <div className="flex flex-col gap-1">
-                      {absensi[guru.id_user]?.waktu_datang && (
-                         <div className="flex items-center gap-1.5">
-                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">D</span>
-                           <span className="text-xs font-mono text-slate-500 dark:text-slate-400">{formatTime(absensi[guru.id_user]?.waktu_datang)}</span>
-                         </div>
-                      )}
-                      {absensi[guru.id_user]?.waktu_pulang && (
-                         <div className="flex items-center gap-1.5">
-                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">P</span>
-                           <span className="text-xs font-mono text-slate-500 dark:text-slate-400">{formatTime(absensi[guru.id_user]?.waktu_pulang)}</span>
-                         </div>
-                      )}
-                      {(!absensi[guru.id_user]?.waktu_datang && !absensi[guru.id_user]?.waktu_pulang) && (
-                        <span className="text-slate-300 dark:text-slate-600 text-xs">-</span>
-                      )}
+                      <span className="text-xs font-mono text-slate-500 dark:text-slate-400">{absensi[guru.id_user]?.waktu || '-'}</span>
                       {absensi[guru.id_user]?.metode && absensi[guru.id_user]?.metode !== '-' && absensi[guru.id_user]?.metode !== 'Otomatis' && (
                         <div className="mt-1">
                           <span className="text-[9px] font-bold bg-indigo-50 text-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400 px-1.5 py-0.5 rounded uppercase">{absensi[guru.id_user]?.metode}</span>
