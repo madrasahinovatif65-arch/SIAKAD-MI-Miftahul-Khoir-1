@@ -136,6 +136,7 @@ export default function DashboardHome() {
           for (const teacherId of activeTeacherIds) {
             if (!verifikasiSet.has(`${dateStr}_${teacherId}`)) {
               unverifiedDaysCount++;
+              break; // Lanjut ke hari berikutnya jika sudah ditemukan 1 yang belum diverifikasi
             }
           }
         }
