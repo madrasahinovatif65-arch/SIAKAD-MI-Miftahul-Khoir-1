@@ -347,11 +347,13 @@ export default function VerifikasiPage() {
                         {(!absensi[guru.id_user]?.waktu_datang && !absensi[guru.id_user]?.waktu_pulang) && (
                           <span className="text-slate-300 dark:text-slate-600 text-[10px] border border-slate-100 dark:border-white/5 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5">-</span>
                         )}
+                        <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold bg-slate-100 text-slate-500 border border-slate-200 mt-1 self-end">
+                          {absensi[guru.id_user]?.metode || '-'}
+                        </span>
                       </div>
                     </div>
                   </td>
                   <td className="hidden md:table-cell px-5 py-3">
-                    <div className="flex flex-col gap-1">
                       {absensi[guru.id_user]?.waktu_datang && (
                          <div className="flex items-center gap-1.5">
                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">D</span>
@@ -367,11 +369,23 @@ export default function VerifikasiPage() {
                       {(!absensi[guru.id_user]?.waktu_datang && !absensi[guru.id_user]?.waktu_pulang) && (
                         <span className="text-slate-300 dark:text-slate-600 text-xs">-</span>
                       )}
+                      <div className="mt-1">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-400 border border-slate-200 dark:border-white/10">
+                          {absensi[guru.id_user]?.metode || '-'}
+                        </span>
+                      </div>
                     </div>
                   </td>
                   <td className="block md:table-cell px-4 py-3 md:px-5 md:py-3 border-b border-slate-50 dark:border-white/5 md:border-none">
                     <div className="flex flex-col gap-2">
                       <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider md:hidden">Status Verifikasi</span>
+                      {absensi[guru.id_user]?.status && !statusOptions.includes(absensi[guru.id_user].status) && (
+                        <div className="text-center mb-1">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-bold border border-rose-200">
+                            {absensi[guru.id_user].status}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex gap-2 justify-between md:justify-center">
                         {statusOptions.map(s => (
                           <button

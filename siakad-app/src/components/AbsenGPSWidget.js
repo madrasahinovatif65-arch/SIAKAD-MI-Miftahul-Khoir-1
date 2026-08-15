@@ -22,7 +22,7 @@ export default function AbsenGPSWidget() {
 
   const { data: todayStatus, mutate: reloadStatus } = useSWR(user ? `absen_gps_${user.id_user}` : null, async () => {
     const today = getTodayDate();
-    
+
     // Cek Hari Libur
     const { data: libur } = await supabase.from('master_libur').select('*').eq('tanggal', today).single();
     if (libur) return { type: 'error', message: `Hari libur: ${libur.keterangan}. Absensi ditutup.` };
@@ -49,12 +49,12 @@ export default function AbsenGPSWidget() {
 
     // 1. Cek Verifikasi Guru (Final status Sakit/Izin/Alfa)
     if (verData && ['Sakit', 'Izin', 'Alfa'].includes(verData.status)) {
-       return { 
-         type: 'error', 
-         message: `📝 Absensi Anda hari ini telah ditetapkan secara manual dengan status: ${verData.status}.`, 
-         times: { masuk: '-', pulang: '-' },
-         methods: { masuk: verData.verifikator || 'Admin', pulang: verData.verifikator || 'Admin' }
-       };
+      return {
+        type: 'error',
+        message: `📝 Absensi Anda hari ini telah ditetapkan secara manual dengan status: ${verData.status}.`,
+        times: { masuk: '-', pulang: '-' },
+        methods: { masuk: verData.verifikator || 'Admin', pulang: verData.verifikator || 'Admin' }
+      };
     }
 
     // 2. Data GPS
@@ -87,7 +87,7 @@ export default function AbsenGPSWidget() {
       timeMasuk = verData.waktu ? formatTimeShort(verData.waktu) : '-';
       methodMasuk = verData.verifikator || 'Admin';
     }
-    
+
     // Check if waiting for admin verification from GPS (pending status)
     if (verData && (verData.status === 'Menunggu Verifikasi' || verData.status === 'Di Luar Radius')) {
       if (hasMasuk && methodMasuk === 'GPS') methodMasuk = 'GPS (menunggu verifikasi)';
@@ -100,7 +100,7 @@ export default function AbsenGPSWidget() {
     // Belum absen masuk
     if (!hasMasuk) {
       if (todayDate.getHours() < 6) {
-         return { type: 'error', message: 'Absen masuk pagi baru dibuka pukul 06:00.', times, methods };
+        return { type: 'error', message: 'Absen masuk pagi baru dibuka pukul 06:00.', times, methods };
       }
       return { type: 'idle', mode: 'masuk', gpsData, message: 'Silakan lakukan absen kehadiran (masuk).', times, methods };
     }
@@ -117,22 +117,22 @@ export default function AbsenGPSWidget() {
     const isFriday = todayDate.getDay() === 5;
     const h = todayDate.getHours();
     const m = todayDate.getMinutes();
-    
+
     let canPulang = false;
     let msg = '';
-    
+
     if (isFriday) {
-       if (h > 10 || (h === 10 && m >= 30)) canPulang = true;
-       else msg = `Anda sudah absen datang menggunakan ${methodMasuk}. Absen pulang hari Jumat dibuka jam 10:30.`;
+      if (h > 10 || (h === 10 && m >= 30)) canPulang = true;
+      else msg = `Anda sudah absen datang menggunakan ${methodMasuk}. Absen pulang hari Jumat dibuka jam 10:30.`;
     } else {
-       if (h >= 12) canPulang = true;
-       else msg = `Anda sudah absen datang menggunakan ${methodMasuk}. Absen pulang dibuka jam 12:00.`;
+      if (h >= 12) canPulang = true;
+      else msg = `Anda sudah absen datang menggunakan ${methodMasuk}. Absen pulang dibuka jam 12:00.`;
     }
 
     if (!canPulang) {
-       return { type: 'error', message: msg, times, methods };
+      return { type: 'error', message: msg, times, methods };
     }
-    
+
     return { type: 'idle', mode: 'pulang', gpsData, message: `Anda sudah absen datang menggunakan ${methodMasuk}. Silakan lakukan absen pulang.`, times, methods };
   });
 
@@ -144,24 +144,24 @@ export default function AbsenGPSWidget() {
       if (todayStatus.gpsData) setExistingGpsData(todayStatus.gpsData);
       if (todayStatus.times) setTimes(todayStatus.times);
       if (todayStatus.methods) setMethods(todayStatus.methods);
-      
+
       // Auto check permission
       if (todayStatus.type !== 'error' && todayStatus.type !== 'done') {
         if (navigator.permissions && navigator.permissions.query) {
           navigator.permissions.query({ name: 'geolocation' }).then((result) => {
             if (result.state === 'granted') {
-               handleRefreshGPS();
+              handleRefreshGPS();
             } else if (result.state === 'denied') {
-               setStatus('error');
-               setMessage('⚠️ Akses lokasi diblokir. Harap izinkan akses lokasi di pengaturan browser.');
+              setStatus('error');
+              setMessage('⚠️ Akses lokasi diblokir. Harap izinkan akses lokasi di pengaturan browser.');
             }
-            result.onchange = function() {
-               if (this.state === 'denied') {
-                 setStatus('error');
-                 setMessage('⚠️ Akses lokasi diblokir. Harap izinkan akses lokasi di pengaturan browser.');
-               }
+            result.onchange = function () {
+              if (this.state === 'denied') {
+                setStatus('error');
+                setMessage('⚠️ Akses lokasi diblokir. Harap izinkan akses lokasi di pengaturan browser.');
+              }
             };
-          }).catch(() => {});
+          }).catch(() => { });
         }
       }
     }
@@ -177,11 +177,11 @@ export default function AbsenGPSWidget() {
 
   const handleRefreshGPS = () => {
     if (status === 'done' || status === 'sending') return;
-    
+
     reloadStatus();
 
     const isServerError = todayStatus?.type === 'error';
-    
+
     if (!navigator.geolocation) {
       if (!isServerError) {
         setStatus('error');
@@ -238,7 +238,7 @@ export default function AbsenGPSWidget() {
 
     setStatus('sending');
     setMessage('Menyimpan data absensi...');
-    
+
     const today = getTodayDate();
     const waktu = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
@@ -280,7 +280,7 @@ export default function AbsenGPSWidget() {
   return (
     <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-[2rem] p-6 lg:p-8 border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        
+
         {/* Kiri: Info & Status */}
         <div className="flex items-start gap-4">
           <div className={`w-16 h-16 shrink-0 rounded-2xl flex items-center justify-center shadow-inner ${status === 'done' ? 'bg-gradient-to-br from-emerald-100 to-teal-50 dark:from-emerald-900/40 dark:to-teal-900/20 border border-emerald-200/50 dark:border-emerald-500/20' : 'bg-gradient-to-br from-rose-100 to-red-50 dark:from-rose-900/40 dark:to-red-900/20 border border-rose-200/50 dark:border-rose-500/20'}`}>
@@ -330,7 +330,7 @@ export default function AbsenGPSWidget() {
         {/* Kanan: Tombol-tombol */}
         {status !== 'done' && (
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto shrink-0">
-            <button 
+            <button
               onClick={handleRefreshGPS}
               disabled={status === 'locating' || status === 'sending'}
               className="flex justify-center items-center gap-2 px-5 py-3 rounded-xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
@@ -341,14 +341,13 @@ export default function AbsenGPSWidget() {
               Refresh GPS
             </button>
 
-            <button 
+            <button
               onClick={handleAbsen}
               disabled={status === 'locating' || status === 'sending' || status === 'error' || !location || location.distance > RADIUS}
-              className={`flex justify-center items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-white shadow-md transition-all ${
-                (status === 'error' || !location || location.distance > RADIUS) 
-                  ? 'bg-slate-300 dark:bg-slate-700 shadow-none cursor-not-allowed opacity-50' 
+              className={`flex justify-center items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-white shadow-md transition-all ${(status === 'error' || !location || location.distance > RADIUS)
+                  ? 'bg-slate-300 dark:bg-slate-700 shadow-none cursor-not-allowed opacity-50'
                   : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 shadow-emerald-500/25 active:scale-95'
-              }`}
+                }`}
             >
               {status === 'sending' ? 'Menyimpan...' : (mode === 'masuk' ? 'Absen Masuk' : 'Absen Pulang')}
             </button>

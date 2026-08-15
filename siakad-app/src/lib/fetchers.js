@@ -183,11 +183,11 @@ export const fetchVerifikasiGuru = async ([_key, tanggal]) => {
     }
     
     if (gps) {
-      const jamGPS = parseInt(gps.waktu.split(':')[0], 10);
-      if (jamGPS >= 10) {
-        if (!waktu_pulang) waktu_pulang = gps.waktu;
-      } else {
+      if (gps.waktu && gps.waktu !== '-') {
         if (!waktu_datang) waktu_datang = gps.waktu;
+      }
+      if (gps.waktu_pulang && gps.waktu_pulang !== '-') {
+        if (!waktu_pulang) waktu_pulang = gps.waktu_pulang;
       }
     }
 
