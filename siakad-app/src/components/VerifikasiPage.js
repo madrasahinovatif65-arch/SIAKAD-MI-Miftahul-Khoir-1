@@ -347,6 +347,9 @@ export default function VerifikasiPage() {
                         {(!absensi[guru.id_user]?.waktu_datang && !absensi[guru.id_user]?.waktu_pulang) && (
                           <span className="text-slate-300 dark:text-slate-600 text-[10px] border border-slate-100 dark:border-white/5 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5">-</span>
                         )}
+                        {absensi[guru.id_user]?.metode && absensi[guru.id_user]?.metode !== '-' && absensi[guru.id_user]?.metode !== 'Otomatis' && (
+                          <span className="text-[9px] font-bold bg-indigo-50 text-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400 px-1.5 py-0.5 rounded uppercase mt-0.5">{absensi[guru.id_user]?.metode}</span>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -366,6 +369,11 @@ export default function VerifikasiPage() {
                       )}
                       {(!absensi[guru.id_user]?.waktu_datang && !absensi[guru.id_user]?.waktu_pulang) && (
                         <span className="text-slate-300 dark:text-slate-600 text-xs">-</span>
+                      )}
+                      {absensi[guru.id_user]?.metode && absensi[guru.id_user]?.metode !== '-' && absensi[guru.id_user]?.metode !== 'Otomatis' && (
+                        <div className="mt-1">
+                          <span className="text-[9px] font-bold bg-indigo-50 text-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400 px-1.5 py-0.5 rounded uppercase">{absensi[guru.id_user]?.metode}</span>
+                        </div>
                       )}
                     </div>
                   </td>

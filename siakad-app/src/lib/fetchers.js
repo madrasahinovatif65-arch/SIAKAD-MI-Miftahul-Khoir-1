@@ -164,7 +164,7 @@ export const fetchVerifikasiGuru = async ([_key, tanggal]) => {
   (allGuru || []).forEach(guru => {
     const ver = (verified || []).find(v => v.id_guru === guru.id_user);
     const nfc = (nfcLogs || []).find(n => n.id_user === guru.id_user);
-    const gps = (gpsLogs || []).find(g => g.id_user === guru.id_user);
+    const userGpsLogs = (gpsLogs || []).filter(g => g.id_user === guru.id_user);
     const rawTimes = rfidToTimes[guru.rfid];
 
     let waktu_datang = null;
@@ -182,13 +182,15 @@ export const fetchVerifikasiGuru = async ([_key, tanggal]) => {
       }
     }
     
-    if (gps) {
-      const jamGPS = parseInt(gps.waktu.split(':')[0], 10);
-      if (jamGPS >= 10) {
-        if (!waktu_pulang) waktu_pulang = gps.waktu;
-      } else {
-        if (!waktu_datang) waktu_datang = gps.waktu;
-      }
+    if (userGpsLogs.length > 0) {
+      userGpsLogs.forEach(g => {
+        const jamGPS = parseInt(g.waktu.split(':')[0], 10);
+        if (jamGPS >= 10) {
+          if (!waktu_pulang || g.waktu > waktu_pulang) waktu_pulang = g.waktu;
+        } else {
+          if (!waktu_datang || g.waktu < waktu_datang) waktu_datang = g.waktu;
+        }
+      });
     }
 
     let isLate = false;
@@ -213,30 +215,35 @@ export const fetchVerifikasiGuru = async ([_key, tanggal]) => {
       waktu = ver.waktu;
       metode = ver.metode;
       catatan = ver.catatan || '';
-    } else if (nfc || gps) {
-      if (nfc) {
-        currentStatus = 'Hadir';
-        metode = 'NFC';
-        catatan = isLate ? 'Terlambat' : 'Auto-verified via NFC';
-      } else if (gps) {
-        metode = 'GPS';
-        const radius = parseInt(process.env.NEXT_PUBLIC_GPS_RADIUS_METER || '50');
-        if (gps.status === 'Menunggu Verifikasi' || gps.status === 'Di Luar Radius') {
-          if (gps.jarak_meter !== null && gps.jarak_meter <= radius) {
-             currentStatus = 'Hadir';
-          } else if (gps.jarak_meter !== null && gps.jarak_meter > radius) {
-             currentStatus = 'Di Luar Radius';
-          } else {
-             currentStatus = gps.status;
-          }
-        } else {
-          currentStatus = gps.status;
-        }
-        catatan = isLate ? 'Terlambat' : 'Auto-verified via GPS';
-      }
-      if (nfc && gps) {
+    } else if (nfc) {
+      currentStatus = 'Hadir';
+      metode = 'NFC';
+      catatan = isLate ? 'Terlambat' : 'Auto-verified via NFC';
+      if (userGpsLogs.length > 0) {
         metode = 'NFC+GPS';
       }
+      waktu = waktu_datang || waktu_pulang || '-';
+    } else if (userGpsLogs.length > 0) {
+      metode = 'GPS';
+      const radius = parseInt(process.env.NEXT_PUBLIC_GPS_RADIUS_METER || '50');
+      let finalStatus = null;
+      for (const g of userGpsLogs) {
+        if (g.status === 'Menunggu Verifikasi' || g.status === 'Di Luar Radius') {
+          if (g.jarak_meter !== null && g.jarak_meter <= radius) {
+            finalStatus = 'Hadir';
+            break;
+          } else if (g.jarak_meter !== null && g.jarak_meter > radius) {
+            if (!finalStatus) finalStatus = 'Di Luar Radius';
+          } else {
+            if (!finalStatus) finalStatus = g.status;
+          }
+        } else {
+          finalStatus = g.status;
+          if (finalStatus === 'Hadir') break;
+        }
+      }
+      currentStatus = finalStatus || 'Menunggu Verifikasi';
+      catatan = isLate ? 'Terlambat' : (currentStatus === 'Hadir' ? 'Auto-verified via GPS' : 'Menunggu verifikasi admin');
       waktu = waktu_datang || waktu_pulang || '-';
     } else {
       currentStatus = 'Hadir';
@@ -253,7 +260,7 @@ export const fetchVerifikasiGuru = async ([_key, tanggal]) => {
       metode,
       isLate,
       isNFC: !!nfc,
-      isGPS: !!gps,
+      isGPS: userGpsLogs.length > 0,
       isVerified: !!ver,
     };
   });
