@@ -701,7 +701,7 @@ export default function JurnalPage() {
         </button>
       </div>
 
-      {user?.role !== 'Admin' && (
+      {!isAdmin && (
         <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 print:hidden relative shadow-sm">
           {/* Banner Auto-fill */}
           {autoFillSlot && !autoFillDismissed && !editId && (
@@ -1064,7 +1064,7 @@ export default function JurnalPage() {
                       <span className="px-2 py-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20 rounded-lg">{j.mata_pelajaran}</span>
                     </div>
                   </div>
-                  {(user?.role !== 'Admin' && j.id_guru === user?.id_user) && (
+                  {(!isAdmin && j.id_guru === user?.id_user) && (
                     <div className="flex gap-2">
                       <button onClick={() => handleEdit(j)} title="Edit Jurnal" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-200 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 p-2 rounded-lg transition-colors">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" /></svg>
@@ -1244,7 +1244,7 @@ export default function JurnalPage() {
         })()}
       </div>
 
-      {user?.role !== 'Admin' && !isHoliday && (
+      {!isAdmin && !isHoliday && (
         <div className="fixed bottom-6 right-4 sm:right-8 z-[80] flex justify-end pointer-events-none print:hidden">
           <button onClick={handleSave} disabled={saving}
             className="pointer-events-auto flex items-center gap-3 px-6 py-4 bg-emerald-600/90 backdrop-blur-sm rounded-full shadow-2xl hover:bg-emerald-500/90 transition-all active:scale-95 disabled:opacity-50 disabled:transform-none disabled:shadow-none text-white font-bold">
