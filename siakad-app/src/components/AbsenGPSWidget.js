@@ -273,7 +273,7 @@ export default function AbsenGPSWidget() {
     }
   };
 
-  if (!user || (user.role !== 'Wali Kelas' && user.role !== 'Guru Mapel')) return null;
+  if (!user || (user.role !== 'Wali Kelas' && user.role !== 'Guru Mapel' && user.role !== 'Kepala Madrasah')) return null;
 
   const isDone = status === 'done' || status === 'error';
 
