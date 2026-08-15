@@ -304,7 +304,7 @@ export default function PresensiPage() {
             Siswa: {muridList.length}
           </span>
           <span className="px-3 py-1.5 rounded-lg text-xs font-semibold border shadow-sm bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20">
-            NFC: {muridList.filter(m => !!nfcData[m.id_user]).length}
+            NFC: {muridList.filter(m => absensi[m.id_user]?.waktu_datang !== '-' || absensi[m.id_user]?.waktu_pulang !== '-').length}
           </span>
           {statusOptions.map(s => (
             <span key={s} className={`px-3 py-1.5 rounded-lg text-xs font-semibold border shadow-sm ${statusColors[s]}`}>
@@ -365,12 +365,11 @@ export default function PresensiPage() {
                         </div>
                         <div className="text-slate-400 dark:text-slate-500 font-mono text-xs mt-0.5">{m.id_user}</div>
                       </div>
-                      {/* NFC Status for Mobile */}
                       <div className="md:hidden mt-1">
-                        {nfcData[m.id_user] ? (
+                        {(absensi[m.id_user]?.waktu_datang !== '-' || absensi[m.id_user]?.waktu_pulang !== '-') ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold">
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-                            {formatTime(nfcData[m.id_user].jam_datang || nfcData[m.id_user].jam_pulang) || 'Tap'}
+                            {absensi[m.id_user]?.waktu_datang !== '-' ? absensi[m.id_user]?.waktu_datang : absensi[m.id_user]?.waktu_pulang}
                           </span>
                         ) : (
                           <span className="text-slate-300 dark:text-slate-600 text-[10px] border border-slate-100 dark:border-white/5 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5">No NFC</span>
@@ -379,10 +378,10 @@ export default function PresensiPage() {
                     </div>
                   </td>
                   <td className="hidden md:table-cell px-5 py-3">
-                    {nfcData[m.id_user] ? (
+                    {(absensi[m.id_user]?.waktu_datang !== '-' || absensi[m.id_user]?.waktu_pulang !== '-') ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold shadow-sm">
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-                        {formatTime(nfcData[m.id_user].jam_datang || nfcData[m.id_user].jam_pulang) || 'Tap'}
+                        {absensi[m.id_user]?.waktu_datang !== '-' ? absensi[m.id_user]?.waktu_datang : absensi[m.id_user]?.waktu_pulang}
                       </span>
                     ) : (
                       <span className="text-slate-300 dark:text-slate-600 text-xs">-</span>
