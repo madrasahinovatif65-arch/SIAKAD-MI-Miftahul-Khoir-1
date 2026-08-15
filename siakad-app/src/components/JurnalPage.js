@@ -248,7 +248,7 @@ export default function JurnalPage() {
     let query = supabase.from('jurnal_guru').select('*, master_user(nama), data_absensi_mapel(status, catatan, master_user!data_absensi_mapel_nisn_fkey(nama))').order('tanggal', { ascending: true }).order('jam_pelajaran');
     if (user.role === 'Wali Kelas') {
       query = query.eq('rombel', user.rombel);
-    } else if (user.role !== 'Admin') {
+    } else if (!isAdmin) {
       query = query.eq('id_guru', user.id_user);
     }
     if (filterTglMulai && filterTglAkhir) {
@@ -269,7 +269,7 @@ export default function JurnalPage() {
     if (user.role === 'Guru Mapel' && filterRombel !== 'Semua') {
       query = query.eq('rombel', filterRombel);
     }
-    if (user.role !== 'Admin' && filterTglMulai === '' && filterTglAkhir === '') {
+    if (!isAdmin && filterTglMulai === '' && filterTglAkhir === '') {
       query = query.limit(20);
     }
 
