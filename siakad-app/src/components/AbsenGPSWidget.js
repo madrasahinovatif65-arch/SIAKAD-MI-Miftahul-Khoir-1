@@ -113,11 +113,6 @@ export default function AbsenGPSWidget() {
       return { type: 'done', message: `✅ Anda sudah absen datang menggunakan ${methodMasuk} dan pulang menggunakan ${methodPulang} hari ini.`, times, methods };
     }
 
-    // Jika sudah absen masuk via NFC, langsung nonaktifkan GPS untuk hari ini
-    if (hasMasuk && methodMasuk === 'kartu (NFC)') {
-      return { type: 'done', message: `✅ Anda sudah absen datang via NFC. Absen GPS dinonaktifkan.`, times, methods };
-    }
-
     // Sudah absen masuk, cek batasan waktu absen pulang
     const isFriday = todayDate.getDay() === 5;
     const h = todayDate.getHours();
