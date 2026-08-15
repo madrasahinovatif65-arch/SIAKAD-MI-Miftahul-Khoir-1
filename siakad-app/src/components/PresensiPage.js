@@ -141,78 +141,53 @@ export default function PresensiPage() {
     setSaving(true);
     setMessage(null);
 
-    const rows = muridList.map(m => ({
-      tanggal,
-      rombel,
-      nisn: m.id_user,
-      status: absensi[m.id_user]?.status || 'Hadir',
-      catatan: absensi[m.id_user]?.catatan || '-',
-      pencatat: user.nama,
-      metode: nfcData[m.id_user] ? 'NFC' : 'Manual',
-    }));
+    const rowsToUpsert = [];
+    const rowsToDelete = [];
 
-    const { error } = await supabase
-      .from('data_absensi')
-      .upsert(rows, { onConflict: 'tanggal,nisn' });
-
-    setSaving(false);
-    if (error) {
-      setMessage({ type: 'error', text: 'Gagal menyimpan: ' + error.message });
-    } else {
-      setMessage({ type: 'success', text: `Presensi ${rombel} tanggal ${formatDate(tanggal)} berhasil disimpan!` });
-    }
-  };
-
-  const handleVerifikasiRentang = async () => {
-    if (!startDate || !endDate) {
-      setRangeMessage({ type: 'error', text: 'Pilih tanggal mulai dan akhir terlebih dahulu.' });
-      return;
-    }
-    if (!rangeRombel) {
-      setRangeMessage({ type: 'error', text: 'Pilih kelas terlebih dahulu.' });
-      return;
-    }
-    
-    // Validasi 1 bulan
-    if (startDate.getFullYear() !== endDate.getFullYear() || startDate.getMonth() !== endDate.getMonth()) {
-      setRangeMessage({ type: 'error', text: 'Rentang tanggal harus berada pada bulan dan tahun yang sama.' });
-      return;
-    }
-
-    setIsProcessingRange(true);
-    setRangeMessage(null);
+    muridList.forEach(m => {
+      const currentStatus = absensi[m.id_user]?.status || 'Hadir';
+      if (currentStatus !== 'Hadir') {
+        rowsToUpsert.push({
+          tanggal,
+          rombel,
+          nisn: m.id_user,
+          status: currentStatus,
+          catatan: '-',
+          pencatat: user.nama,
+          metode: 'Manual',
+        });
+      } else {
+        // Status Hadir -> hapus dari data_absensi agar fallback ke view (Auto-Hadir / NFC)
+        rowsToDelete.push(m.id_user);
+      }
+    });
 
     try {
-      // Build date string safely (no UTC shift)
-      const fmtDate = (d) => {
-        const y = d.getFullYear();
-        const mo = String(d.getMonth() + 1).padStart(2, '0');
-        const dy = String(d.getDate()).padStart(2, '0');
-        return `${y}-${mo}-${dy}`;
-      };
-      const tglMulaiStr = fmtDate(startDate);
-      const tglAkhirStr = fmtDate(endDate);
-
-      const res = await fetch('/api/sync-range', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tglMulai: tglMulaiStr, tglAkhir: tglAkhirStr, rombel: rangeRombel })
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Terjadi kesalahan.');
+      if (rowsToUpsert.length > 0) {
+        const { error: errorUpsert } = await supabase
+          .from('data_absensi')
+          .upsert(rowsToUpsert, { onConflict: 'tanggal,nisn' });
+        if (errorUpsert) throw errorUpsert;
       }
 
-      setRangeMessage({ type: 'success', text: data.message });
-      mutateRangeDates(); // refresh calendar indicators
-      reloadData();
+      if (rowsToDelete.length > 0) {
+        const { error: errorDelete } = await supabase
+          .from('data_absensi')
+          .delete()
+          .eq('tanggal', tanggal)
+          .in('nisn', rowsToDelete);
+        if (errorDelete) throw errorDelete;
+      }
+      
+      setMessage({ type: 'success', text: `Presensi ${rombel} tanggal ${formatDate(tanggal)} berhasil disimpan!` });
     } catch (err) {
-      setRangeMessage({ type: 'error', text: err.message });
+      setMessage({ type: 'error', text: 'Gagal menyimpan: ' + err.message });
     } finally {
-      setIsProcessingRange(false);
+      setSaving(false);
     }
   };
+
+  // Fitur Verifikasi Rentang (Tandai Absen Massal) telah dihapus sesuai permintaan
 
   const statusOptions = ['Hadir', 'Sakit', 'Izin', 'Alfa'];
   const statusColors = {
@@ -247,15 +222,6 @@ export default function PresensiPage() {
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">Presensi Murid</h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Catat kehadiran harian murid secara efisien</p>
         </div>
-        <button
-          onClick={() => setShowRangeModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/30 dark:text-emerald-300 rounded-xl font-bold text-sm transition-all shadow-sm"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-          </svg>
-          Verifikasi Rentang
-        </button>
       </div>
 
       <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-4 sm:p-6 shadow-sm">

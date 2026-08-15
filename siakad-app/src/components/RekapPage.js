@@ -55,25 +55,45 @@ export default function RekapPage() {
     }
     const { data: murid } = await queryMurid.order('rombel').order('nama');
 
-    // 2. Ambil data absensi di rentang tanggal
-    let queryAbsen = supabase.from('data_absensi').select('nisn, tanggal, status, rombel').gte('tanggal', tglMulai).lte('tanggal', tglAkhir);
-    if (rombel !== 'Semua') {
-      queryAbsen = queryAbsen.eq('rombel', rombel);
+    // 2. Ambil data libur untuk menghitung hari efektif
+    const { data: masterLibur } = await supabase.from('master_libur').select('tanggal').gte('tanggal', tglMulai).lte('tanggal', tglAkhir);
+    const liburSet = new Set((masterLibur || []).map(l => l.tanggal));
+    
+    let totalHariEfektif = 0;
+    const dateMulai = new Date(tglMulai);
+    const dateAkhir = new Date(tglAkhir);
+    let currentDate = new Date(dateMulai);
+    const validDates = [];
+    while (currentDate <= dateAkhir) {
+        const y = currentDate.getFullYear();
+        const m = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const d = String(currentDate.getDate()).padStart(2, '0');
+        const dateStr = `${y}-${m}-${d}`;
+        if (currentDate.getDay() !== 0 && !liburSet.has(dateStr)) {
+            totalHariEfektif++;
+            validDates.push(dateStr);
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
     }
-    const { data: absensi } = await queryAbsen;
 
-    // 3. Proses rekap
+    // 3. Ambil data absensi dari view
+    const { data: absensi } = await supabase.from('view_rekap_kehadiran_murid_final').select('*').gte('tanggal', tglMulai).lte('tanggal', tglAkhir);
+
+    // 4. Proses rekap (Auto-Hadir)
     const rekap = {};
     (murid || []).forEach(m => {
-      rekap[m.id_user] = { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, detail: {}, history: { Sakit: [], Izin: [], Alfa: [] } };
+      const detail = {};
+      validDates.forEach(d => detail[d] = 'H'); // Asumsi default Hadir
+      rekap[m.id_user] = { Hadir: totalHariEfektif, Sakit: 0, Izin: 0, Alfa: 0, detail, history: { Sakit: [], Izin: [], Alfa: [] } };
     });
 
     (absensi || []).forEach(a => {
-      if (rekap[a.nisn] && rekap[a.nisn][a.status] !== undefined) {
-        rekap[a.nisn][a.status] += 1;
-        rekap[a.nisn].detail[a.tanggal] = a.status.charAt(0); // H, S, I, A
+      if (rekap[a.id_murid] && validDates.includes(a.tanggal)) {
         if (['Sakit', 'Izin', 'Alfa'].includes(a.status)) {
-          rekap[a.nisn].history[a.status].push(a);
+          rekap[a.id_murid][a.status] += 1;
+          rekap[a.id_murid].Hadir -= 1;
+          rekap[a.id_murid].detail[a.tanggal] = a.status.charAt(0); // S, I, A
+          rekap[a.id_murid].history[a.status].push({ ...a, nisn: a.id_murid });
         }
       }
     });

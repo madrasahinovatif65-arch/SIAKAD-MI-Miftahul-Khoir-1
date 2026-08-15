@@ -43,66 +43,35 @@ export const fetchPresensiData = async ([_key, rombel, tanggal]) => {
   if (rombel !== 'Semua') muridQuery = muridQuery.eq('rombel', rombel);
   const { data: murid } = await muridQuery;
 
-  let nfcQuery = supabase.from('view_rekap_absensi_nfc').select('*').eq('tanggal', tanggal);
-  if (rombel !== 'Semua') nfcQuery = nfcQuery.eq('rombel', rombel);
-  const { data: nfc } = await nfcQuery;
-
-  let existingQuery = supabase.from('data_absensi').select('*').eq('tanggal', tanggal);
-  if (rombel !== 'Semua') existingQuery = existingQuery.eq('rombel', rombel);
-  const { data: existing } = await existingQuery;
-
-  const startUTC = new Date(`${tanggal}T00:00:00+07:00`).toISOString();
-  const endUTC = new Date(`${tanggal}T23:59:59+07:00`).toISOString();
-  
-  const { data: rawLogs } = await supabase.from('log_absensi')
-    .select('rfid_uid, waktu')
-    .gte('waktu', startUTC)
-    .lte('waktu', endUTC);
-
-  const rfidToTime = {};
-  (rawLogs || []).forEach(log => {
-    const wibTime = new Date(log.waktu).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
-    if (!rfidToTime[log.rfid_uid] || wibTime < rfidToTime[log.rfid_uid]) {
-      rfidToTime[log.rfid_uid] = wibTime; 
-    }
-  });
-
-  const nfcMap = {};
-  (nfc || []).forEach(n => {
-    const m = (murid || []).find(x => x.id_user === n.id_user);
-    const rawTime = m && rfidToTime[m.rfid] ? rfidToTime[m.rfid] : null;
-    
-    nfcMap[n.id_user] = {
-      ...n,
-      jam_datang: rawTime || n.jam_datang || n.jam_pulang
-    };
-  });
-  
-  const absensiMap = {};
-  (existing || []).forEach(a => { absensiMap[a.nisn] = { status: a.status, catatan: a.catatan || '' }; });
+  const { data: viewData } = await supabase
+    .from('view_rekap_kehadiran_murid_final')
+    .select('*')
+    .eq('tanggal', tanggal);
 
   const mergedAbsensi = {};
+  
   (murid || []).forEach(m => {
-    if (absensiMap[m.id_user]) {
-      mergedAbsensi[m.id_user] = absensiMap[m.id_user];
-      if (mergedAbsensi[m.id_user].catatan && mergedAbsensi[m.id_user].catatan.startsWith('NFC:')) {
-        mergedAbsensi[m.id_user].catatan = mergedAbsensi[m.id_user].catatan.replace('NFC:', 'Tap NFC:');
-      }
-    }
-    else if (nfcMap[m.id_user]) {
-      const jam = nfcMap[m.id_user].jam_datang || nfcMap[m.id_user].jam_pulang;
-      if (isLate(jam)) {
-        mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: 'Terlambat' };
-      } else {
-        mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: 'Tap NFC' };
-      }
-    }
-    else {
-      mergedAbsensi[m.id_user] = { status: 'Hadir', catatan: '' };
+    const record = (viewData || []).find(v => v.id_murid === m.id_user);
+    if (record) {
+      mergedAbsensi[m.id_user] = {
+        status: record.status,
+        catatan: record.catatan,
+        waktu_datang: record.waktu_datang,
+        waktu_pulang: record.waktu_pulang,
+        is_manual: record.status !== 'Hadir' || (record.catatan !== 'Tap NFC' && record.catatan !== 'Terlambat')
+      };
+    } else {
+      mergedAbsensi[m.id_user] = {
+        status: 'Hadir',
+        catatan: 'Manual Guru',
+        waktu_datang: '-',
+        waktu_pulang: '-',
+        is_manual: true
+      };
     }
   });
 
-  return { isHoliday: false, holidayName: '', murid: murid || [], nfcMap, mergedAbsensi };
+  return { isHoliday: false, holidayName: '', murid: murid || [], nfcMap: {}, mergedAbsensi };
 };
 
 // Fetcher for verifikasi guru
