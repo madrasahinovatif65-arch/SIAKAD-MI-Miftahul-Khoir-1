@@ -122,12 +122,14 @@ export default function DashboardHome() {
         muridQuery = muridQuery.eq('rombel', user.rombel);
       }
 
-      const [guruRes, muridRes, pendingRes, activeTeachersRes, verifikasiDataRes] = await Promise.all([
-        supabase.from('master_user').select('id', { count: 'exact', head: true }).in('role', ['Wali Kelas', 'Guru Mapel']).eq('status_aktif', 'Aktif'),
+      const [guruRes, muridRes, pendingRes, activeTeachersRes, verifikasiDataRes, tapGuruRes, tapMuridRes] = await Promise.all([
+        supabase.from('master_user').select('id', { count: 'exact', head: true }).in('role', ['Wali Kelas', 'Guru Mapel', 'Kepala Madrasah']).eq('status_aktif', 'Aktif'),
         muridQuery,
         supabase.from('log_gps_guru').select('id', { count: 'exact', head: true }).eq('tanggal', today).eq('status', 'Menunggu Verifikasi'),
         user.role === 'Kepala Madrasah' ? supabase.from('master_user').select('id_user').in('role', ['Wali Kelas', 'Guru Mapel', 'Kepala Madrasah']).eq('status_aktif', 'Aktif') : Promise.resolve({ data: null }),
         user.role === 'Kepala Madrasah' ? supabase.from('verifikasi_guru').select('tanggal, id_guru').gte('tanggal', calcStart).lte('tanggal', today) : Promise.resolve({ data: null }),
+        user.role === 'Kepala Madrasah' ? supabase.from('view_rekap_kehadiran_guru_final').select('id_guru', { count: 'exact', head: true }).eq('tanggal', today).in('metode', ['NFC', 'GPS', 'NFC+GPS']) : Promise.resolve({ count: 0 }),
+        user.role === 'Kepala Madrasah' ? supabase.from('view_rekap_kehadiran_murid_final').select('id_murid', { count: 'exact', head: true }).eq('tanggal', today).or('waktu_datang.neq.-,waktu_pulang.neq.-') : Promise.resolve({ count: 0 }),
       ]);
 
       let unverifiedDaysCount = 0;
@@ -154,7 +156,9 @@ export default function DashboardHome() {
         persentaseHadirGuru: 0,
         persentaseJurnal: 0,
         persentaseHadirMurid: 0,
-        totalHadirMurid: 0
+        totalHadirMurid: 0,
+        tapGuruHariIni: tapGuruRes?.count || 0,
+        tapMuridHariIni: tapMuridRes?.count || 0
       };
 
       if (['Wali Kelas', 'Guru Mapel'].includes(user.role)) {
@@ -354,9 +358,9 @@ export default function DashboardHome() {
       { label: 'Total Murid', value: stats.murid, sub: 'Aktif', gradient: 'from-amber-500 to-orange-500' },
     ],
     'Kepala Madrasah': [
-      // { label: 'Hari Belum Terverifikasi', value: stats.unverifiedDays || 0, sub: 'Hari ini', gradient: 'from-rose-500 to-red-600' },
-      { label: 'Total Guru', value: stats.guru, sub: 'Aktif', gradient: 'from-emerald-500 to-teal-600' },
-      { label: 'Total Murid', value: stats.murid, sub: 'Aktif', gradient: 'from-amber-500 to-orange-500' },
+      { label: 'Hari Ini', value: new Date().getDate(), sub: new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }), gradient: 'from-emerald-500 to-teal-600' },
+      { label: 'Murid Tap Mandiri', value: stats.murid !== '-' && stats.murid > 0 ? `${Math.round((stats.tapMuridHariIni / stats.murid) * 100)}%` : '0%', sub: `${stats.tapMuridHariIni} dari ${stats.murid} Siswa`, gradient: 'from-amber-500 to-orange-500' },
+      { label: 'Guru Tap Mandiri', value: stats.guru !== '-' && stats.guru > 0 ? `${Math.round((stats.tapGuruHariIni / stats.guru) * 100)}%` : '0%', sub: `${stats.tapGuruHariIni} dari ${stats.guru} Guru`, gradient: 'from-blue-500 to-indigo-600' },
     ],
     'Wali Kelas': [
       { label: 'Kehadiran Anda', value: `${stats.persentaseHadirGuru || 0}%`, sub: 'Keseluruhan', gradient: 'from-emerald-500 to-teal-600' },
