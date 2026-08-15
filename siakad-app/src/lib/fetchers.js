@@ -164,7 +164,7 @@ export const fetchVerifikasiGuru = async ([_key, tanggal]) => {
   (allGuru || []).forEach(guru => {
     const ver = (verified || []).find(v => v.id_guru === guru.id_user);
     const nfc = (nfcLogs || []).find(n => n.id_user === guru.id_user);
-    const userGpsLogs = (gpsLogs || []).filter(g => g.id_user === guru.id_user);
+    const userGpsLogs = (gpsLogs || []).filter(g => g.id_guru === guru.id_user);
     const rawTimes = rfidToTimes[guru.rfid];
 
     let waktu_datang = null;
