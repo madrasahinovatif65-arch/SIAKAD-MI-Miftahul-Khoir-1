@@ -101,7 +101,11 @@ export default function RiwayatGuruPage() {
          }
       }
 
-      return { guruList: guruData || [], rekapData: rekap, type: 'rekap' };
+      // 4. Ambil nama Admin untuk Tanda Tangan
+      const { data: adminData } = await supabase.from('master_user').select('nama').eq('role', 'Admin').limit(1).maybeSingle();
+      const adminName = adminData?.nama || '.......................................';
+
+      return { guruList: guruData || [], rekapData: rekap, type: 'rekap', adminName };
     } else {
       // Guru: riwayat harian
       const { data: viewData } = await supabase
@@ -328,7 +332,7 @@ export default function RiwayatGuruPage() {
               <p>Disiapkan Oleh,</p>
               <p><b>STAF TATA USAHA</b></p>
               <br><br><br><br>
-              <p><b><u>.......................................</u></b></p>
+              <p><b><u>${swrData?.adminName || '.......................................'}</u></b></p>
               <p style="margin-top: 0;">-</p>
             </td>
             <td style="width: 50%; border: none;">
@@ -447,7 +451,7 @@ export default function RiwayatGuruPage() {
               <p>Disiapkan Oleh,</p>
               <p><b>STAF TATA USAHA</b></p>
               <br><br><br><br>
-              <p><b><u>.......................................</u></b></p>
+              <p><b><u>${swrData?.adminName || '.......................................'}</u></b></p>
               <p style="margin-top: 0;">-</p>
             </td>
             <td style="width: 50%; border: none;">
@@ -637,8 +641,8 @@ export default function RiwayatGuruPage() {
               <thead>
                 {isAdmin ? (
                   <tr className="bg-slate-50/80 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 print:bg-gray-200 print:border-black/50">
-                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider text-center">No</th>
-                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider col-nama">Nama Guru</th>
+                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider text-center col-fit">No</th>
+                    <th className="px-5 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 print:text-black uppercase tracking-wider col-fit text-left">Nama Guru</th>
                     <th className="px-5 py-4 text-xs font-bold text-emerald-600 dark:text-emerald-400 print:text-black text-center uppercase tracking-wider">Hadir</th>
                     <th className="px-5 py-4 text-xs font-bold text-amber-600 dark:text-amber-400 print:text-black text-center uppercase tracking-wider">Sakit</th>
                     <th className="px-5 py-4 text-xs font-bold text-emerald-600 dark:text-emerald-400 print:text-black text-center uppercase tracking-wider">Izin</th>
@@ -670,8 +674,8 @@ export default function RiwayatGuruPage() {
                       
                       return (
                         <tr key={guru.id_user} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
-                          <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black text-center">{idx + 1}</td>
-                          <td className="px-5 py-4 text-sm font-medium text-slate-900 dark:text-white print:text-black col-nama">{guru.nama}</td>
+                          <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 print:text-black text-center col-fit">{idx + 1}</td>
+                          <td className="px-5 py-4 text-sm font-medium text-slate-900 dark:text-white print:text-black col-fit text-left whitespace-nowrap">{guru.nama}</td>
                           <td className="px-5 py-4 text-sm text-center font-bold text-emerald-600 dark:text-emerald-400 print:text-black">{hadir || '-'}</td>
                           <td className="px-5 py-4 text-sm text-center font-bold text-amber-600 dark:text-amber-400 print:text-black">
                             {sakit > 0 ? (
@@ -929,7 +933,7 @@ export default function RiwayatGuruPage() {
             <p className="text-transparent select-none">.</p>
             <p>Disiapkan Oleh,</p>
             <p className="font-bold uppercase mt-1">STAF TATA USAHA,</p>
-            <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">.......................................</div>
+            <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">{swrData?.adminName || '.......................................'}</div>
             <p className="mt-1">-</p>
           </div>
           <div className="flex flex-col items-center">
@@ -1151,7 +1155,7 @@ export default function RiwayatGuruPage() {
               <p className="text-transparent select-none">.</p>
               <p>Disiapkan Oleh,</p>
               <p className="font-bold uppercase mt-1">STAF TATA USAHA,</p>
-              <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">.......................................</div>
+              <div className="mt-20 inline-block border-b border-black font-bold whitespace-nowrap break-words px-2">{swrData?.adminName || '.......................................'}</div>
               <p className="mt-1">-</p>
             </div>
             <div className="flex flex-col items-center">
@@ -1183,6 +1187,9 @@ export default function RiwayatGuruPage() {
           th, td { border: 1px solid #000; padding: 4px 5px; color: #000 !important; font-size: 9px; white-space: normal; word-wrap: break-word; overflow-wrap: break-word; }
           th { background: #e2e8f0 !important; -webkit-print-color-adjust: exact; }
           
+          /* Kolom fit agar menyesuaikan karakter terpanjang tanpa wrap text */
+          .col-fit { white-space: nowrap !important; width: 1% !important; word-wrap: normal !important; overflow-wrap: normal !important; }
+
           /* Kolom Nama Guru / Materi melar dan wrap text */
           .col-nama { white-space: normal !important; width: auto !important; word-wrap: break-word; }
           
