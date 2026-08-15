@@ -100,6 +100,7 @@ export default function DashboardHome() {
       const liburSet = new Set((liburData || []).map(l => l.tanggal));
 
       let hariEfektif = 0;
+      const validDates = [];
       let curr = new Date(calcStart);
       const end = new Date(today);
       while (curr <= end) {
@@ -107,6 +108,7 @@ export default function DashboardHome() {
           const dateStr = curr.toISOString().split('T')[0];
           if (!liburSet.has(dateStr)) {
             hariEfektif++;
+            validDates.push(dateStr);
           }
         }
         curr.setDate(curr.getDate() + 1);
@@ -117,16 +119,33 @@ export default function DashboardHome() {
         muridQuery = muridQuery.eq('rombel', user.rombel);
       }
 
-      const [guruRes, muridRes, pendingRes] = await Promise.all([
+      const [guruRes, muridRes, pendingRes, activeTeachersRes, verifikasiDataRes] = await Promise.all([
         supabase.from('master_user').select('id', { count: 'exact', head: true }).in('role', ['Wali Kelas', 'Guru Mapel']).eq('status_aktif', 'Aktif'),
         muridQuery,
         supabase.from('log_gps_guru').select('id', { count: 'exact', head: true }).eq('tanggal', today).eq('status', 'Menunggu Verifikasi'),
+        user.role === 'Kepala Madrasah' ? supabase.from('master_user').select('id_user').in('role', ['Wali Kelas', 'Guru Mapel', 'Kepala Madrasah']).eq('status_aktif', 'Aktif') : Promise.resolve({ data: null }),
+        user.role === 'Kepala Madrasah' ? supabase.from('verifikasi_guru').select('tanggal, id_guru').gte('tanggal', calcStart).lte('tanggal', today) : Promise.resolve({ data: null }),
       ]);
+
+      let unverifiedDaysCount = 0;
+      if (user.role === 'Kepala Madrasah' && activeTeachersRes.data && verifikasiDataRes.data) {
+        const activeTeacherIds = activeTeachersRes.data.map(t => t.id_user);
+        const verifikasiSet = new Set(verifikasiDataRes.data.map(v => `${v.tanggal}_${v.id_guru}`));
+
+        for (const dateStr of validDates) {
+          for (const teacherId of activeTeacherIds) {
+            if (!verifikasiSet.has(`${dateStr}_${teacherId}`)) {
+              unverifiedDaysCount++;
+            }
+          }
+        }
+      }
 
       let resStats = {
         guru: guruRes.count ?? '-',
         murid: muridRes.count ?? '-',
         pending: pendingRes.count ?? '-',
+        unverifiedDays: unverifiedDaysCount,
         jurnal: '-',
         persentaseHadirGuru: 0,
         persentaseJurnal: 0,
@@ -304,10 +323,9 @@ export default function DashboardHome() {
       { label: 'Total Murid', value: stats.murid, sub: 'Aktif', gradient: 'from-amber-500 to-orange-500' },
     ],
     'Kepala Madrasah': [
-      { label: 'Hari Ini', value: new Date().getDate(), sub: new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }), gradient: 'from-emerald-500 to-teal-600' },
+      { label: 'Hari Belum Terverifikasi', value: stats.unverifiedDays || 0, sub: 'Hari ini', gradient: 'from-rose-500 to-red-600' },
       { label: 'Total Guru', value: stats.guru, sub: 'Aktif', gradient: 'from-emerald-500 to-teal-600' },
       { label: 'Total Murid', value: stats.murid, sub: 'Aktif', gradient: 'from-amber-500 to-orange-500' },
-      { label: 'Perlu Verifikasi', value: stats.pending, sub: 'Hari ini', gradient: 'from-rose-500 to-red-600' },
     ],
     'Wali Kelas': [
       { label: 'Kehadiran Anda', value: `${stats.persentaseHadirGuru || 0}%`, sub: 'Keseluruhan', gradient: 'from-emerald-500 to-teal-600' },
