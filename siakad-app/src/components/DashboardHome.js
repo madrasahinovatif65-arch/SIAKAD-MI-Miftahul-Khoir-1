@@ -41,6 +41,7 @@ const QUICK_MENU_CONFIG = {
   ],
   'Kepala Madrasah': [
     { label: 'Verifikasi', href: '/dashboard/verifikasi', icon: 'M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', color: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10' },
+    { label: 'Jurnal Guru', href: '/dashboard/jurnal', icon: 'M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25', color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' },
     { label: 'Riwayat Absen', href: '/dashboard/riwayat-guru', icon: 'M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', color: 'text-slate-500 bg-slate-50 dark:bg-slate-500/10' },
   ],
   'Wali Kelas': [

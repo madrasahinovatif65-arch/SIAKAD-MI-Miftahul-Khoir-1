@@ -15,7 +15,7 @@ registerLocale('id', id);
 export default function RiwayatGuruPage() {
   const isMobile = useIsMobile();
   const { user } = useAuth();
-  const isAdmin = user?.role === 'Admin';
+  const isAdmin = user?.role === 'Admin' || user?.role === 'Kepala Madrasah';
   const [selectedHistory, setSelectedHistory] = useState(null);
   
   const [tglMulai, setTglMulai] = useState(() => {

@@ -30,6 +30,7 @@ registerLocale('id', id);
 export default function JurnalPage() {
   const isMobile = useIsMobile();
   const { user } = useAuth();
+  const isAdmin = user?.role === 'Admin' || user?.role === 'Kepala Madrasah';
 
   const [tanggal, setTanggal] = useState(() => getTodayDate());
   const [jamMulai, setJamMulai] = useState('');
@@ -253,7 +254,7 @@ export default function JurnalPage() {
     if (filterTglMulai && filterTglAkhir) {
       query = query.gte('tanggal', filterTglMulai).lte('tanggal', filterTglAkhir);
     }
-    if (user.role === 'Admin' && filterRombel !== 'Semua') {
+    if (isAdmin && filterRombel !== 'Semua') {
       query = query.eq('rombel', filterRombel);
     }
     // Filter Mapel untuk Wali Kelas
@@ -474,7 +475,7 @@ export default function JurnalPage() {
     const guruName = user?.nama || user?.id_user || '-';
     const logoBase64 = await getBase64FromUrl('/logo.png');
     const rombelNameExport = user?.rombel !== '-' && user?.rombel ? user.rombel.replace(/^Kelas /i, '') : '';
-    const roleLabel = user?.role === 'Admin' ? 'Kepala Madrasah' : user?.role === 'Wali Kelas' ? `Wali Kelas ${rombelNameExport}`.trim() : user?.role === 'Guru Mapel' ? 'Guru Mata Pelajaran' : 'Staf TU';
+    const roleLabel = isAdmin ? 'Kepala Madrasah' : user?.role === 'Wali Kelas' ? `Wali Kelas ${rombelNameExport}`.trim() : user?.role === 'Guru Mapel' ? 'Guru Mata Pelajaran' : 'Staf TU';
     const groupedRiwayat = riwayat.reduce((acc, curr) => {
       const d = new Date(curr.tanggal);
       const day = d.getDay();
@@ -525,7 +526,7 @@ export default function JurnalPage() {
         </table>
         <div style="text-align: center; margin-bottom: 20px;">
           <h3 style="margin: 0; font-size: 14pt; color: #15803d; font-weight: bold;">
-            Rekapitulasi Jurnal Pembelajaran Guru - ${user?.role === 'Wali Kelas' ? user.rombel : (user?.role === 'Admin' && filterRombel !== 'Semua' ? filterRombel : (user?.role === 'Guru Mapel' ? (filterMapel !== 'Semua' ? filterMapel : 'Semua Mapel') : 'Semua Mapel'))}
+            Rekapitulasi Jurnal Pembelajaran Guru - ${user?.role === 'Wali Kelas' ? user.rombel : (isAdmin && filterRombel !== 'Semua' ? filterRombel : (user?.role === 'Guru Mapel' ? (filterMapel !== 'Semua' ? filterMapel : 'Semua Mapel') : 'Semua Mapel'))}
           </h3>
           <p style="margin: 5px 0 2px 0;">${getTahunPelajaran()}</p>
           <p style="margin: 2px 0;">Tanggal: ${dateText}</p>
@@ -970,7 +971,7 @@ export default function JurnalPage() {
             </div>
 
             {/* Filter Rombel - Admin */}
-            {user?.role === 'Admin' && (
+            {isAdmin && (
               <div className="relative w-full sm:w-auto">
                 <select value={filterRombel} onChange={e => setFilterRombel(e.target.value)}
                   style={{ backgroundImage: 'none' }}
@@ -1052,7 +1053,7 @@ export default function JurnalPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-slate-900 dark:text-white font-bold text-sm">{j.tanggal.split('-').reverse().join('-')}</span>
                       <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-md text-[10px] font-bold tracking-wider">{(j.jam_pelajaran || '').replace(/\s*\(.*\)/, '')}</span>
-                      {(user?.role === 'Admin' || user?.role === 'Wali Kelas') && j.master_user?.nama && (
+                      {(isAdmin || user?.role === 'Wali Kelas') && j.master_user?.nama && (
                         <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-md text-[10px] font-bold tracking-wider">
                           {j.master_user.nama}
                         </span>
@@ -1149,7 +1150,7 @@ export default function JurnalPage() {
             const lastDate = items[items.length - 1].tanggal;
             const dateText = firstDate === lastDate ? formatDateString(firstDate) : `${formatDateString(firstDate)} s.d. ${formatDateString(lastDate)}`;
             const rombelNamePrint = user?.rombel !== '-' && user?.rombel ? user.rombel.replace(/^Kelas /i, '') : '';
-            const roleLabel = user?.role === 'Admin' ? 'Kepala Madrasah' : user?.role === 'Wali Kelas' ? `Wali Kelas ${rombelNamePrint}`.trim() : user?.role === 'Guru Mapel' ? 'Guru Mata Pelajaran' : 'Staf TU';
+            const roleLabel = isAdmin ? 'Kepala Madrasah' : user?.role === 'Wali Kelas' ? `Wali Kelas ${rombelNamePrint}`.trim() : user?.role === 'Guru Mapel' ? 'Guru Mata Pelajaran' : 'Staf TU';
             return (
               <div key={weekKey} className={`w-full ${weekIdx < printWeeks.length - 1 ? 'page-break-after' : ''}`}>
                 {/* Header Print */}
@@ -1164,7 +1165,7 @@ export default function JurnalPage() {
                     <div className="absolute bottom-0 left-0 w-full border-b border-black mt-0.5"></div>
                   </div>
                   <div className="text-center mt-3 mb-3">
-                    <h3 className="text-base font-bold text-green-700">Rekapitulasi Jurnal Pembelajaran Guru - {user?.role === 'Wali Kelas' ? user.rombel : (user?.role === 'Admin' && filterRombel !== 'Semua' ? filterRombel : (user?.role === 'Guru Mapel' ? (filterMapel !== 'Semua' ? filterMapel : 'Semua Mapel') : 'Semua Mapel'))}</h3>
+                    <h3 className="text-base font-bold text-green-700">Rekapitulasi Jurnal Pembelajaran Guru - {user?.role === 'Wali Kelas' ? user.rombel : (isAdmin && filterRombel !== 'Semua' ? filterRombel : (user?.role === 'Guru Mapel' ? (filterMapel !== 'Semua' ? filterMapel : 'Semua Mapel') : 'Semua Mapel'))}</h3>
                     <p className="text-xs text-slate-600 mt-0.5">{getTahunPelajaran()}</p>
                     <p className="text-xs text-slate-600 mt-0.5">Tanggal: {dateText}</p>
                   </div>
