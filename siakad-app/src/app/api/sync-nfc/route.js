@@ -112,6 +112,26 @@ export async function POST(request) {
     if (toInsert.length > 0) {
       const { error } = await supabase.from('data_absensi').insert(toInsert);
       if (error) throw error;
+
+      // Kirim notifikasi ke murid yang berhasil Tap NFC hari ini
+      const nfcNotifs = toInsert
+        .filter(a => a.metode === 'NFC')
+        .map(a => {
+          const siswa = murid.find(m => m.id_user === a.nisn);
+          const jamWIB = nfcMapData[a.nisn] || '-';
+          return {
+            id_user: a.nisn,
+            role_target: null,
+            title: 'Kehadiran Berhasil ✅',
+            message: `Ananda ${siswa?.nama || ''} telah tercatat Hadir di sekolah hari ini via NFC pada pukul ${jamWIB}.`,
+            type: 'ABSENSI',
+            link: '/dashboard/presensi',
+            is_read: false,
+          };
+        });
+      if (nfcNotifs.length > 0) {
+        await supabase.from('notifikasi').insert(nfcNotifs);
+      }
     }
 
     return NextResponse.json({ 

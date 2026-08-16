@@ -4,11 +4,27 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/components/EyeCareMode';
 import Link from 'next/link';
+import useSWR from 'swr';
+import { supabase } from '@/lib/supabase';
 
 export default function Header() {
   const { user } = useAuth();
   const { isEyeCare, toggleMode, mounted } = useTheme();
   const [greeting, setGreeting] = useState('');
+
+  const { data: unreadCount = 0 } = useSWR(
+    user ? `notif_unread_${user.id_user}_${user.role}` : null,
+    async () => {
+      const { count } = await supabase
+        .from('notifikasi')
+        .select('id', { count: 'exact', head: true })
+        .or(`id_user.eq.${user.id_user},role_target.eq.${user.role}`)
+        .eq('is_read', false);
+      return count || 0;
+    },
+    { refreshInterval: 30000 }
+  );
+
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -56,8 +72,11 @@ export default function Header() {
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
             </svg>
-            {/* Indikator unread dummy */}
-            <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border border-white dark:border-slate-800" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
           </Link>
 
           {mounted && (

@@ -3,6 +3,11 @@
     {
       "path": "/api/sync-nfc",
       "schedule": "0 6 * * 1-6"
+    },
+    {
+      "path": "/api/cron/rekap-guru",
+      "schedule": "0 0 * * 1-6",
+      "comment": "Rekap kehadiran guru ke Kepala Madrasah pukul 07:00 WIB (00:00 UTC) setiap Senin-Sabtu"
     }
   ]
 }
