@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import useSWR from 'swr';
+import * as XLSX from 'xlsx';
 
 export default function KalenderPage() {
   const [tanggal, setTanggal] = useState('');
@@ -53,11 +54,15 @@ export default function KalenderPage() {
     }
   };
 
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Kelola Kalender Akademik</h2>
-        <p className="text-slate-600 dark:text-white/40 text-sm mt-1">Tambah atau hapus tanggal libur dan kegiatan non-efektif</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Kelola Kalender Akademik</h2>
+          <p className="text-slate-600 dark:text-white/40 text-sm mt-1">Tambah atau hapus tanggal libur dan kegiatan non-efektif</p>
+        </div>
+
       </div>
 
       {/* Add Form */}

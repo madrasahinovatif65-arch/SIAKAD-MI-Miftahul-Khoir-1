@@ -278,23 +278,7 @@ export default function MasterUserPage() {
     XLSX.writeFile(wb, "Template_Master_Pengguna.xlsx");
   };
 
-  const exportData = () => {
-    const exportedArray = filteredUsers.map(u => ({
-      'ID_User': u.id_user,
-      'Nama': u.nama,
-      'Role': u.role,
-      'PIN': u.pin || '',
-      'Rombel': u.rombel,
-      'Status': u.status_aktif,
-      'Mapel': u.mapel || '-',
-      'Link Foto': u.foto || '',
-      'RFID': u.rfid || ''
-    }));
-    const ws = XLSX.utils.json_to_sheet(exportedArray);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Data_Pengguna");
-    XLSX.writeFile(wb, "Export_Master_Pengguna.xlsx");
-  };
+
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -362,9 +346,7 @@ export default function MasterUserPage() {
               Unduh Template
             </button>
           )}
-          <button onClick={exportData} className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 rounded-xl text-sm font-semibold transition-colors">
-            Export Excel
-          </button>
+
           {user?.role === 'Admin' && (
             <label className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-semibold cursor-pointer shadow-sm transition-colors">
               Import Excel

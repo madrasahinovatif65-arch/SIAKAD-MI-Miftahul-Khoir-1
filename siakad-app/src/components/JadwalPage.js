@@ -194,20 +194,6 @@ export default function JadwalPage() {
     else mutateJadwal();
   };
 
-  const handleExport = () => {
-    if (jadwal.length === 0) return;
-    const suffix = effectiveMode === 'guru'
-      ? masterData?.guru?.find(g => g.id_user === activeGuruId)?.nama?.replace(/\s+/g, '_') || activeGuruId
-      : activeRombel;
-    downloadXLSX(
-      `jadwal_${effectiveMode}_${suffix}.xlsx`,
-      ['Nama Guru', 'Hari', 'Jam Mulai', 'Jam Selesai', 'Rombel', 'Mata Pelajaran'],
-      jadwal.map(j => {
-        const namaGuruMap = masterData?.guru?.find(g => g.id_user === j.id_guru)?.nama || j.id_guru;
-        return [namaGuruMap, HARI_LABEL[j.hari] || j.hari, j.jam_mulai || '-', j.jam_selesai || '-', j.rombel, j.mata_pelajaran];
-      })
-    );
-  };
 
   const handleDownloadTemplate = () => {
     downloadXLSX('template_jadwal.xlsx', ['Nama Guru', 'Hari', 'Jam Mulai', 'Jam Selesai', 'Rombel', 'Mata Pelajaran'], [
@@ -288,12 +274,7 @@ export default function JadwalPage() {
                 {importing ? <><div className="w-3.5 h-3.5 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />Mengimpor…</> : <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>Impor XLSX</>}
                 <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} disabled={importing} />
               </label>
-              {jadwal.length > 0 && (
-                <button onClick={handleExport} className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold rounded-xl transition-all border border-emerald-200 dark:border-emerald-500/20">
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-                  Ekspor XLSX
-                </button>
-              )}
+
             </>
           )}
         </div>

@@ -380,82 +380,6 @@ export default function RekapPage() {
     document.body.removeChild(link);
   };
 
-  const handleExportExcel = () => {
-    let exportedData = [];
-    let fileName = '';
-
-    if (mode === 'harian') {
-      fileName = `Rekap_Absensi_Harian_${rombel}_${tglMulai}_sd_${tglAkhir}.xlsx`;
-      
-      rombelsToPrint.forEach(rName => {
-        const rMuridData = rombel === 'Semua' ? muridData.filter(m => m.rombel === rName) : muridData;
-        
-        rMuridData.forEach((m, idx) => {
-          const r = rekapData[m.id_user] || { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
-          const hadir = r.Hadir || 0;
-          const sakit = r.Sakit || 0;
-          const izin = r.Izin || 0;
-          const alfa = r.Alfa || 0;
-          const total = hadir + sakit + izin + alfa;
-          const persentase = total > 0 ? ((hadir / total) * 100).toFixed(1) + '%' : '-';
-          
-          exportedData.push({
-            'No': idx + 1,
-            'Nama Murid': m.nama,
-            'NISN': m.id_user || '-',
-            'Rombel': rName,
-            'Hadir': hadir,
-            'Sakit': sakit,
-            'Izin': izin,
-            'Alfa': alfa,
-            'Total Hari': total,
-            'Persentase Hadir': persentase
-          });
-        });
-      });
-    } else {
-      // Mode Mapel
-      if (!rekapMapelData || rekapMapelData.jurnal.length === 0) {
-        alert('Data rekap mapel tidak tersedia atau belum dipilih.');
-        return;
-      }
-      
-      fileName = `Rekap_Absensi_Mapel_${filterMapel}_${rombel}_${tglMulai}_sd_${tglAkhir}.xlsx`;
-      const { murid: mapelMurid, jurnal: mapelJurnal, absenMap } = rekapMapelData;
-      
-      mapelMurid.forEach((m, idx) => {
-        let H = 0, S = 0, I = 0, A = 0;
-        mapelJurnal.forEach(j => {
-          const st = absenMap[j.id]?.[m.id_user] || 'Hadir';
-          if (st === 'Hadir') H++; else if (st === 'Sakit') S++; else if (st === 'Izin') I++; else A++;
-        });
-        const pct = mapelJurnal.length > 0 ? Math.round((H / mapelJurnal.length) * 100) : 100;
-        
-        exportedData.push({
-          'No': idx + 1,
-          'Nama Murid': m.nama,
-          'NISN': m.id_user || '-',
-          'Rombel': m.rombel || '-',
-          'Hadir': H,
-          'Sakit': S,
-          'Izin': I,
-          'Alfa': A,
-          'Total Pertemuan': mapelJurnal.length,
-          'Persentase Hadir': pct + '%'
-        });
-      });
-    }
-
-    if (exportedData.length === 0) {
-      alert('Tidak ada data untuk diekspor.');
-      return;
-    }
-
-    const ws = XLSX.utils.json_to_sheet(exportedData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Rekap_Absensi");
-    XLSX.writeFile(wb, fileName);
-  };
 
   const handlePrint = () => {
     window.print();
@@ -478,15 +402,7 @@ export default function RekapPage() {
               </svg>
               Export Word
             </button>
-            {user?.role === 'Admin' && (
-              <button onClick={handleExportExcel}
-                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-semibold transition-all shadow-sm">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                </svg>
-                Export Excel
-              </button>
-            )}
+
             <button onClick={handlePrint}
               className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-xl text-sm font-semibold transition-all shadow-sm">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">

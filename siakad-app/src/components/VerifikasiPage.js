@@ -10,6 +10,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { id } from 'date-fns/locale/id';
+import * as XLSX from 'xlsx';
 
 registerLocale('id', id);
 
@@ -248,6 +249,7 @@ export default function VerifikasiPage() {
     if (summary[s] !== undefined) summary[s]++;
   });
 
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-24">
       {/* Header */}
@@ -257,6 +259,7 @@ export default function VerifikasiPage() {
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Kelola dan verifikasi absensi guru (Otomatis & Manual)</p>
         </div>
         <div className="flex gap-2">
+
           {/* Tombol Tandai Absen Massal disembunyikan sesuai permintaan */}
         </div>
       </div>

@@ -719,45 +719,6 @@ export default function JurnalPage() {
     }
   };
 
-  const handleExportExcel = () => {
-    if (!riwayatData || riwayatData.length === 0) {
-      alert('Tidak ada data jurnal untuk diekspor.');
-      return;
-    }
-
-    const exportedData = riwayatData.map((item, index) => {
-      let sakit = 0;
-      let izin = 0;
-      let alfa = 0;
-
-      if (item.data_absensi_mapel) {
-        item.data_absensi_mapel.forEach(absen => {
-          if (absen.status === 'Sakit') sakit++;
-          if (absen.status === 'Izin') izin++;
-          if (absen.status === 'Alfa') alfa++;
-        });
-      }
-
-      return {
-        'No': index + 1,
-        'Tanggal': item.tanggal,
-        'Jam Ke-': item.jam_pelajaran,
-        'Nama Guru': item.master_user?.nama || '-',
-        'Rombel': item.rombel,
-        'Mata Pelajaran': item.mata_pelajaran,
-        'Materi': item.materi,
-        'Sakit': sakit,
-        'Izin': izin,
-        'Alfa': alfa
-      };
-    });
-
-    const fileName = `Jurnal_Mengajar_${filterTglMulai}_sd_${filterTglAkhir}.xlsx`;
-    const ws = XLSX.utils.json_to_sheet(exportedData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Jurnal_Mengajar");
-    XLSX.writeFile(wb, fileName);
-  };
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -773,15 +734,7 @@ export default function JurnalPage() {
           </svg>
           Print Laporan
         </button>
-        {isAdmin && (
-          <button onClick={handleExportExcel}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-semibold transition-all shadow-sm">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-            </svg>
-            Export Excel
-          </button>
-        )}
+
       </div>
 
       {!isAdmin && (
