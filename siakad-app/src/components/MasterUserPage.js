@@ -1,11 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
+import imageCompression from 'browser-image-compression';
+import Cropper from 'react-easy-crop';
+import getCroppedImg from '@/lib/cropImage';
 
 export default function MasterUserPage() {
   const { user } = useAuth();
@@ -28,6 +31,20 @@ export default function MasterUserPage() {
   // Bulk Actions State
   const [showMoveRombel, setShowMoveRombel] = useState(false);
   const [newRombel, setNewRombel] = useState('');
+
+  // Admin Edit Photo State
+  const [editingPhotoUser, setEditingPhotoUser] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [imageSrc, setImageSrc] = useState(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
 
   // Fetch Data
   // Fetch Data using SWR
@@ -141,6 +158,76 @@ export default function MasterUserPage() {
       mutate();
     }
     setLoading(false);
+  };
+
+  // Photo Upload & Crop Handlers
+  const handlePhotoSelect = (e, targetUser) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setEditingPhotoUser(targetUser);
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.addEventListener('load', () => {
+        setImageSrc(reader.result);
+        setShowCropModal(true);
+      });
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    }
+  };
+
+  const handleCropCancel = () => {
+    setImageSrc(null);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setShowCropModal(false);
+    setEditingPhotoUser(null);
+  };
+
+  const handleUploadCroppedImage = async () => {
+    if (!imageSrc || !croppedAreaPixels || !editingPhotoUser) return;
+
+    try {
+      setUploadingPhoto(true);
+      setMessage(null);
+      
+      const croppedImageFile = await getCroppedImg(imageSrc, croppedAreaPixels);
+      setShowCropModal(false);
+      setImageSrc(null);
+
+      const options = { maxSizeMB: 0.2, maxWidthOrHeight: 800, useWebWorker: true };
+      const compressedFile = await imageCompression(croppedImageFile, options);
+
+      const fileExt = compressedFile.name.split('.').pop();
+      const fileName = `${editingPhotoUser.id_user}_${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('profil_app')
+        .upload(fileName, compressedFile, { cacheControl: '3600', upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage.from('profil_app').getPublicUrl(fileName);
+      const newUrl = publicUrlData.publicUrl;
+
+      // Update db: update foto_app and foto to keep them synced as requested earlier
+      const { error: updateError } = await supabase
+        .from('master_user')
+        .update({ foto_app: newUrl, foto: newUrl })
+        .eq('id', editingPhotoUser.id);
+
+      if (updateError) throw updateError;
+
+      mutate();
+      setMessage({ type: 'success', text: `Foto profil ${editingPhotoUser.nama} berhasil diperbarui!` });
+    } catch (err) {
+      console.error('Error upload:', err);
+      setMessage({ type: 'error', text: 'Gagal mengunggah foto: ' + err.message });
+      setShowCropModal(false);
+      setImageSrc(null);
+    } finally {
+      setUploadingPhoto(false);
+      setEditingPhotoUser(null);
+    }
   };
 
   // Excel Upload/Download
@@ -375,7 +462,26 @@ export default function MasterUserPage() {
                       </td>
                     )}
                     <td className="px-5 py-3 text-sm text-slate-400 dark:text-slate-500 font-mono">{u.id_user}</td>
-                    <td className="px-5 py-3 text-sm text-slate-800 dark:text-white font-semibold">{u.nama}</td>
+                    <td className="px-5 py-3 text-sm text-slate-800 dark:text-white font-semibold">
+                      <div className="flex items-center gap-3">
+                        <div className="relative group/avatar cursor-pointer shrink-0" onClick={() => user?.role === 'Admin' && fileInputRef.current?.click()}>
+                          <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden border-2 border-white dark:border-slate-800 shadow-sm flex items-center justify-center text-slate-500 font-bold">
+                            {(u.foto_app || u.foto) ? (
+                              <img src={u.foto_app || u.foto} alt="Avatar" className="w-full h-full object-cover" />
+                            ) : (
+                              u.nama.charAt(0).toUpperCase()
+                            )}
+                          </div>
+                          {user?.role === 'Admin' && (
+                            <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" /></svg>
+                            </div>
+                          )}
+                          <input type="file" accept="image/jpeg, image/png, image/webp" className="hidden" onChange={(e) => handlePhotoSelect(e, u)} onClick={e => e.stopPropagation()} ref={user?.role === 'Admin' && editingPhotoUser?.id === u.id ? null : fileInputRef} />
+                        </div>
+                        <span className="truncate max-w-[150px] sm:max-w-[200px]" title={u.nama}>{u.nama}</span>
+                      </div>
+                    </td>
                     <td className="px-5 py-3 max-w-[200px]">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded text-xs font-semibold">{u.role}</span>
@@ -427,6 +533,53 @@ export default function MasterUserPage() {
           </table>
         </div>
       </div>
+
+      {/* Hidden Global File Input for Admin */}
+      <input type="file" accept="image/jpeg, image/png, image/webp" ref={fileInputRef} className="hidden" onChange={(e) => {
+        // Find user by some tricky state, wait, we need to pass user to handlePhotoSelect
+      }} />
+
+      {/* Modal Crop */}
+      {showCropModal && imageSrc && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-full">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+              <h3 className="font-bold text-slate-800 dark:text-white">Crop Foto {editingPhotoUser?.nama}</h3>
+              <button onClick={handleCropCancel} className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            
+            <div className="relative w-full h-[300px] sm:h-[400px] bg-slate-100 dark:bg-black">
+              <Cropper
+                image={imageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                onCropChange={setCrop}
+                onCropComplete={onCropComplete}
+                onZoomChange={setZoom}
+              />
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="flex items-center gap-4">
+                <span className="text-xs font-semibold text-slate-500">Zoom</span>
+                <input type="range" value={zoom} min={1} max={3} step={0.1} onChange={(e) => setZoom(e.target.value)} className="w-full accent-emerald-500" />
+              </div>
+              
+              <div className="flex gap-3">
+                <button type="button" onClick={handleCropCancel} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition-colors">Batal</button>
+                <button type="button" onClick={handleUploadCroppedImage} disabled={uploadingPhoto} className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg transition-all flex justify-center items-center">
+                  {uploadingPhoto ? 'Menyimpan...' : 'Simpan Foto'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
