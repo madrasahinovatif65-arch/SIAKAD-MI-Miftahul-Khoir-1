@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import imageCompression from 'browser-image-compression';
+import Cropper from 'react-easy-crop';
+import getCroppedImg from '@/lib/cropImage';
 
 export default function ProfilPage() {
   const { user, changePin, logout, refreshUser } = useAuth();
@@ -16,29 +18,62 @@ export default function ProfilPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  
+  // Crop States
+  const [imageSrc, setImageSrc] = useState(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+
   const fileInputRef = useRef(null);
 
-  const handlePhotoChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
+  const handlePhotoSelect = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.addEventListener('load', () => setImageSrc(reader.result));
+      reader.readAsDataURL(file);
+      // Reset the file input so the same file can be selected again if needed
+      e.target.value = '';
+    }
+  };
+
+  const handleCropCancel = () => {
+    setImageSrc(null);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+  };
+
+  const handleUploadCroppedImage = async () => {
+    if (!imageSrc || !croppedAreaPixels) return;
 
     try {
       setUploadingPhoto(true);
       setMessage(null);
+      
+      // 1. Dapatkan file hasil crop
+      const croppedImageFile = await getCroppedImg(imageSrc, croppedAreaPixels);
+      
+      // Tutup modal
+      setImageSrc(null);
 
-      // 1. Kompres gambar
+      // 2. Kompres gambar hasil crop
       const options = {
         maxSizeMB: 0.2, // Max 200KB
         maxWidthOrHeight: 800,
         useWebWorker: true
       };
-      const compressedFile = await imageCompression(file, options);
+      const compressedFile = await imageCompression(croppedImageFile, options);
 
-      // 2. Tentukan nama file
+      // 3. Tentukan nama file
       const fileExt = compressedFile.name.split('.').pop();
       const fileName = `${user.id_user}_${Date.now()}.${fileExt}`;
 
-      // 3. Upload ke Supabase Storage (bucket profil_app)
+      // 4. Upload ke Supabase Storage (bucket profil_app)
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('profil_app')
         .upload(fileName, compressedFile, {
@@ -48,14 +83,14 @@ export default function ProfilPage() {
 
       if (uploadError) throw uploadError;
 
-      // 4. Dapatkan Public URL
+      // 5. Dapatkan Public URL
       const { data: publicUrlData } = supabase.storage
         .from('profil_app')
         .getPublicUrl(fileName);
       
       const newUrl = publicUrlData.publicUrl;
 
-      // 5. Update kolom foto_app di master_user
+      // 6. Update kolom foto_app di master_user
       const { error: updateError } = await supabase
         .from('master_user')
         .update({ foto_app: newUrl })
@@ -63,16 +98,17 @@ export default function ProfilPage() {
 
       if (updateError) throw updateError;
 
-      // 6. Refresh state global
+      // 7. Refresh state global
       await refreshUser();
       setMessage({ type: 'success', text: 'Foto profil berhasil diperbarui!' });
 
     } catch (err) {
       console.error('Error upload:', err);
       setMessage({ type: 'error', text: 'Gagal mengunggah foto: ' + err.message });
+      // Pastikan modal tertutup jika error
+      setImageSrc(null);
     } finally {
       setUploadingPhoto(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -142,7 +178,7 @@ export default function ProfilPage() {
                 type="file" 
                 accept="image/jpeg, image/png, image/webp" 
                 ref={fileInputRef} 
-                onChange={handlePhotoChange} 
+                onChange={handlePhotoSelect} 
                 className="hidden" 
               />
             </div>
@@ -274,6 +310,67 @@ export default function ProfilPage() {
           </form>
         </div>
       </div>
+
+      {/* Modal Crop */}
+      {imageSrc && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-full">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+              <h3 className="font-bold text-slate-800 dark:text-white">Sesuaikan Foto</h3>
+              <button onClick={handleCropCancel} className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            
+            <div className="relative w-full h-[300px] sm:h-[400px] bg-slate-100 dark:bg-black">
+              <Cropper
+                image={imageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                onCropChange={setCrop}
+                onCropComplete={onCropComplete}
+                onZoomChange={setZoom}
+              />
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="flex items-center gap-4">
+                <span className="text-xs font-semibold text-slate-500">Zoom</span>
+                <input
+                  type="range"
+                  value={zoom}
+                  min={1}
+                  max={3}
+                  step={0.1}
+                  aria-labelledby="Zoom"
+                  onChange={(e) => setZoom(e.target.value)}
+                  className="w-full accent-emerald-500"
+                />
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleCropCancel}
+                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUploadCroppedImage}
+                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all"
+                >
+                  Simpan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
