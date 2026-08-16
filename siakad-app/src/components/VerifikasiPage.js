@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import useSWR, { mutate } from 'swr';
-import { fetchMasterLibur, fetchVerifiedDatesGuru, fetchVerifikasiGuru } from '@/lib/fetchers';
+import { fetchMasterKalender, fetchVerifiedDatesGuru, fetchVerifikasiGuru } from '@/lib/fetchers';
 import { formatTimeShort, getTodayDate } from '@/lib/dateUtils';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import DatePicker, { registerLocale } from 'react-datepicker';
@@ -53,7 +53,7 @@ export default function VerifikasiPage() {
     'Di Luar Radius': 'bg-orange-500 text-white shadow-md'
   };
 
-  const { data: liburDates } = useSWR('master_libur_all', fetchMasterLibur);
+  const { data: kalenderData } = useSWR('master_kalender_all', fetchMasterKalender);
 
   const { data: verifiedDates } = useSWR('verified_dates_guru', fetchVerifiedDatesGuru);
 
@@ -63,7 +63,8 @@ export default function VerifikasiPage() {
     const d = String(date.getDate()).padStart(2, '0');
     const dateStr = `${y}-${m}-${d}`;
 
-    if (date.getDay() === 0 || (liburDates && liburDates.includes(dateStr))) {
+    const kalDay = kalenderData?.find(k => k.tanggal === dateStr);
+    if (date.getDay() === 0 || (kalDay && kalDay.tipe_hari === 'Libur')) {
       return 'react-datepicker__day--holiday !text-rose-500 font-bold';
     }
     return undefined;

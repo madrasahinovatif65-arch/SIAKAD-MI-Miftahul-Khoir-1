@@ -42,8 +42,8 @@ export default function RiwayatGuruPage() {
   const { data: swrData, isLoading: loading } = useSWR(user && tglMulai && tglAkhir ? `riwayat_guru_${user.id_user}_${tglMulai}_${tglAkhir}` : null, async () => {
     
     // Ambil data libur untuk menentukan Auto-Hadir
-    const { data: liburData } = await supabase.from('master_libur').select('tanggal').gte('tanggal', tglMulai).lte('tanggal', tglAkhir);
-    const liburSet = new Set((liburData || []).map(l => l.tanggal));
+    const { data: kalenderData } = await supabase.from('master_kalender').select('tanggal, tipe_hari').gte('tanggal', tglMulai).lte('tanggal', tglAkhir);
+    const liburSet = new Set((kalenderData || []).filter(k => k.tipe_hari === 'Libur').map(k => k.tanggal));
     
     let curr = new Date(tglMulai);
     const end = new Date(tglAkhir);

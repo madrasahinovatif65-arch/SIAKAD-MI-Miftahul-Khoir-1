@@ -10,10 +10,10 @@ const isLate = (timeStr) => {
   return false;
 };
 
-// Fetcher for master_libur_all
-export const fetchMasterLibur = async () => {
-  const { data } = await supabase.from('master_libur').select('tanggal');
-  return (data || []).map(d => d.tanggal);
+// Fetcher for master_kalender_all
+export const fetchMasterKalender = async () => {
+  const { data } = await supabase.from('master_kalender').select('tanggal, tipe_hari, keterangan');
+  return data || [];
 };
 
 // Fetcher for verified_dates_guru
@@ -34,9 +34,9 @@ export const fetchPresensiData = async ([_key, rombel, tanggal]) => {
   if (d.getDay() === 0) {
     return { isHoliday: true, holidayName: 'Hari Minggu', murid: [], nfcMap: {}, mergedAbsensi: {} };
   }
-  const { data: libur } = await supabase.from('master_libur').select('*').eq('tanggal', tanggal).single();
-  if (libur) {
-    return { isHoliday: true, holidayName: libur.keterangan, murid: [], nfcMap: {}, mergedAbsensi: {} };
+  const { data: kalender } = await supabase.from('master_kalender').select('*').eq('tanggal', tanggal).single();
+  if (kalender && kalender.tipe_hari === 'Libur') {
+    return { isHoliday: true, holidayName: kalender.keterangan, murid: [], nfcMap: {}, mergedAbsensi: {} };
   }
 
   let muridQuery = supabase.from('master_user').select('*').eq('role', 'Murid').eq('status_aktif', 'Aktif').order('nama');
@@ -82,9 +82,9 @@ export const fetchVerifikasiGuru = async ([_key, tanggal]) => {
   if (d.getDay() === 0) {
     return { isHoliday: true, holidayName: 'Hari Minggu', guruList: [], mergedAbsensi: {} };
   }
-  const { data: libur } = await supabase.from('master_libur').select('*').eq('tanggal', tanggal).single();
-  if (libur) {
-    return { isHoliday: true, holidayName: libur.keterangan, guruList: [], mergedAbsensi: {} };
+  const { data: kalender } = await supabase.from('master_kalender').select('*').eq('tanggal', tanggal).single();
+  if (kalender && kalender.tipe_hari === 'Libur') {
+    return { isHoliday: true, holidayName: kalender.keterangan, guruList: [], mergedAbsensi: {} };
   }
 
   const { data: allGuru } = await supabase

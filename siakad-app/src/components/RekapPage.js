@@ -56,8 +56,8 @@ export default function RekapPage() {
     const { data: murid } = await queryMurid.order('rombel').order('nama');
 
     // 2. Ambil data libur untuk menghitung hari efektif
-    const { data: masterLibur } = await supabase.from('master_libur').select('tanggal').gte('tanggal', tglMulai).lte('tanggal', tglAkhir);
-    const liburSet = new Set((masterLibur || []).map(l => l.tanggal));
+    const { data: masterKalender } = await supabase.from('master_kalender').select('tanggal, tipe_hari').gte('tanggal', tglMulai).lte('tanggal', tglAkhir);
+    const liburSet = new Set((masterKalender || []).filter(k => k.tipe_hari === 'Libur').map(k => k.tanggal));
     
     let totalHariEfektif = 0;
     const dateMulai = new Date(tglMulai);

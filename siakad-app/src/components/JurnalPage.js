@@ -308,19 +308,19 @@ export default function JurnalPage() {
 
     const { data: jurnalData } = await query;
 
-    // Fetch libur
-    const { data: liburData } = await supabase.from('master_libur').select('tanggal').gte('tanggal', startDateStr).lte('tanggal', todayStr);
+    // Fetch kalender
+    const { data: kalenderData } = await supabase.from('master_kalender').select('tanggal, tipe_hari').gte('tanggal', startDateStr).lte('tanggal', todayStr);
 
     return {
       jurnal: jurnalData || [],
-      libur: (liburData || []).map(l => l.tanggal)
+      kalender: kalenderData || []
     };
   });
 
   useEffect(() => {
     if (!indicatorData) return;
 
-    const { jurnal, libur } = indicatorData;
+    const { jurnal, kalender } = indicatorData;
 
     const grouped = {};
     jurnal.forEach(j => {
@@ -344,6 +344,11 @@ export default function JurnalPage() {
 
     const incomplete = [];
     Object.keys(grouped).forEach(date => {
+      const kalDay = kalender.find(k => k.tanggal === date);
+      if (kalDay && kalDay.tipe_hari === 'Non-Efektif KBM') {
+        return; // Any journal is sufficient for non-effective days
+      }
+
       const hours = grouped[date];
       let isComplete = true;
       for (let i = 1; i <= 8; i++) {
@@ -366,7 +371,8 @@ export default function JurnalPage() {
     while (currentDate <= todayNormalized) {
       const dateStr = new Date(currentDate.getTime() - (currentDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
       const isSunday = currentDate.getDay() === 0;
-      const isHoliday = libur.includes(dateStr);
+      const kalDay = kalender.find(k => k.tanggal === dateStr);
+      const isHoliday = kalDay && kalDay.tipe_hari === 'Libur';
       const hasJournal = grouped[dateStr] !== undefined;
 
       if (!isSunday && !isHoliday && !hasJournal) {
@@ -391,8 +397,11 @@ export default function JurnalPage() {
     return '';
   };
 
+  const [isNonEfektif, setIsNonEfektif] = useState(false);
+
   const checkHoliday = useCallback(async (tgl) => {
     setIsHoliday(false);
+    setIsNonEfektif(false);
     setHolidayName('');
     const d = new Date(tgl);
     if (d.getDay() === 0) {
@@ -400,10 +409,18 @@ export default function JurnalPage() {
       setHolidayName('Hari Minggu');
       return;
     }
-    const { data: libur } = await supabase.from('master_libur').select('*').eq('tanggal', tgl).single();
-    if (libur) {
-      setIsHoliday(true);
-      setHolidayName(libur.keterangan);
+    const { data: kalender } = await supabase.from('master_kalender').select('*').eq('tanggal', tgl).single();
+    if (kalender) {
+      if (kalender.tipe_hari === 'Libur') {
+        setIsHoliday(true);
+        setHolidayName(kalender.keterangan);
+      } else if (kalender.tipe_hari === 'Non-Efektif KBM') {
+        setIsNonEfektif(true);
+        setHolidayName(kalender.keterangan);
+        // Default values for Non-Efektif KBM
+        setMapel('Kegiatan Sekolah');
+        setMateri(kalender.keterangan);
+      }
     }
   }, []);
 

@@ -29,9 +29,9 @@ export async function POST(request) {
     if (d.getDay() === 0) {
       return NextResponse.json({ message: 'Hari Minggu dilewati.' });
     }
-    const { data: libur } = await supabase.from('master_libur').select('*').eq('tanggal', targetDate).single();
-    if (libur) {
-      return NextResponse.json({ message: 'Hari libur dilewati: ' + libur.keterangan });
+    const { data: kalender } = await supabase.from('master_kalender').select('*').eq('tanggal', targetDate).single();
+    if (kalender && kalender.tipe_hari === 'Libur') {
+      return NextResponse.json({ message: 'Hari libur dilewati: ' + kalender.keterangan });
     }
 
     // 2. Ambil data murid aktif dan data NFC hari itu

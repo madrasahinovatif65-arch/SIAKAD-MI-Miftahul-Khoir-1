@@ -24,8 +24,10 @@ export default function AbsenGPSWidget() {
     const today = getTodayDate();
 
     // Cek Hari Libur
-    const { data: libur } = await supabase.from('master_libur').select('*').eq('tanggal', today).single();
-    if (libur) return { type: 'error', message: `Hari libur: ${libur.keterangan}. Absensi ditutup.` };
+    const { data: kalender } = await supabase.from('master_kalender').select('*').eq('tanggal', today).single();
+    if (kalender && kalender.tipe_hari === 'Libur') {
+      return { type: 'error', message: `Hari libur: ${kalender.keterangan}. Absensi ditutup.` };
+    }
 
     const todayDate = new Date();
     if (todayDate.getDay() === 0) return { type: 'error', message: 'Hari Minggu. Absensi ditutup.' };
@@ -345,8 +347,8 @@ export default function AbsenGPSWidget() {
               onClick={handleAbsen}
               disabled={status === 'locating' || status === 'sending' || status === 'error' || !location || location.distance > RADIUS}
               className={`flex justify-center items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-white shadow-md transition-all ${(status === 'error' || !location || location.distance > RADIUS)
-                  ? 'bg-slate-300 dark:bg-slate-700 shadow-none cursor-not-allowed opacity-50'
-                  : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 shadow-emerald-500/25 active:scale-95'
+                ? 'bg-slate-300 dark:bg-slate-700 shadow-none cursor-not-allowed opacity-50'
+                : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 shadow-emerald-500/25 active:scale-95'
                 }`}
             >
               {status === 'sending' ? 'Menyimpan...' : (mode === 'masuk' ? 'Absen Masuk' : 'Absen Pulang')}

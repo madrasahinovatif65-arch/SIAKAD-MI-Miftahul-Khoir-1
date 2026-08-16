@@ -56,10 +56,11 @@ CREATE TABLE IF NOT EXISTS master_jam_pelajaran (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 1e. Master Libur (pengganti sheet Master_Libur)
-CREATE TABLE IF NOT EXISTS master_libur (
+-- 1e. Master Kalender Akademik
+CREATE TABLE IF NOT EXISTS master_kalender (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   tanggal DATE UNIQUE NOT NULL,
+  tipe_hari TEXT NOT NULL DEFAULT 'Libur',
   keterangan TEXT NOT NULL DEFAULT 'Libur',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

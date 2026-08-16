@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { preload } from 'swr';
-import { fetchMasterLibur, fetchPresensiData, fetchVerifikasiGuru, fetchVerifiedDatesGuru } from '@/lib/fetchers';
+import { fetchMasterKalender, fetchPresensiData, fetchVerifikasiGuru, fetchVerifiedDatesGuru } from '@/lib/fetchers';
 
 export default function BackgroundSync() {
   const { user } = useAuth();
@@ -15,8 +15,8 @@ export default function BackgroundSync() {
     const timer = setTimeout(() => {
       const today = getTodayDate();
 
-      // 1. Prefetch master_libur_all
-      preload('master_libur_all', fetchMasterLibur);
+      // 1. Prefetch master_kalender_all
+      preload('master_kalender_all', fetchMasterKalender);
 
       // 2. Prefetch Presensi Murid if user has rombel
       if (user.rombel && user.rombel !== '-') {

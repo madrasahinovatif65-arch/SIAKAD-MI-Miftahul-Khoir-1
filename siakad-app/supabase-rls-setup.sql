@@ -11,7 +11,7 @@ ALTER TABLE public.master_user ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.master_murid ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.master_mapel ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.master_jam_pelajaran ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.master_libur ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.master_kalender ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.data_absensi ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.data_nfc_murid ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.jurnal_guru ENABLE ROW LEVEL SECURITY;
@@ -29,7 +29,8 @@ CREATE POLICY "Allow authenticated read master_user" ON public.master_user FOR S
 CREATE POLICY "Allow authenticated read master_murid" ON public.master_murid FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated read master_mapel" ON public.master_mapel FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Allow authenticated read master_jam_pelajaran" ON public.master_jam_pelajaran FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "Allow authenticated read master_libur" ON public.master_libur FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Allow authenticated read master_kalender" ON public.master_kalender FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Allow admin all master_kalender" ON public.master_kalender FOR ALL USING (public.is_admin());
 
 -- Hanya user itu sendiri yang bisa UPDATE profilnya (ganti pin/foto)
 CREATE POLICY "Allow individual update master_user" ON public.master_user FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
