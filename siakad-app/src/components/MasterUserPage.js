@@ -192,6 +192,26 @@ export default function MasterUserPage() {
     }
   };
 
+  const handleDownloadPhoto = async (url, userName) => {
+    try {
+      setMessage({ type: 'success', text: 'Mengunduh foto...' });
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `Foto_NFC_${userName}.webp`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+      setMessage(null);
+    } catch (error) {
+      console.error('Gagal mengunduh foto', error);
+      setMessage({ type: 'error', text: 'Gagal mengunduh foto.' });
+    }
+  };
+
   const handleCropCancel = () => {
     setImageSrc(null);
     setCrop({ x: 0, y: 0 });
@@ -591,6 +611,17 @@ export default function MasterUserPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
                 </svg>
                 Unggah Foto Baru
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDownloadPhoto(editingPhotoUser.foto, editingPhotoUser.nama)}
+                className="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                Simpan Ke Perangkat Saat Ini
               </button>
             </div>
           </div>
