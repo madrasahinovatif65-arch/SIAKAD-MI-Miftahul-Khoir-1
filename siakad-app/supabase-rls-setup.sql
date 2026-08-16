@@ -92,3 +92,4 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Policy All-Access untuk Admin di tabel master (Contoh pada master_murid)
 CREATE POLICY "Allow admin all master_murid" ON public.master_murid FOR ALL USING (public.is_admin());
 CREATE POLICY "Allow admin all master_user" ON public.master_user FOR ALL USING (public.is_admin());
+CREATE POLICY "Allow admin all master_mapel" ON public.master_mapel FOR ALL USING (public.is_admin());
