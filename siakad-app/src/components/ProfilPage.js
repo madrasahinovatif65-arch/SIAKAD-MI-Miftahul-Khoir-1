@@ -19,7 +19,9 @@ export default function ProfilPage() {
   const [message, setMessage] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   
-  // Crop States
+  // Photo Flow States
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [showCropModal, setShowCropModal] = useState(false);
   const [imageSrc, setImageSrc] = useState(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -31,13 +33,31 @@ export default function ProfilPage() {
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
 
+  const handleAvatarClick = () => {
+    if (user.foto) {
+      setShowPreviewModal(true);
+    } else {
+      // Jika belum ada foto sama sekali, langsung ganti baru
+      fileInputRef.current?.click();
+    }
+  };
+
+  const handleEditCurrentPhoto = () => {
+    setImageSrc(user.foto);
+    setShowPreviewModal(false);
+    setShowCropModal(true);
+  };
+
   const handlePhotoSelect = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       const reader = new FileReader();
-      reader.addEventListener('load', () => setImageSrc(reader.result));
+      reader.addEventListener('load', () => {
+        setImageSrc(reader.result);
+        setShowPreviewModal(false);
+        setShowCropModal(true);
+      });
       reader.readAsDataURL(file);
-      // Reset the file input so the same file can be selected again if needed
       e.target.value = '';
     }
   };
@@ -46,6 +66,7 @@ export default function ProfilPage() {
     setImageSrc(null);
     setCrop({ x: 0, y: 0 });
     setZoom(1);
+    setShowCropModal(false);
   };
 
   const handleUploadCroppedImage = async () => {
@@ -59,6 +80,7 @@ export default function ProfilPage() {
       const croppedImageFile = await getCroppedImg(imageSrc, croppedAreaPixels);
       
       // Tutup modal
+      setShowCropModal(false);
       setImageSrc(null);
 
       // 2. Kompres gambar hasil crop
@@ -106,6 +128,7 @@ export default function ProfilPage() {
       console.error('Error upload:', err);
       setMessage({ type: 'error', text: 'Gagal mengunggah foto: ' + err.message });
       // Pastikan modal tertutup jika error
+      setShowCropModal(false);
       setImageSrc(null);
     } finally {
       setUploadingPhoto(false);
@@ -166,12 +189,12 @@ export default function ProfilPage() {
 
               {/* Overlay Hover untuk Ganti Foto */}
               <div 
-                onClick={() => !uploadingPhoto && fileInputRef.current?.click()}
+                onClick={handleAvatarClick}
                 className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
               >
                 <svg className="w-8 h-8 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                 </svg>
               </div>
               <input 
@@ -311,8 +334,52 @@ export default function ProfilPage() {
         </div>
       </div>
 
+      {/* Modal Preview Foto */}
+      {showPreviewModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+              <h3 className="font-bold text-slate-800 dark:text-white">Foto Profil</h3>
+              <button onClick={() => setShowPreviewModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            
+            <div className="p-6 flex flex-col items-center bg-slate-100/50 dark:bg-black/20">
+              <div className="w-48 h-48 rounded-full overflow-hidden shadow-lg border-[4px] border-white dark:border-slate-800">
+                <img src={user.foto} alt="Preview Foto" className="w-full h-full object-cover" />
+              </div>
+            </div>
+
+            <div className="p-6 bg-white dark:bg-slate-900 space-y-3 border-t border-slate-100 dark:border-white/5">
+              <button
+                type="button"
+                onClick={handleEditCurrentPhoto}
+                className="w-full py-3 bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 dark:text-blue-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+                </svg>
+                Sesuaikan Ulang (Crop)
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                </svg>
+                Unggah Foto Baru
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal Crop */}
-      {imageSrc && (
+      {showCropModal && imageSrc && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-full">
             <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
