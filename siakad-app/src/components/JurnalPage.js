@@ -630,21 +630,36 @@ export default function JurnalPage() {
   };
 
   const handleSave = async () => {
-    if (!tanggal || !jamMulai || !rombel || !mapel || !materi || !materi.trim()) {
+    if (!tanggal || !rombel || !materi || !materi.trim()) {
       setMessage({ type: 'error', text: 'Semua field (termasuk Materi) wajib diisi.' });
       return;
     }
+    
+    if (!isNonEfektif) {
+      if (!jamMulai || !mapel) {
+        setMessage({ type: 'error', text: 'Semua field (termasuk Materi) wajib diisi.' });
+        return;
+      }
+    }
+
     setSaving(true);
     setMessage(null);
 
-    const jamObjMulai = jamOptions.find(j => j.id_jam === jamMulai);
-    const jamObjSelesai = jamOptions.find(j => j.id_jam === jamSelesai);
     let finalJamPelajaran = '';
-    if (jamObjMulai && jamObjSelesai) {
-      if (jamObjMulai.id_jam === jamObjSelesai.id_jam) {
-        finalJamPelajaran = `${jamObjMulai.nama_jam} (${jamObjMulai.waktu_mulai}-${jamObjMulai.waktu_selesai})`;
-      } else {
-        finalJamPelajaran = `${jamObjMulai.nama_jam} s/d ${jamObjSelesai.nama_jam} (${jamObjMulai.waktu_mulai}-${jamObjSelesai.waktu_selesai})`;
+    let finalMapel = mapel;
+
+    if (isNonEfektif) {
+      finalJamPelajaran = '-';
+      finalMapel = 'Kegiatan Sekolah';
+    } else {
+      const jamObjMulai = jamOptions.find(j => j.id_jam === jamMulai);
+      const jamObjSelesai = jamOptions.find(j => j.id_jam === jamSelesai);
+      if (jamObjMulai && jamObjSelesai) {
+        if (jamObjMulai.id_jam === jamObjSelesai.id_jam) {
+          finalJamPelajaran = `${jamObjMulai.nama_jam} (${jamObjMulai.waktu_mulai}-${jamObjMulai.waktu_selesai})`;
+        } else {
+          finalJamPelajaran = `${jamObjMulai.nama_jam} s/d ${jamObjSelesai.nama_jam} (${jamObjMulai.waktu_mulai}-${jamObjSelesai.waktu_selesai})`;
+        }
       }
     }
 
@@ -653,7 +668,7 @@ export default function JurnalPage() {
       jam_pelajaran: finalJamPelajaran,
       id_guru: user.id_user,
       rombel,
-      mata_pelajaran: mapel,
+      mata_pelajaran: finalMapel,
       materi: materi || '-',
       catatan: catatan || '-',
     };
@@ -779,50 +794,52 @@ export default function JurnalPage() {
                 </svg>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <label className="text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wider font-semibold flex items-center gap-1.5">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                  </svg>
-                  Jam Mulai
-                </label>
-                <div className="relative">
-                  <select value={jamMulai} onChange={e => setJamMulai(e.target.value)}
-                    style={{ backgroundImage: 'none' }}
-                    className="appearance-none w-full pl-3 pr-8 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
-                    <option value="" className="bg-white dark:bg-slate-900 text-slate-400">Mulai...</option>
-                    {jamOptions.map(w => (
-                      <option key={w.id_jam} value={w.id_jam} className="bg-white dark:bg-slate-900">{w.nama_jam} ({w.waktu_mulai} - {w.waktu_selesai})</option>
-                    ))}
-                  </select>
-                  <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                  </svg>
+            {!isNonEfektif && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <label className="text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                    Jam Mulai
+                  </label>
+                  <div className="relative">
+                    <select value={jamMulai} onChange={e => setJamMulai(e.target.value)}
+                      style={{ backgroundImage: 'none' }}
+                      className="appearance-none w-full pl-3 pr-8 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
+                      <option value="" className="bg-white dark:bg-slate-900 text-slate-400">Mulai...</option>
+                      {jamOptions.map(w => (
+                        <option key={w.id_jam} value={w.id_jam} className="bg-white dark:bg-slate-900">{w.nama_jam} ({w.waktu_mulai} - {w.waktu_selesai})</option>
+                      ))}
+                    </select>
+                    <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                    Jam Selesai
+                  </label>
+                  <div className="relative">
+                    <select value={jamSelesai} onChange={e => setJamSelesai(e.target.value)}
+                      style={{ backgroundImage: 'none' }}
+                      className="appearance-none w-full pl-3 pr-8 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
+                      <option value="" className="bg-white dark:bg-slate-900 text-slate-400">Selesai...</option>
+                      {jamOptions.map(w => (
+                        <option key={w.id_jam} value={w.id_jam} className="bg-white dark:bg-slate-900">{w.nama_jam} ({w.waktu_mulai} - {w.waktu_selesai})</option>
+                      ))}
+                    </select>
+                    <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                    </svg>
+                  </div>
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wider font-semibold flex items-center gap-1.5">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                  </svg>
-                  Jam Selesai
-                </label>
-                <div className="relative">
-                  <select value={jamSelesai} onChange={e => setJamSelesai(e.target.value)}
-                    style={{ backgroundImage: 'none' }}
-                    className="appearance-none w-full pl-3 pr-8 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
-                    <option value="" className="bg-white dark:bg-slate-900 text-slate-400">Selesai...</option>
-                    {jamOptions.map(w => (
-                      <option key={w.id_jam} value={w.id_jam} className="bg-white dark:bg-slate-900">{w.nama_jam} ({w.waktu_mulai} - {w.waktu_selesai})</option>
-                    ))}
-                  </select>
-                  <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                  </svg>
-                </div>
-              </div>
-            </div>
+            )}
             <div className="space-y-2">
               <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Rombel</label>
               <div className="relative">
@@ -839,22 +856,24 @@ export default function JurnalPage() {
                 </svg>
               </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Mata Pelajaran</label>
-              <div className="relative">
-                <select value={mapel} onChange={e => setMapel(e.target.value)}
-                  style={{ backgroundImage: 'none' }}
-                  className="appearance-none w-full pl-4 pr-10 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
-                  <option value="" className="bg-white dark:bg-slate-900 text-slate-400">Pilih Mapel</option>
-                  {mapelOptions.map(m => (
-                    <option key={m.id_mapel} value={m.nama_mapel} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{m.nama_mapel}</option>
-                  ))}
-                </select>
-                <svg className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                </svg>
+            {!isNonEfektif && (
+              <div className="space-y-2">
+                <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Mata Pelajaran</label>
+                <div className="relative">
+                  <select value={mapel} onChange={e => setMapel(e.target.value)}
+                    style={{ backgroundImage: 'none' }}
+                    className="appearance-none w-full pl-4 pr-10 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm">
+                    <option value="" className="bg-white dark:bg-slate-900 text-slate-400">Pilih Mapel</option>
+                    {mapelOptions.map(m => (
+                      <option key={m.id_mapel} value={m.nama_mapel} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{m.nama_mapel}</option>
+                    ))}
+                  </select>
+                  <svg className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </div>
               </div>
-            </div>
+            )}
           </div>
           <div className="space-y-2">
             <label className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Materi Yang Diajarkan</label>
