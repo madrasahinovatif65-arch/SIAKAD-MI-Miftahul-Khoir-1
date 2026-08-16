@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase';
+import imageCompression from 'browser-image-compression';
 
 export default function ProfilPage() {
-  const { user, changePin, logout } = useAuth();
+  const { user, changePin, logout, refreshUser } = useAuth();
   const [oldPin, setOldPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
@@ -13,6 +15,66 @@ export default function ProfilPage() {
   const [showConfirmPin, setShowConfirmPin] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingPhoto(true);
+      setMessage(null);
+
+      // 1. Kompres gambar
+      const options = {
+        maxSizeMB: 0.2, // Max 200KB
+        maxWidthOrHeight: 800,
+        useWebWorker: true
+      };
+      const compressedFile = await imageCompression(file, options);
+
+      // 2. Tentukan nama file
+      const fileExt = compressedFile.name.split('.').pop();
+      const fileName = `${user.id_user}_${Date.now()}.${fileExt}`;
+
+      // 3. Upload ke Supabase Storage (bucket profil_app)
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('profil_app')
+        .upload(fileName, compressedFile, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      // 4. Dapatkan Public URL
+      const { data: publicUrlData } = supabase.storage
+        .from('profil_app')
+        .getPublicUrl(fileName);
+      
+      const newUrl = publicUrlData.publicUrl;
+
+      // 5. Update kolom foto_app di master_user
+      const { error: updateError } = await supabase
+        .from('master_user')
+        .update({ foto_app: newUrl })
+        .eq('id_user', user.id_user);
+
+      if (updateError) throw updateError;
+
+      // 6. Refresh state global
+      await refreshUser();
+      setMessage({ type: 'success', text: 'Foto profil berhasil diperbarui!' });
+
+    } catch (err) {
+      console.error('Error upload:', err);
+      setMessage({ type: 'error', text: 'Gagal mengunggah foto: ' + err.message });
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -54,12 +116,35 @@ export default function ProfilPage() {
         {/* Kartu Profil */}
         <div className="md:col-span-2 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-6 sm:p-8 flex flex-col items-center justify-start space-y-6 shadow-sm">
           <div className="relative">
-            <div className="w-32 h-32 bg-emerald-50 dark:bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-5xl shadow-inner border-[4px] border-white dark:border-slate-800 overflow-hidden relative z-10">
-              {user.foto ? (
+            <div className="w-32 h-32 bg-emerald-50 dark:bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-5xl shadow-inner border-[4px] border-white dark:border-slate-800 overflow-hidden relative z-10 group">
+              {uploadingPhoto ? (
+                <svg className="animate-spin h-8 w-8 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : user.foto ? (
                 <img src={user.foto} alt="Foto Profil" className="w-full h-full object-cover" />
               ) : (
                 user.nama?.charAt(0)?.toUpperCase() || '?'
               )}
+
+              {/* Overlay Hover untuk Ganti Foto */}
+              <div 
+                onClick={() => !uploadingPhoto && fileInputRef.current?.click()}
+                className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              >
+                <svg className="w-8 h-8 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" />
+                </svg>
+              </div>
+              <input 
+                type="file" 
+                accept="image/jpeg, image/png, image/webp" 
+                ref={fileInputRef} 
+                onChange={handlePhotoChange} 
+                className="hidden" 
+              />
             </div>
             <div className="absolute inset-0 bg-emerald-500 blur-2xl opacity-20 dark:opacity-30 rounded-full -z-10 transform scale-125" />
           </div>

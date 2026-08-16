@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.0",
+    "browser-image-compression": "^2.0.2",
     "chart.js": "^4.5.1",
     "csv-parser": "^3.2.1",
     "date-fns": "^4.4.0",

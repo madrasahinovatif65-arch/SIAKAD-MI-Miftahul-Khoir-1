@@ -43,7 +43,7 @@ export function AuthProvider({ children }) {
         rombel: data.rombel,
         status_aktif: data.status_aktif,
         mapel: data.mapel || '-',
-        foto: data.foto || '',
+        foto: data.foto_app || data.foto || '',
         wali_kelas: waliKelas,
       };
 
@@ -158,8 +158,17 @@ export function AuthProvider({ children }) {
     return { success: true };
   }, [user]);
 
+  const refreshUser = useCallback(async () => {
+    if (user && user.id_user) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData?.session) {
+        await fetchUserData(sessionData.session.user.id);
+      }
+    }
+  }, [user]);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginQR, logout, changePin }}>
+    <AuthContext.Provider value={{ user, loading, login, loginQR, logout, changePin, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
