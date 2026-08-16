@@ -209,10 +209,10 @@ export default function MasterUserPage() {
       const { data: publicUrlData } = supabase.storage.from('profil_app').getPublicUrl(fileName);
       const newUrl = publicUrlData.publicUrl;
 
-      // Update db: update foto_app and foto to keep them synced as requested earlier
+      // Update db: Admin hanya mengubah kolom foto (untuk NFC)
       const { error: updateError } = await supabase
         .from('master_user')
-        .update({ foto_app: newUrl, foto: newUrl })
+        .update({ foto: newUrl })
         .eq('id', editingPhotoUser.id);
 
       if (updateError) throw updateError;
