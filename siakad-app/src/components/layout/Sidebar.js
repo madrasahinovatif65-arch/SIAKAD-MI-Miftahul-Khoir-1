@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useTheme } from '@/components/EyeCareMode';
+import useSWR from 'swr';
+import { supabase } from '@/lib/supabase';
 
 const NAV_CONFIG = {
   Admin: [
@@ -61,6 +63,20 @@ export default function Sidebar() {
   const { isEyeCare, toggleMode } = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { data: unreadCount = 0 } = useSWR(
+    user ? `notif_unread_${user.id_user}_${user.role}` : null,
+    async () => {
+      const { count } = await supabase
+        .from('notifikasi')
+        .select('id', { count: 'exact', head: true })
+        .or(`id_user.eq.${user.id_user},role_target.eq.${user.role}`)
+        .eq('is_read', false);
+      return count || 0;
+    },
+    { refreshInterval: 30000 }
+  );
+
   if (!user) return null;
 
   const navItems = NAV_CONFIG[user.role] || [];
@@ -112,6 +128,27 @@ export default function Sidebar() {
       </nav>
       
       <div className={`p-4 border-t border-slate-200 dark:border-white/10 space-y-1.5 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md ${isCollapsed ? 'px-2' : ''}`}>
+        
+        <Link href="/dashboard/notifikasi"
+          title={isCollapsed ? 'Notifikasi' : ''}
+          className={`w-full flex items-center ${isCollapsed ? 'justify-center p-3.5 relative' : 'justify-between px-4 py-3.5'} rounded-2xl text-sm font-semibold transition-all duration-200 ${
+            pathname === '/dashboard/notifikasi' ? 'bg-emerald-500 text-white shadow-[0_4px_15px_rgba(16,185,129,0.3)]' : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-white/5'
+          }`}>
+          <div className="flex items-center gap-3">
+            <NavIcon d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+            {!isCollapsed && <span>Notifikasi</span>}
+          </div>
+          {unreadCount > 0 && (
+            isCollapsed ? (
+              <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white dark:border-slate-800" />
+            ) : (
+              <span className="min-w-[20px] h-[20px] px-1 bg-rose-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )
+          )}
+        </Link>
+
         <button onClick={toggleMode}
           title={isCollapsed ? (isEyeCare ? 'Mode Terang' : 'Mode Gelap') : ''}
           className={`w-full flex items-center ${isCollapsed ? 'justify-center p-3.5' : 'gap-3 px-4 py-3.5'} rounded-2xl text-sm font-semibold transition-all duration-200 text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-white/5`}>
