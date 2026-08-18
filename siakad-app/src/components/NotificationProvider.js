@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { supabaseNfc } from '@/lib/supabaseNfc';
 
 export default function NotificationProvider() {
   const { user } = useAuth();
@@ -31,8 +32,8 @@ export default function NotificationProvider() {
     let gpsChannel;
     let nfcChannel;
 
-    if (user.rfid) {
-      nfcChannel = supabase
+    if (user.rfid && supabaseNfc) {
+      nfcChannel = supabaseNfc
         .channel('realtime-nfc')
         .on(
           'postgres_changes',
@@ -88,7 +89,7 @@ export default function NotificationProvider() {
     return () => {
       if (channel) supabase.removeChannel(channel);
       if (gpsChannel) supabase.removeChannel(gpsChannel);
-      if (nfcChannel) supabase.removeChannel(nfcChannel);
+      if (nfcChannel && supabaseNfc) supabaseNfc.removeChannel(nfcChannel);
     };
   }, [user]);
 
