@@ -42,77 +42,88 @@ export async function POST(request) {
       return isoOrStr.replace('.', ':').substring(0, 5);
     };
 
-    // ── Kasus 1: Tap NFC → notif ke pemilik RFID ─────────────────────────────
+    // ── Kumpulkan target_user dan format pesan berdasarkan tabel ─────────────────
+    let rfidUser = null;
+    let waktuStr = '';
+    let jenisAbsen = 'hadir';
+
     if (table === 'log_absensi') {
       const rfid = record?.rfid_uid;
       if (!rfid) return Response.json({ skipped: 'no rfid' }, { status: 200 });
 
-      // Cari id_user berdasarkan rfid
       const { data: userRow } = await supabase
         .from('master_user')
-        .select('id_user')
+        .select('id_user, nama, role')
         .eq('rfid', rfid)
         .single();
 
-      if (userRow) targetIdUsers = [userRow.id_user];
-
-      const waktu = formatWaktu(record?.waktu);
-      const jenis = record?.jenis_absen || 'Absen';
+      if (!userRow) return Response.json({ skipped: 'user not found' }, { status: 200 });
+      
+      targetIdUsers = [userRow.id_user];
+      rfidUser = userRow;
+      waktuStr = formatWaktu(record?.waktu);
+      jenisAbsen = record?.jenis_absen?.toLowerCase() || 'datang';
       title = 'Tap NFC Berhasil 💳';
-      notifBody = waktu
-        ? `${jenis} tercatat pukul ${waktu} WIB`
-        : `${jenis} Anda telah berhasil terdeteksi`;
-    }
-
-    // ── Kasus 2: Absen GPS Guru ───────────────────────────────────────────────
+    } 
     else if (table === 'log_gps_guru') {
       const idGuru = record?.id_guru;
       if (!idGuru) return Response.json({ skipped: 'no id_guru' }, { status: 200 });
       targetIdUsers = [idGuru];
-
-      const waktu = formatWaktu(record?.waktu) || formatWaktu(record?.created_at);
-      const status = record?.status || '';
+      waktuStr = formatWaktu(record?.waktu) || formatWaktu(record?.created_at);
+      jenisAbsen = record?.status?.toLowerCase() || 'datang';
       title = 'Absen GPS Berhasil 📍';
-      notifBody = waktu
-        ? `Lokasi tersimpan pukul ${waktu} WIB — ${status}`
-        : `Lokasi Anda berhasil tersimpan — ${status}`;
     }
-
-    // ── Kasus 3: Verifikasi Kehadiran Guru ───────────────────────────────────
     else if (table === 'verifikasi_guru') {
       const idGuru = record?.id_guru;
       if (!idGuru) return Response.json({ skipped: 'no id_guru' }, { status: 200 });
       targetIdUsers = [idGuru];
-
-      const waktu = formatWaktu(record?.created_at);
-      const status = record?.status || '';
-      const metode = record?.metode || 'Sistem';
+      waktuStr = formatWaktu(record?.created_at);
+      jenisAbsen = record?.status?.toLowerCase() || 'hadir';
       title = 'Verifikasi Kehadiran 📋';
-      notifBody = waktu
-        ? `Kehadiran (${metode}) diverifikasi pukul ${waktu}: ${status}`
-        : `Kehadiran Anda (${metode}) diverifikasi: ${status}`;
     }
-
-    // ── Kasus 4: Absensi Murid → notif ke murid itu sendiri ──────────────────
     else if (table === 'data_absensi') {
       const nisn = record?.nisn;
       if (!nisn) return Response.json({ skipped: 'no nisn' }, { status: 200 });
       targetIdUsers = [nisn];
-
-      const waktu = formatWaktu(record?.created_at);
-      const status = record?.status || '';
+      waktuStr = formatWaktu(record?.created_at);
+      jenisAbsen = record?.status?.toLowerCase() || 'datang';
       title = 'Absensi Tercatat ✅';
-      notifBody = waktu
-        ? `Kehadiran dicatat pukul ${waktu}: ${status}`
-        : `Kehadiran Anda dicatat: ${status}`;
     }
-
     else {
       return Response.json({ skipped: 'unknown table' }, { status: 200 });
     }
 
     if (!targetIdUsers.length) {
       return Response.json({ skipped: 'no target users' }, { status: 200 });
+    }
+
+    // Ambil data nama dan role user jika belum didapat (selain NFC)
+    let userData = rfidUser;
+    if (!userData) {
+      const { data: userRow } = await supabase
+        .from('master_user')
+        .select('id_user, nama, role')
+        .eq('id_user', targetIdUsers[0])
+        .single();
+      userData = userRow;
+    }
+
+    // ── Susun Notif Body Berdasarkan Peran (Murid/Guru) ───────────────────────
+    let targetUrl = '/dashboard/riwayat';
+    
+    if (userData) {
+      const timeText = waktuStr ? ` pukul ${waktuStr}` : '';
+      if (userData.role === 'Murid') {
+        notifBody = `Ananda ${userData.nama} telah ${jenisAbsen}${timeText}`;
+        targetUrl = '/dashboard/riwayat-murid';
+      } else {
+        notifBody = `Anda telah tercatat ${jenisAbsen}${timeText}`;
+        targetUrl = '/dashboard/riwayat-guru';
+      }
+    } else {
+      // Fallback jika entah kenapa user tidak ditemukan
+      const timeText = waktuStr ? ` pukul ${waktuStr}` : '';
+      notifBody = `Kehadiran telah tercatat${timeText}`;
     }
 
     // ── Ambil push_subscriptions untuk user-user tersebut ────────────────────
@@ -137,7 +148,7 @@ export async function POST(request) {
       body: notifBody,
       icon: '/logo.png',
       badge: '/logo.png',
-      data: { url: '/dashboard/riwayat' }
+      data: { url: targetUrl }
     });
 
     const results = await Promise.allSettled(

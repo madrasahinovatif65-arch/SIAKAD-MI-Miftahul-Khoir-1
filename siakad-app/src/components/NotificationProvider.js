@@ -98,9 +98,16 @@ export default function NotificationProvider() {
           { event: 'INSERT', schema: 'public', table: 'log_absensi', filter: `rfid_uid=eq.${user.rfid}` },
           (payload) => {
             const waktu = formatTime(payload.new?.waktu);
-            const jenis = payload.new?.jenis_absen || 'Absen';
+            const jenis = payload.new?.jenis_absen?.toLowerCase() || 'datang';
             const timeStr = waktu ? ` pukul ${waktu}` : '';
-            showToast('Tap NFC Berhasil 💳', `${jenis} Anda terdeteksi${timeStr} WIB`);
+            
+            const msgBody = user.role === 'Murid'
+              ? `Ananda ${user.nama} telah ${jenis}${timeStr}`
+              : `Anda telah tercatat ${jenis}${timeStr}`;
+            
+            const hrefUrl = user.role === 'Murid' ? '/dashboard/riwayat-murid' : '/dashboard/riwayat-guru';
+              
+            showToast('Tap NFC Berhasil 💳', msgBody, hrefUrl);
           }
         )
         .subscribe((s) => console.log('[NotificationProvider] NFC Status:', s));
@@ -115,8 +122,9 @@ export default function NotificationProvider() {
             if (payload.eventType === 'DELETE') return;
             const { status, created_at } = payload.new;
             const waktu = formatTime(created_at);
+            const jenis = status?.toLowerCase() || 'datang';
             const timeStr = waktu ? ` pukul ${waktu}` : '';
-            if (status) showToast('Absensi Tercatat ✅', `Kehadiran dicatat${timeStr}: ${status}`);
+            if (status) showToast('Absensi Tercatat ✅', `Ananda ${user.nama} telah ${jenis}${timeStr}`, '/dashboard/riwayat-murid');
           }
         )
         .subscribe((s) => console.log('[NotificationProvider] Murid Status:', s));
@@ -130,8 +138,9 @@ export default function NotificationProvider() {
             if (payload.eventType === 'DELETE') return;
             const { status, metode, created_at } = payload.new;
             const waktu = formatTime(created_at);
+            const jenis = status?.toLowerCase() || 'hadir';
             const timeStr = waktu ? ` pukul ${waktu}` : '';
-            if (status) showToast('Verifikasi Kehadiran 📋', `Kehadiran (${metode || 'Sistem'}) diverifikasi${timeStr}: ${status}`);
+            if (status) showToast('Verifikasi Kehadiran 📋', `Anda telah tercatat ${jenis}${timeStr} (${metode || 'Sistem'})`, '/dashboard/riwayat-guru');
           }
         )
         .subscribe((s) => console.log('[NotificationProvider] Verifikasi Status:', s));
@@ -144,8 +153,9 @@ export default function NotificationProvider() {
             if (payload.eventType === 'DELETE') return;
             const { status, waktu, created_at } = payload.new;
             const timeDisplay = waktu ? formatTime(waktu) : formatTime(created_at);
+            const jenis = status?.toLowerCase() || 'datang';
             const timeStr = timeDisplay ? ` pukul ${timeDisplay}` : '';
-            if (status) showToast('Absen GPS Berhasil 📍', `Lokasi tersimpan${timeStr} WIB: ${status}`);
+            if (status) showToast('Absen GPS Berhasil 📍', `Anda telah tercatat ${jenis}${timeStr}`, '/dashboard/riwayat-guru');
           }
         )
         .subscribe((s) => console.log('[NotificationProvider] GPS Status:', s));
