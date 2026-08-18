@@ -1,9 +1,8 @@
-const CACHE_NAME = 'siakad-v3';
+const CACHE_NAME = 'siakad-v4';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
-  '/icons/icon-192-v2.png',
-  '/icons/icon-512-v2.png',
+  '/logo.png',
 ];
 
 // Install: cache core assets
@@ -28,10 +27,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
-  // Skip non-GET requests (API calls, etc)
   if (request.method !== 'GET') return;
 
-  // For navigation requests: network-first
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
@@ -45,7 +42,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For static assets (fonts, images, css, js): cache-first
   if (
     request.url.includes('fonts.googleapis.com') ||
     request.url.includes('fonts.gstatic.com') ||
@@ -64,4 +60,51 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
+});
+
+// ── Web Push: Tampilkan notifikasi meskipun aplikasi ditutup ─────────────────
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (_) {
+    data = { title: 'SIAKAD', body: event.data ? event.data.text() : 'Ada notifikasi baru' };
+  }
+
+  const title = data.title || 'SIAKAD MI Miftahul Khoir';
+  const options = {
+    body: data.body || 'Ada notifikasi baru untuk Anda',
+    icon: data.icon || '/logo.png',
+    badge: data.badge || '/logo.png',
+    data: data.data || { url: '/dashboard/riwayat' },
+    vibrate: [200, 100, 200],
+    requireInteraction: false,
+    tag: 'siakad-notif-' + Date.now(),
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// ── Klik notifikasi → buka halaman riwayat ───────────────────────────────────
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const targetUrl = event.notification.data?.url || '/dashboard/riwayat';
+  const fullUrl = self.location.origin + targetUrl;
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Jika ada tab yang sudah terbuka, fokuskan dan navigasikan
+      for (const client of clientList) {
+        if ('focus' in client) {
+          client.navigate(fullUrl);
+          return client.focus();
+        }
+      }
+      // Jika tidak ada tab, buka tab baru
+      if (clients.openWindow) {
+        return clients.openWindow(fullUrl);
+      }
+    })
+  );
 });
