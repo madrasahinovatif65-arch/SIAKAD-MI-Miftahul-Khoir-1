@@ -92,7 +92,8 @@ export async function GET(request) {
         title: title,
         body: message,
         icon: '/logo.png',
-        badge: '/logo.png'
+        badge: '/logo.png',
+        data: { url: '/dashboard/notifikasi' }
       });
 
       const pushPromises = activeSubs.map(async (sub) => {

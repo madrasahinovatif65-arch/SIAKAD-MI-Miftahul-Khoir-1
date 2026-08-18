@@ -85,11 +85,11 @@ self.addEventListener('push', (event) => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// ── Klik notifikasi → buka halaman riwayat ───────────────────────────────────
+// ── Klik notifikasi → buka halaman ───────────────────────────────────
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const targetUrl = event.notification.data?.url || '/dashboard/riwayat';
+  const targetUrl = event.notification.data?.url || '/dashboard/notifikasi';
   const fullUrl = self.location.origin + targetUrl;
 
   event.waitUntil(

@@ -98,11 +98,11 @@ export async function POST(request) {
 
     // 4. Kirim push ke semua subscription secara paralel
     const pushPayload = JSON.stringify({
-      title,
+      title: title,
       body: message,
       icon: '/logo.png',
       badge: '/logo.png',
-      data: { url: targetUrl }
+      data: { url: targetUrl || '/dashboard/notifikasi' }
     });
 
     const pushPromises = subs.map(async (sub) => {
