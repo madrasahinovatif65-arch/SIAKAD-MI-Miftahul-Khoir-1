@@ -71,7 +71,7 @@ function NotifCard({ notif, onMarkRead, onDelete }) {
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{notif.message}</p>
         <div className="flex items-center gap-3 mt-2.5 flex-wrap">
-          {notif.link && (
+          {notif.link && notif.link !== '/dashboard/notifikasi' && (
             <Link href={notif.link} className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline">
               Lihat Detail →
             </Link>

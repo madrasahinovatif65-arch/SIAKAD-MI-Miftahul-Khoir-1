@@ -55,7 +55,7 @@ export async function POST(request) {
     }
 
     const targetIdUsers = users.map(u => u.id_user);
-    const targetUrl = '/dashboard/notifikasi'; // Default arah link untuk pengumuman
+    const targetUrl = null; // Pengumuman biasa tidak butuh halaman detail
 
     // 2. Simpan Histori ke Tabel `notifikasi` (Bulk Insert)
     try {
