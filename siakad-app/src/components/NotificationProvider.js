@@ -34,10 +34,11 @@ export default function NotificationProvider() {
         .channel('realtime-absensi')
         .on(
           'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'data_absensi', filter: `id_murid=eq.${user.id_user}` },
+          { event: '*', schema: 'public', table: 'data_absensi', filter: `id_murid=eq.${user.id_user}` },
           (payload) => {
+            if (payload.eventType === 'DELETE') return;
             const { status } = payload.new;
-            showNotification('Absensi Berhasil', `Kehadiran Anda hari ini telah dicatat: ${status}.`);
+            if (status) showNotification('Absensi Murid Berhasil', `Kehadiran Anda telah dicatat: ${status}.`);
           }
         )
         .subscribe();
@@ -46,13 +47,33 @@ export default function NotificationProvider() {
         .channel('realtime-verifikasi')
         .on(
           'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'verifikasi_guru', filter: `id_guru=eq.${user.id_user}` },
+          { event: '*', schema: 'public', table: 'verifikasi_guru', filter: `id_guru=eq.${user.id_user}` },
           (payload) => {
-            const { status } = payload.new;
-            showNotification('Verifikasi Berhasil', `Kehadiran mengajar Anda telah dicatat: ${status}.`);
+            if (payload.eventType === 'DELETE') return;
+            const { status, metode } = payload.new;
+            if (status) showNotification('Verifikasi Kehadiran', `Kehadiran Anda telah diverifikasi (${metode || 'Sistem'}): ${status}.`);
           }
         )
         .subscribe();
+
+      const gpsChannel = supabase
+        .channel('realtime-gps')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'log_gps_guru', filter: `id_guru=eq.${user.id_user}` },
+          (payload) => {
+            if (payload.eventType === 'DELETE') return;
+            const { status } = payload.new;
+            if (status) showNotification('Absen GPS Berhasil', `Lokasi Anda telah tersimpan dengan status: ${status}.`);
+          }
+        )
+        .subscribe();
+
+      // Return cleanup for multiple channels
+      return () => {
+        supabase.removeChannel(channel);
+        supabase.removeChannel(gpsChannel);
+      };
     }
 
     return () => {
