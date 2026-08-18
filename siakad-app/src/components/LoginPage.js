@@ -114,7 +114,17 @@ export default function LoginPage({ onLoginSuccess }) {
       (err) => {
         // ignore scan errors
       }
-    ).catch(err => {
+    ).then(() => {
+      // Auto zoom-in jika kamera mendukung
+      if (html5QrCode && typeof html5QrCode.applyVideoConstraints === 'function') {
+        html5QrCode.applyVideoConstraints({
+          advanced: [{ zoom: 2.0 }]
+        }).catch(e => {
+          // Abaikan error jika kamera tidak support zoom
+          console.log("Kamera tidak mendukung auto-zoom", e);
+        });
+      }
+    }).catch(err => {
       setError("Kamera gagal diakses. Pastikan izin kamera diberikan.");
       setShowScanner(false);
     });
