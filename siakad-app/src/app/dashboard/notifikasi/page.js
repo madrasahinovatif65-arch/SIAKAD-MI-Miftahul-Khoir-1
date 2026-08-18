@@ -27,7 +27,7 @@ const typeConfig = {
   PENGINGAT: { icon: '⏰', color: 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400' },
   REKAP:     { icon: '📊', color: 'bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400' },
   PENGUMUMAN:{ icon: '📢', color: 'bg-sky-100 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400' },
-const typeConfig = {
+
   INFO:       { icon: '💡', color: 'bg-sky-100 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400' },
   PERINGATAN:{ icon: '⚠️', color: 'bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400' },
   SISTEM:    { icon: '⚙️', color: 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300' },
