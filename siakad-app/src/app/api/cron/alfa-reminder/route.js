@@ -64,7 +64,7 @@ export async function GET(request) {
         role_target: null,
         title: 'Peringatan Absensi ⚠️',
         message: `Ananda ${m.nama} telah tercatat Alfa sebanyak ${alfaCount[m.nisn]} kali di bulan ini. Mohon perhatikan tingkat kehadiran.`,
-        type: 'PERINGATAN',
+        type: 'peringatan',
         link: '/dashboard/riwayat-murid',
         is_read: false
       });

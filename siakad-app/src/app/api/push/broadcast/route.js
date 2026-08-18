@@ -64,7 +64,7 @@ export async function POST(request) {
         role_target: user.role,
         title: title,
         message: message,
-        type: 'INFO',
+        type: 'info',
         link: targetUrl,
         is_read: false
       }));

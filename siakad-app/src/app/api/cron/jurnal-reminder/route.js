@@ -69,7 +69,7 @@ export async function GET(request) {
       role_target: null, // Khusus untuk individu
       title: title,
       message: message,
-      type: 'PERINGATAN',
+      type: 'peringatan',
       link: targetUrl,
       is_read: false
     }));
