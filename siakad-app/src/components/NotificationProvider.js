@@ -11,6 +11,7 @@ export default function NotificationProvider() {
 
   useEffect(() => {
     if (!user) return;
+    console.log('[NotificationProvider] Initializing for user:', user.id_user, 'Role:', user.role);
 
     // Request notification permission
     if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
@@ -18,14 +19,14 @@ export default function NotificationProvider() {
     }
 
     const showNotification = (title, body) => {
+      console.log('[NotificationProvider] Showing notification:', title, body);
       // Show system notification if granted
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification(title, { body, icon: '/icon-192x192.png' });
       }
       
       // Show in-app toast
-      setToast({ title, body });
-      setTimeout(() => setToast(null), 5000);
+      setToast({ title, body, id: Date.now() });
     };
 
     let channel;
@@ -33,32 +34,36 @@ export default function NotificationProvider() {
     let nfcChannel;
 
     if (user.rfid && supabaseNfc) {
+      console.log('[NotificationProvider] Subscribing to NFC Realtime for RFID:', user.rfid);
       nfcChannel = supabaseNfc
         .channel('realtime-nfc')
         .on(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'log_absensi', filter: `rfid_uid=eq.${user.rfid}` },
           (payload) => {
+            console.log('[NotificationProvider] NFC Payload received:', payload);
             showNotification('Tap NFC Berhasil 💳', `Kartu absen Anda telah terdeteksi oleh mesin.`);
           }
         )
-        .subscribe();
+        .subscribe((status) => console.log('[NotificationProvider] NFC Status:', status));
     }
 
     if (user.role === 'Murid') {
+      console.log('[NotificationProvider] Subscribing to Murid Realtime');
       channel = supabase
         .channel('realtime-absensi')
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: 'data_absensi', filter: `id_murid=eq.${user.id_user}` },
+          { event: '*', schema: 'public', table: 'data_absensi', filter: `nisn=eq.${user.id_user}` },
           (payload) => {
             if (payload.eventType === 'DELETE') return;
             const { status } = payload.new;
             if (status) showNotification('Absensi Murid Berhasil', `Kehadiran Anda telah dicatat: ${status}.`);
           }
         )
-        .subscribe();
+        .subscribe((status) => console.log('[NotificationProvider] Murid Status:', status));
     } else if (['Guru Mapel', 'Wali Kelas', 'Kepala Madrasah', 'Admin'].includes(user.role)) {
+      console.log('[NotificationProvider] Subscribing to Guru Realtime');
       channel = supabase
         .channel('realtime-verifikasi')
         .on(
@@ -70,28 +75,38 @@ export default function NotificationProvider() {
             if (status) showNotification('Verifikasi Kehadiran', `Kehadiran Anda telah diverifikasi (${metode || 'Sistem'}): ${status}.`);
           }
         )
-        .subscribe();
+        .subscribe((status) => console.log('[NotificationProvider] Verifikasi Status:', status));
 
+      console.log('[NotificationProvider] Subscribing to GPS Realtime');
       gpsChannel = supabase
         .channel('realtime-gps')
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'log_gps_guru', filter: `id_guru=eq.${user.id_user}` },
           (payload) => {
+            console.log('[NotificationProvider] GPS Payload received:', payload);
             if (payload.eventType === 'DELETE') return;
             const { status } = payload.new;
             if (status) showNotification('Absen GPS Berhasil 📍', `Lokasi Anda telah tersimpan dengan status: ${status}.`);
           }
         )
-        .subscribe();
+        .subscribe((status) => console.log('[NotificationProvider] GPS Status:', status));
     }
 
     return () => {
+      console.log('[NotificationProvider] Cleaning up subscriptions');
       if (channel) supabase.removeChannel(channel);
       if (gpsChannel) supabase.removeChannel(gpsChannel);
       if (nfcChannel && supabaseNfc) supabaseNfc.removeChannel(nfcChannel);
     };
   }, [user]);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   if (!toast) return null;
 
