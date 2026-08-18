@@ -107,27 +107,37 @@ export default function NotifikasiPage() {
     : notifs.filter(n => n.is_read);
 
   const handleMarkRead = async (id) => {
-    await supabase.from('notifikasi').update({ is_read: true }).eq('id', id);
-    mutate();
+    mutate(notifs.map(n => n.id === id ? { ...n, is_read: true } : n), false);
+    const { error } = await supabase.from('notifikasi').update({ is_read: true }).eq('id', id);
+    if (error) mutate(); // revert
   };
 
   const handleMarkAllRead = async () => {
     const ids = notifs.filter(n => !n.is_read).map(n => n.id);
     if (ids.length === 0) return;
-    await supabase.from('notifikasi').update({ is_read: true }).in('id', ids);
-    mutate();
+    mutate(notifs.map(n => ({ ...n, is_read: true })), false);
+    const { error } = await supabase.from('notifikasi').update({ is_read: true }).in('id', ids);
+    if (error) mutate();
   };
 
   const handleDelete = async (id) => {
-    await supabase.from('notifikasi').delete().eq('id', id);
-    mutate();
+    mutate(notifs.filter(n => n.id !== id), false);
+    const { error } = await supabase.from('notifikasi').delete().eq('id', id);
+    if (error) {
+      console.error('Gagal menghapus:', error);
+      mutate();
+    }
   };
 
   const handleDeleteRead = async () => {
     const ids = notifs.filter(n => n.is_read).map(n => n.id);
     if (ids.length === 0) return;
-    await supabase.from('notifikasi').delete().in('id', ids);
-    mutate();
+    mutate(notifs.filter(n => !n.is_read), false);
+    const { error } = await supabase.from('notifikasi').delete().in('id', ids);
+    if (error) {
+      console.error('Gagal menghapus semua:', error);
+      mutate();
+    }
   };
 
   return (
