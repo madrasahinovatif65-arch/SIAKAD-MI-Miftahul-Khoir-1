@@ -22,10 +22,10 @@ const CSV_DIR = path.join(__dirname, '../csv_data');
 function parseDate(val) {
   if (!val) return '1970-01-01';
   const strVal = String(val).trim();
-  
+
   // Pisahkan jam jika ada (misal 27/07/2026 6:19:01)
   const dateOnly = strVal.split(' ')[0];
-  
+
   const parts = dateOnly.split(/[\/\-]/);
   if (parts.length === 3) {
     if (parts[2].length === 4) {
@@ -37,7 +37,7 @@ function parseDate(val) {
       return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
     }
   }
-  
+
   const d = new Date(val);
   if (!isNaN(d.getTime())) {
     return d.toISOString().split('T')[0];
@@ -75,7 +75,7 @@ async function runMigration() {
     console.error("❌ Gagal mengambil master_user:", errUser.message);
     process.exit(1);
   }
-  
+
   const userMapByName = {};
   const userMapById = {};
   users.forEach(u => {
@@ -95,7 +95,7 @@ async function runMigration() {
   console.log("📥 Mengambil data Master Murid dari Supabase...");
   const { data: murids } = await supabase.from('master_murid').select('nisn');
   const validNisnSet = new Set(murids ? murids.map(m => m.nisn) : []);
-  
+
   // Fungsi untuk mendaftarkan murid dummy jika NISN tidak ditemukan
   const ensureMuridExists = async (nisn, rombel) => {
     if (validNisnSet.has(nisn)) return;
@@ -119,14 +119,14 @@ async function runMigration() {
         const tanggal = parseDate(tanggalStr);
         const rombel = row['Rombel'];
         const jsonStr = row['Data_JSON'];
-        
+
         if (!jsonStr || !tanggal || !rombel) return [];
-        
+
         let students = [];
         try {
           const parsed = JSON.parse(jsonStr);
           if (Array.isArray(parsed)) students = parsed;
-        } catch(e) { return []; }
+        } catch (e) { return []; }
 
         return students.map(student => ({
           tanggal: tanggal,
@@ -162,10 +162,10 @@ async function runMigration() {
         // Kolom Nama_Guru ternyata isinya ID Guru! (misal: ID20549574196001)
         const rawNamaOrId = row['Nama_Guru'];
         const guru = getGuruInfo(rawNamaOrId);
-        
+
         let siswaJSON = [];
         // Kehadiran_Siswa isinya string seperti "H: 0, S: 0, I: 0, A: 0"
-        
+
         return [{
           tanggal: parseDate(row['Tanggal'] || row['Jam']), // Di csv jurnal, tgl ada di "Tanggal"
           jam_pelajaran: String(row['Jam Ke...'] || '-'),
@@ -187,7 +187,7 @@ async function runMigration() {
         // Format Timestamp: 27/07/2026 6:19:01
         const ts = row['Timestamp'];
         const waktu = ts ? parseTime(ts) : '';
-        
+
         return [{
           tanggal: parseDate(row['Timestamp']),
           id_guru: guru.id,
@@ -209,17 +209,17 @@ async function runMigration() {
         const tanggal = parseDate(row['Tanggal']);
         const jsonStr = row['Data_JSON'];
         if (!jsonStr || !tanggal) return [];
-        
+
         let dataObj = {};
         try {
           dataObj = JSON.parse(jsonStr);
-        } catch(e) { return []; }
-        
+        } catch (e) { return []; }
+
         const results = [];
         // json berbentuk { "ID_GURU": { status: "Hadir", catatan: "...", waktu: "..." } }
         for (const [idGuru, val] of Object.entries(dataObj)) {
           if (val.status === 'Libur') continue; // ABAIKAN JIKA LIBUR (karena tidak ada di check constraint verifikasi GPS)
-          
+
           const guru = getGuruInfo(idGuru);
           results.push({
             tanggal: tanggal,
@@ -261,7 +261,7 @@ async function runMigration() {
 
     console.log(`\n⏳ Memproses ${target.file}...`);
     const results = [];
-    
+
     await new Promise((resolve) => {
       fs.createReadStream(filePath)
         .pipe(csv())
@@ -271,8 +271,8 @@ async function runMigration() {
             if (mapped && mapped.length > 0) {
               results.push(...mapped);
             }
-          } catch(e) {
-             console.log("Error processing row:", e.message);
+          } catch (e) {
+            console.log("Error processing row:", e.message);
           }
         })
         .on('end', resolve);
@@ -283,7 +283,7 @@ async function runMigration() {
     // Deduplikasi untuk mencegah "cannot affect row a second time"
     const uniqueResults = [];
     const seen = new Set();
-    
+
     // Iterasi dari belakang agar mendapat data paling baru jika ada duplikat
     for (let i = results.length - 1; i >= 0; i--) {
       const row = results[i];
@@ -295,7 +295,7 @@ async function runMigration() {
       } else {
         key = `row_${i}`; // jurnal_guru tidak dideduplikasi
       }
-      
+
       if (!seen.has(key)) {
         seen.add(key);
         uniqueResults.unshift(row); // masukkan ke depan agar urutan tetap (relatif)
@@ -309,28 +309,28 @@ async function runMigration() {
       let successCount = 0;
       for (let i = 0; i < uniqueResults.length; i += chunkSize) {
         const chunk = uniqueResults.slice(i, i + chunkSize);
-        
+
         // Cek dan pastikan murid ada untuk mencegah foreign key error
         if (target.table === 'data_absensi' || target.table === 'data_nfc_murid') {
           for (const row of chunk) {
             await ensureMuridExists(row.nisn, row.rombel);
           }
         }
-        
+
         chunk.forEach(r => Object.keys(r).forEach(k => r[k] === undefined && delete r[k]));
-        
+
         let action;
         if (!target.onConflict) {
           action = supabase.from(target.table).insert(chunk);
         } else {
           action = supabase.from(target.table).upsert(chunk, { onConflict: target.onConflict });
         }
-          
+
         const { error } = await action;
         if (error) {
-           console.error(`   ❌ Gagal insert chunk di ${target.file}:`, error.message);
+          console.error(`   ❌ Gagal insert chunk di ${target.file}:`, error.message);
         } else {
-           successCount += chunk.length;
+          successCount += chunk.length;
         }
       }
       console.log(`   ✅ Selesai. Sukses masuk: ${successCount}`);

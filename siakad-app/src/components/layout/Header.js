@@ -18,7 +18,7 @@ export default function Header() {
       const { count } = await supabase
         .from('notifikasi')
         .select('id', { count: 'exact', head: true })
-        .or(`id_user.eq.${user.id_user},role_target.eq.${user.role}`)
+        .or(`id_user.eq.${user.id_user},and(id_user.is.null,role_target.eq.${user.role}),and(id_user.is.null,role_target.eq.Umum)`)
         .eq('is_read', false);
       return count || 0;
     },

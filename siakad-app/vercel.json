@@ -1,12 +1,12 @@
 {
   "crons": [
     {
-      "path": "/api/sync-nfc",
-      "schedule": "0 6 * * 1-6"
+      "path": "/api/cron/jurnal-reminder",
+      "schedule": "0 8 * * 1-6"
     },
     {
-      "path": "/api/cron/rekap-guru",
-      "schedule": "0 0 * * 1-6"
+      "path": "/api/cron/alfa-reminder",
+      "schedule": "0 8 * * 1-6"
     }
   ]
 }

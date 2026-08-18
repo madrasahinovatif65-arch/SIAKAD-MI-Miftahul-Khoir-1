@@ -37,7 +37,7 @@ const fetchNotifikasi = async (userId, role) => {
   const { data, error } = await supabase
     .from('notifikasi')
     .select('*')
-    .or(`id_user.eq.${userId},role_target.eq.${role}`)
+    .or(`id_user.eq.${userId},and(id_user.is.null,role_target.eq.${role}),and(id_user.is.null,role_target.eq.Umum)`)
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data || [];
