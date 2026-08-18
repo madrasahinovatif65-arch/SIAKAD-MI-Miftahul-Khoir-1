@@ -8,37 +8,36 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function main() {
   console.log("Listening to log_absensi and log_gps_guru...");
+  let received = false;
   
   const channel = supabase.channel('test-realtime')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'log_gps_guru' }, payload => {
       console.log('GPS Change received!', payload);
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'log_absensi' }, payload => {
-      console.log('NFC Change received!', payload);
+      received = true;
     })
     .subscribe((status) => {
       console.log("Subscription status:", status);
     });
 
-  // We will insert a dummy GPS log and see if we get a realtime event back
   setTimeout(async () => {
-    console.log("Inserting test GPS log...");
-    const { error } = await supabase.from('log_gps_guru').insert({
-      id_guru: 'ID20548137193001',
+    console.log("Upserting test GPS log...");
+    const { error } = await supabase.from('log_gps_guru').upsert({
+      id_guru: 'ID_TEST_REALTIME',
       tanggal: '2026-08-18',
       waktu: '15.00',
       latitude: -7.74,
       longitude: 112.70,
       jarak_meter: 0,
       status: 'Hadir'
-    });
+    }, { onConflict: 'tanggal,id_guru' });
     if (error) console.error("Insert error:", error);
   }, 3000);
 
   setTimeout(async () => {
     console.log("Cleaning up test GPS log...");
-    await supabase.from('log_gps_guru').delete().eq('id_guru', 'ID20548137193001').eq('waktu', '15.00');
+    await supabase.from('log_gps_guru').delete().eq('id_guru', 'ID_TEST_REALTIME');
+    console.log("Did we receive realtime event?", received ? "YES" : "NO");
     process.exit(0);
-  }, 10000);
+  }, 8000);
 }
 main();
