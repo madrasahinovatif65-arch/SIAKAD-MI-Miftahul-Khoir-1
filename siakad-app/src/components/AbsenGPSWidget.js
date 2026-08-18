@@ -99,15 +99,7 @@ export default function AbsenGPSWidget() {
     const times = { masuk: timeMasuk, pulang: timePulang };
     const methods = { masuk: methodMasuk, pulang: methodPulang };
 
-    // Belum absen masuk
-    if (!hasMasuk) {
-      if (todayDate.getHours() < 6) {
-        return { type: 'error', message: 'Absen masuk pagi baru dibuka pukul 06:00.', times, methods };
-      }
-      return { type: 'idle', mode: 'masuk', gpsData, message: 'Silakan lakukan absen kehadiran (masuk).', times, methods };
-    }
-
-    // Sudah absen masuk dan pulang
+    // 1. Sudah absen masuk dan pulang
     if (hasMasuk && hasPulang) {
       if (methodMasuk === methodPulang) {
         return { type: 'done', message: `✅ Anda sudah absen datang dan pulang menggunakan ${methodMasuk} hari ini.`, times, methods };
@@ -115,27 +107,44 @@ export default function AbsenGPSWidget() {
       return { type: 'done', message: `✅ Anda sudah absen datang menggunakan ${methodMasuk} dan pulang menggunakan ${methodPulang} hari ini.`, times, methods };
     }
 
-    // Sudah absen masuk, cek batasan waktu absen pulang
+    // Tentukan apakah sekarang sudah masuk waktu pulang
     const isFriday = todayDate.getDay() === 5;
     const h = todayDate.getHours();
     const m = todayDate.getMinutes();
 
-    let canPulang = false;
-    let msg = '';
-
+    let isWaktuPulang = false;
     if (isFriday) {
-      if (h > 10 || (h === 10 && m >= 30)) canPulang = true;
-      else msg = `Anda sudah absen datang menggunakan ${methodMasuk}. Absen pulang hari Jumat dibuka jam 10:30.`;
+      if (h > 10 || (h === 10 && m >= 30)) isWaktuPulang = true;
     } else {
-      if (h >= 12) canPulang = true;
-      else msg = `Anda sudah absen datang menggunakan ${methodMasuk}. Absen pulang dibuka jam 12:00.`;
+      if (h >= 12) isWaktuPulang = true;
     }
 
-    if (!canPulang) {
-      return { type: 'error', message: msg, times, methods };
+    // 2. Hanya absen pulang (kasus lupa absen masuk)
+    if (!hasMasuk && hasPulang) {
+      return { type: 'done', message: `✅ Anda sudah absen pulang menggunakan ${methodPulang} (tanpa absen datang).`, times, methods };
     }
 
-    return { type: 'idle', mode: 'pulang', gpsData, message: `Anda sudah absen datang menggunakan ${methodMasuk}. Silakan lakukan absen pulang.`, times, methods };
+    // 3. Sudah absen masuk, tapi belum pulang
+    if (hasMasuk && !hasPulang) {
+      if (!isWaktuPulang) {
+        const msg = isFriday 
+          ? `Anda sudah absen datang menggunakan ${methodMasuk}. Absen pulang hari Jumat dibuka jam 10:30.`
+          : `Anda sudah absen datang menggunakan ${methodMasuk}. Absen pulang dibuka jam 12:00.`;
+        return { type: 'error', message: msg, times, methods };
+      }
+      return { type: 'idle', mode: 'pulang', gpsData, message: `Anda sudah absen datang menggunakan ${methodMasuk}. Silakan lakukan absen pulang.`, times, methods };
+    }
+
+    // 4. Belum absen sama sekali
+    if (h < 6) {
+      return { type: 'error', message: 'Absen masuk pagi baru dibuka pukul 06:00.', times, methods };
+    }
+
+    if (isWaktuPulang) {
+      return { type: 'idle', mode: 'pulang', gpsData, message: 'Waktu absen masuk telah lewat. Silakan langsung lakukan absen pulang.', times, methods };
+    }
+
+    return { type: 'idle', mode: 'masuk', gpsData, message: 'Silakan lakukan absen kehadiran (masuk).', times, methods };
   });
 
   useEffect(() => {
