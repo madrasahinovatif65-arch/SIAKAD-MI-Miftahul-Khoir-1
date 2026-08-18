@@ -83,7 +83,7 @@ export async function POST(request) {
     // 3. Ambil daftar endpoint browser (Push Subscriptions) dari target pengguna
     const { data: subs, error: subErr } = await supabase
       .from('push_subscriptions')
-      .select('endpoint, keys, id_user')
+      .select('endpoint, p256dh, auth, id_user')
       .in('id_user', targetIdUsers);
 
     if (subErr) {
@@ -108,7 +108,7 @@ export async function POST(request) {
     const pushPromises = subs.map(async (sub) => {
       try {
         await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: sub.keys },
+          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
           pushPayload
         );
       } catch (err) {
