@@ -22,7 +22,17 @@ export default function NotificationProvider() {
       console.log('[NotificationProvider] Showing notification:', title, body);
       // Show system notification if granted
       if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(title, { body, icon: '/icon-192x192.png' });
+        try {
+          new Notification(title, { body, icon: '/logo.png' });
+        } catch (error) {
+          console.warn('[NotificationProvider] System notification failed, likely on mobile Chrome:', error);
+          // Try using service worker if available
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(registration => {
+              registration.showNotification(title, { body, icon: '/logo.png' }).catch(console.error);
+            }).catch(console.error);
+          }
+        }
       }
       
       // Show in-app toast

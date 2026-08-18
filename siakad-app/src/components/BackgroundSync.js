@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { preload } from 'swr';
 import { fetchMasterKalender, fetchPresensiData, fetchVerifikasiGuru, fetchVerifiedDatesGuru } from '@/lib/fetchers';
+import { getTodayDate } from '@/lib/dateUtils';
 
 export default function BackgroundSync() {
   const { user } = useAuth();
