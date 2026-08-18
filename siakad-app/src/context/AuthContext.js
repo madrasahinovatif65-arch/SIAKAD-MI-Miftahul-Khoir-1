@@ -45,6 +45,7 @@ export function AuthProvider({ children }) {
         mapel: data.mapel || '-',
         foto: data.foto_app || data.foto || '',
         wali_kelas: waliKelas,
+        rfid: data.rfid || '',
       };
 
       setUser(userData);

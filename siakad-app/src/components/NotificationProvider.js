@@ -28,6 +28,21 @@ export default function NotificationProvider() {
     };
 
     let channel;
+    let gpsChannel;
+    let nfcChannel;
+
+    if (user.rfid) {
+      nfcChannel = supabase
+        .channel('realtime-nfc')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'log_absensi', filter: `rfid_uid=eq.${user.rfid}` },
+          (payload) => {
+            showNotification('Tap NFC Berhasil 💳', `Kartu absen Anda telah terdeteksi oleh mesin.`);
+          }
+        )
+        .subscribe();
+    }
 
     if (user.role === 'Murid') {
       channel = supabase
@@ -56,7 +71,7 @@ export default function NotificationProvider() {
         )
         .subscribe();
 
-      const gpsChannel = supabase
+      gpsChannel = supabase
         .channel('realtime-gps')
         .on(
           'postgres_changes',
@@ -64,22 +79,16 @@ export default function NotificationProvider() {
           (payload) => {
             if (payload.eventType === 'DELETE') return;
             const { status } = payload.new;
-            if (status) showNotification('Absen GPS Berhasil', `Lokasi Anda telah tersimpan dengan status: ${status}.`);
+            if (status) showNotification('Absen GPS Berhasil 📍', `Lokasi Anda telah tersimpan dengan status: ${status}.`);
           }
         )
         .subscribe();
-
-      // Return cleanup for multiple channels
-      return () => {
-        supabase.removeChannel(channel);
-        supabase.removeChannel(gpsChannel);
-      };
     }
 
     return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
+      if (channel) supabase.removeChannel(channel);
+      if (gpsChannel) supabase.removeChannel(gpsChannel);
+      if (nfcChannel) supabase.removeChannel(nfcChannel);
     };
   }, [user]);
 
