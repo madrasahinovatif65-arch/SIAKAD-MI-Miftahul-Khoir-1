@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 
 import Header from '@/components/layout/Header';
+import NotificationProvider from '@/components/NotificationProvider';
 
 export default function DashboardLayout({ children }) {
   const { user, loading } = useAuth();
@@ -38,6 +39,7 @@ export default function DashboardLayout({ children }) {
       <div className="flex flex-col flex-1 w-full relative print:block">
         <div className="print:hidden">
           <Header />
+          <NotificationProvider />
         </div>
         <main className="flex-1 w-full overflow-y-auto print:overflow-visible pb-[140px] lg:pb-8 print:pb-0">
           <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full relative z-10 print:max-w-none print:p-0">
