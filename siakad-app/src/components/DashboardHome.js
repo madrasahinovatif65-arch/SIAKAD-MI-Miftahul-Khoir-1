@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { getTodayDate } from '@/lib/dateUtils';
 import useSWR from 'swr';
 import Link from 'next/link';
+import { useGeofenceReminder } from '@/hooks/useGeofenceReminder';
 import AbsenGPSWidget from '@/components/AbsenGPSWidget';
 import {
   Chart as ChartJS,
@@ -67,6 +68,11 @@ const QUICK_MENU_CONFIG = {
 
 export default function DashboardHome() {
   const { user } = useAuth();
+
+  // 📍 Geofence Reminder: secara otomatis memantau posisi GPS guru
+  // dan mengirim pengingat absensi jika berada di area sekolah
+  useGeofenceReminder(user);
+
   const { data } = useSWR(user ? `dashboard-stats-${user.id_user}` : null, async () => {
     const today = getTodayDate();
     const monthStart = today.slice(0, 7) + '-01';

@@ -11,6 +11,18 @@
     {
       "path": "/api/cron/kalender-reminder",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/absen-datang-reminder",
+      "schedule": "30 23 * * 0-5"
+    },
+    {
+      "path": "/api/cron/absen-pulang-reminder",
+      "schedule": "0 5 * * 1-4,6"
+    },
+    {
+      "path": "/api/cron/absen-pulang-reminder",
+      "schedule": "30 3 * * 5"
     }
   ]
 }
