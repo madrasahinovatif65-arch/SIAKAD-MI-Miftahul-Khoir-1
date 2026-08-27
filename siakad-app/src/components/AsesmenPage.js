@@ -374,10 +374,10 @@ function TabDiagnostik({ user, filters }) {
                 <th className="text-left px-3 py-3 font-semibold text-slate-600">Nama Murid</th>
                 {mode === 'umum' ? (
                   <>
-                    <th className="text-left px-3 py-3 font-semibold text-slate-600">Literasi</th>
-                    <th className="text-left px-3 py-3 font-semibold text-slate-600">Numerasi</th>
-                    <th className="text-left px-3 py-3 font-semibold text-slate-600">Penalaran</th>
-                    <th className="text-left px-3 py-3 font-semibold text-slate-600">Catatan & Aksi</th>
+                    <th className="hidden sm:table-cell text-left px-3 py-3 font-semibold text-slate-600">Literasi</th>
+                    <th className="hidden sm:table-cell text-left px-3 py-3 font-semibold text-slate-600">Numerasi</th>
+                    <th className="hidden sm:table-cell text-left px-3 py-3 font-semibold text-slate-600">Penalaran</th>
+                    <th className="hidden sm:table-cell text-left px-3 py-3 font-semibold text-slate-600">Catatan & Aksi</th>
                   </>
                 ) : (
                   <>
@@ -409,28 +409,74 @@ function TabDiagnostik({ user, filters }) {
                     );
                   };
 
+                  // ── MOBILE: Card layout ──
+                  // ── DESKTOP: Table row ──
                   return (
-                    <tr key={m.id_murid} className="hover:bg-slate-50">
-                      <td className="px-3 py-3 text-slate-400">{i + 1}</td>
+                    <tr key={m.id_murid} className="hover:bg-slate-50 align-top">
+                      {/* Nomor */}
+                      <td className="px-3 py-3 text-slate-400 text-sm">{i + 1}</td>
+
+                      {/* Nama */}
                       <td className="px-3 py-3 font-medium text-slate-700">
-                        {m.nama_murid}
+                        <span className="block">{m.nama_murid}</span>
                         {!h
                           ? <span className="block text-xs text-red-400 font-normal mt-0.5">Belum Mengerjakan Tes</span>
                           : h.divalidasi_at
                             ? <span className="block text-xs text-emerald-500 font-normal mt-0.5">✓ Sudah dikoreksi guru</span>
                             : null
                         }
+                        {/* Di mobile: tampilkan skor + aksi inline di bawah nama */}
+                        <div className="flex flex-wrap gap-1.5 mt-2 sm:hidden">
+                          {h ? (
+                            <>
+                              {[['Lit', h.skor_literasi, h.kategori_literasi], ['Num', h.skor_numerasi, h.kategori_numerasi], ['Nal', h.skor_reasoning, h.kategori_reasoning]].map(([lbl, skor, kat]) => (
+                                kat ? (
+                                  <span key={lbl} className={`text-xs px-2 py-0.5 rounded-full font-medium ${BADGE_COLOR[kat] || 'bg-slate-100 text-slate-600'}`}>
+                                    {lbl}: {skor}%
+                                  </span>
+                                ) : (
+                                  <span key={lbl} className="text-xs text-slate-400">{lbl}: —</span>
+                                )
+                              ))}
+                            </>
+                          ) : null}
+                        </div>
+                        {/* Tombol aksi di mobile */}
+                        <div className="mt-2 sm:hidden">
+                          {h?.catatan_guru && (
+                            <p className="text-xs text-slate-500 italic mb-1 line-clamp-1">💬 {h.catatan_guru}</p>
+                          )}
+                          {h?.raw_jawaban ? (
+                            <button
+                              onClick={() => openEditor(m, h)}
+                              className="text-xs px-3 py-1.5 bg-violet-50 border border-violet-200 text-violet-700 rounded-lg hover:bg-violet-100 transition-colors w-full font-medium"
+                            >
+                              👁️ Lihat & Koreksi
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => openEditorBaru(m)}
+                              className="text-xs px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors w-full font-medium"
+                            >
+                              📝 Input Manual
+                            </button>
+                          )}
+                        </div>
                       </td>
-                      <td className="px-3 py-3">
+
+                      {/* Kolom skor — hanya di desktop (sm:table-cell) */}
+                      <td className="hidden sm:table-cell px-3 py-3">
                         <KategoriBadge skor={h?.skor_literasi} kategori={h?.kategori_literasi} />
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="hidden sm:table-cell px-3 py-3">
                         <KategoriBadge skor={h?.skor_numerasi} kategori={h?.kategori_numerasi} />
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="hidden sm:table-cell px-3 py-3">
                         <KategoriBadge skor={h?.skor_reasoning} kategori={h?.kategori_reasoning} />
                       </td>
-                      <td className="px-3 py-3 min-w-[160px]">
+
+                      {/* Kolom aksi — hanya di desktop */}
+                      <td className="hidden sm:table-cell px-3 py-3 min-w-[160px]">
                         {h?.catatan_guru && (
                           <p className="text-xs text-slate-500 italic mb-1 line-clamp-1">💬 {h.catatan_guru}</p>
                         )}
@@ -1462,14 +1508,18 @@ export default function AsesmenPage() {
 
   useEffect(() => {
     if (pengaturan && !filters.init) {
+      const isWK = user?.role === 'Wali Kelas';
+      const autoRombel = (isWK && user?.rombel && user.rombel !== '-') ? user.rombel : '';
       setFilters(prev => ({
         ...prev,
         tahun_ajaran: pengaturan.tahun_ajaran || '2026/2027',
         semester: pengaturan.semester || 'Ganjil',
+        // Wali Kelas: langsung isi rombel sesuai kelasnya
+        rombel: autoRombel || prev.rombel,
         init: true
       }));
     }
-  }, [pengaturan, filters.init]);
+  }, [pengaturan, filters.init, user]);
 
   // Siapkan options dropdown
   let mapelOptions = masterData?.mapel || [];
