@@ -10,13 +10,47 @@ import { supabase } from '@/lib/supabase';
 // ──────────────────────────────────────────────────────────────────────────────
 
 const KOGNITIF_OPTIONS = ['Mahir', 'Berkembang', 'Butuh Pendampingan'];
-const GAYA_BELAJAR_OPTIONS = ['Visual', 'Auditori', 'Kinestetik', 'Campuran'];
-const BADGE_GAYA = {
-  Visual: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300',
-  Auditori: 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300',
-  Kinestetik: 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300',
-  Campuran: 'bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-300',
-};
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Dimensi Asesmen Diagnostik Non-Kognitif
+// ──────────────────────────────────────────────────────────────────────────────
+const NK_DIMENSI = [
+  {
+    key: 'sosial_emosional',
+    label: 'Sosial-Emosional',
+    icon: '💚',
+    pertanyaan: 'Bagaimana perasaanmu masuk kelas hari ini?',
+    pilihan: [
+      { value: 'Antusias',      label: 'Antusias',        emoji: '🟢', badgeClass: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' },
+      { value: 'Biasa saja',    label: 'Biasa saja',      emoji: '🟡', badgeClass: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300' },
+      { value: 'Cemas/Takut',   label: 'Cemas / Takut',   emoji: '🔴', badgeClass: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300' },
+    ],
+  },
+  {
+    key: 'dukungan_belajar',
+    label: 'Dukungan Belajar',
+    icon: '🏠',
+    pertanyaan: 'Saat belajar atau mengerjakan tugas di rumah, biasanya kamu…',
+    pilihan: [
+      { value: 'Didampingi',        label: 'Didampingi ortu/kakak',       emoji: '🟢', badgeClass: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' },
+      { value: 'Mandiri',           label: 'Mandiri / Sendiri',            emoji: '🟡', badgeClass: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300' },
+      { value: 'Sering kesulitan',  label: 'Sering kesulitan tanpa bantuan', emoji: '🔴', badgeClass: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300' },
+    ],
+  },
+  {
+    key: 'minat_dominan',
+    label: 'Minat Dominan',
+    icon: '⭐',
+    pertanyaan: 'Di waktu luang, kegiatan apa yang paling kamu sukai?',
+    pilihan: [
+      { value: 'Seni',        label: 'Seni / Menggambar',    emoji: '🎨', badgeClass: 'bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-300' },
+      { value: 'Olahraga',   label: 'Olahraga / Fisik',     emoji: '⚽', badgeClass: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300' },
+      { value: 'Teknologi',  label: 'Teknologi / Gadget',   emoji: '📱', badgeClass: 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300' },
+      { value: 'Membaca',    label: 'Cerita / Membaca',     emoji: '📖', badgeClass: 'bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-300' },
+    ],
+  },
+];
+
 const STATUS_BADGE = {
   Belum: 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400',
   Generating: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 animate-pulse',
@@ -263,14 +297,14 @@ function TabDiagnostik({ user, filters }) {
 
 function TabProfilNK({ user, filters }) {
   const [rows, setRows] = useState({});
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState({});
   const [toast, setToast] = useState(null);
 
   const swrKey = filters.rombel && filters.tahun_ajaran
     ? `profil_nk_${filters.rombel}_${filters.tahun_ajaran}`
     : null;
 
-  const { data: muridList = [], isLoading } = useSWR(swrKey, async () => {
+  const { data: muridList = [], isLoading, mutate } = useSWR(swrKey, async () => {
     const { data: enrolled } = await supabase
       .from('enrollment_murid')
       .select('id_murid, nama_murid')
@@ -289,19 +323,31 @@ function TabProfilNK({ user, filters }) {
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  // Ambil nilai dimensi: prioritaskan state lokal, fallback ke data tersimpan
+  const getVal = (id_murid, key) => {
+    if (rows[id_murid]?.[key] !== undefined) return rows[id_murid][key];
+    const m = muridList.find(x => x.id_murid === id_murid);
+    return m?.profil?.[key] ?? '';
+  };
+
+  const setVal = (id_murid, key, value) => {
+    setRows(prev => ({ ...prev, [id_murid]: { ...prev[id_murid], [key]: value } }));
   };
 
   const handleSaveRow = async (murid) => {
-    const rowData = rows[murid.id_murid] || {};
+    setSaving(prev => ({ ...prev, [murid.id_murid]: true }));
     const payload = {
       id_murid: murid.id_murid,
       id_wali_kelas: user.id_user,
       rombel: filters.rombel,
       tahun_ajaran: filters.tahun_ajaran,
-      gaya_belajar: rowData.gaya_belajar || murid.profil?.gaya_belajar || null,
-      catatan_emosional: rowData.catatan_emosional ?? murid.profil?.catatan_emosional ?? '',
-      catatan_khusus: rowData.catatan_khusus ?? murid.profil?.catatan_khusus ?? '',
+      sosial_emosional: getVal(murid.id_murid, 'sosial_emosional') || null,
+      dukungan_belajar: getVal(murid.id_murid, 'dukungan_belajar') || null,
+      minat_dominan:    getVal(murid.id_murid, 'minat_dominan') || null,
+      catatan_khusus:   getVal(murid.id_murid, 'catatan_khusus') || '',
     };
     try {
       const res = await fetch('/api/asesmen/profil-nk', {
@@ -310,85 +356,168 @@ function TabProfilNK({ user, filters }) {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error((await res.json()).error);
-      showToast(`Profil ${murid.nama_murid} berhasil disimpan.`);
+      showToast(`✅ Profil ${murid.nama_murid} berhasil disimpan.`);
+      mutate(); // refresh SWR cache
     } catch (err) {
-      showToast(err.message, 'error');
+      showToast(`❌ ${err.message}`, 'error');
+    } finally {
+      setSaving(prev => ({ ...prev, [murid.id_murid]: false }));
     }
+  };
+
+  // Hitung kelengkapan profil per murid
+  const completenessOf = (m) => {
+    const filled = NK_DIMENSI.filter(d => getVal(m.id_murid, d.key)).length;
+    return { filled, total: NK_DIMENSI.length };
   };
 
   return (
     <div>
       <SectionHeader
-        title="Profil Non-Kognitif Murid"
-        subtitle="Diisi SEKALI per tahun di awal tahun ajaran. Guru mapel hanya melihat hasilnya sebagai badge."
+        title="🧠 Asesmen Diagnostik Non-Kognitif"
+        subtitle="Isi profil murid sekali di awal tahun ajaran. Data ini membantu guru memahami kondisi sosial-emosional, dukungan keluarga, dan minat belajar setiap murid."
       />
+
+      {/* Legend dimensi */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {NK_DIMENSI.map(d => (
+          <span key={d.key} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
+            <span>{d.icon}</span> {d.label}
+          </span>
+        ))}
+      </div>
+
       {toast && (
-        <div className={`mb-4 p-3 rounded-lg text-sm font-medium ${toast.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+        <div className={`mb-4 p-3 rounded-lg text-sm font-medium ${toast.type === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'}`}>
           {toast.msg}
         </div>
       )}
+
       {!filters.rombel ? (
-        <p className="text-slate-400 text-sm">Isi Rombel di filter untuk memuat daftar murid.</p>
+        <div className="text-center py-16 text-slate-400">
+          <p className="text-3xl mb-2">📋</p>
+          <p className="text-sm">Pilih Rombel di filter untuk memuat daftar murid.</p>
+        </div>
       ) : isLoading ? (
-        <div className="flex items-center gap-2 text-slate-400 py-8"><div className="w-5 h-5 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" /><span>Memuat...</span></div>
+        <div className="flex items-center gap-2 text-slate-400 py-8">
+          <div className="w-5 h-5 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+          <span>Memuat data murid...</span>
+        </div>
+      ) : muridList.length === 0 ? (
+        <div className="text-center py-16 text-slate-400">
+          <p className="text-3xl mb-2">🔍</p>
+          <p className="text-sm">Tidak ada murid ditemukan di rombel ini.</p>
+        </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {(Array.isArray(muridList) ? muridList : []).map((m, i) => {
-            const r = rows[m?.id_murid] || {};
+            const { filled, total } = completenessOf(m);
+            const isComplete = filled === total;
+            const isSaving = saving[m?.id_murid];
+
             return (
-              <div key={m.id_murid} className="p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800/50 hover:shadow-sm transition-shadow">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <span className="text-xs text-slate-400 mr-2">{i + 1}.</span>
-                    <span className="font-semibold text-slate-700 dark:text-slate-200">{m.nama_murid}</span>
-                    {m.profil?.gaya_belajar && (
-                      <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${BADGE_GAYA[m.profil.gaya_belajar]}`}>
-                        {m.profil.gaya_belajar}
-                      </span>
-                    )}
+              <div
+                key={m.id_murid}
+                className={`rounded-xl border transition-all ${
+                  isComplete
+                    ? 'border-emerald-300 dark:border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-500/5'
+                    : 'border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800/50'
+                }`}
+              >
+                {/* Header murid */}
+                <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-slate-100 dark:border-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${isComplete ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
+                      {isComplete ? '✓' : i + 1}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">{m.nama_murid}</p>
+                      <p className="text-xs text-slate-400">
+                        {filled}/{total} dimensi terisi
+                        {isComplete && <span className="ml-1 text-emerald-500 font-medium">· Lengkap</span>}
+                      </p>
+                    </div>
                   </div>
-                  <button
-                    id={`btn-save-nk-${m.id_murid}`}
-                    onClick={() => handleSaveRow(m)}
-                    className="btn-sm-primary"
-                  >
-                    💾 Simpan
-                  </button>
+
+                  {/* Badge ringkasan dimensi */}
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                    {NK_DIMENSI.map(d => {
+                      const val = getVal(m.id_murid, d.key);
+                      const opt = d.pilihan.find(p => p.value === val);
+                      return val ? (
+                        <span key={d.key} className={`px-2 py-0.5 rounded-full text-xs font-medium ${opt?.badgeClass || 'bg-slate-100 text-slate-500'}`}>
+                          {opt?.emoji} {val}
+                        </span>
+                      ) : (
+                        <span key={d.key} className="px-2 py-0.5 rounded-full text-xs bg-slate-100 dark:bg-slate-700 text-slate-400">
+                          {d.icon} —
+                        </span>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="label-field">Gaya Belajar</label>
-                    <select
-                      id={`gaya-${m.id_murid}`}
-                      value={r.gaya_belajar ?? m.profil?.gaya_belajar ?? ''}
-                      onChange={e => setRows(prev => ({ ...prev, [m.id_murid]: { ...prev[m.id_murid], gaya_belajar: e.target.value } }))}
-                      className="select-field"
+
+                {/* Dimensi asesmen */}
+                <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {NK_DIMENSI.map(d => {
+                    const currentVal = getVal(m.id_murid, d.key);
+                    return (
+                      <div key={d.key} className="space-y-2">
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                          {d.icon} {d.label}
+                        </p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 italic leading-snug">
+                          "{d.pertanyaan}"
+                        </p>
+                        <div className="flex flex-col gap-1.5">
+                          {d.pilihan.map(opt => {
+                            const isSelected = currentVal === opt.value;
+                            return (
+                              <button
+                                key={opt.value}
+                                id={`btn-nk-${d.key}-${opt.value}-${m.id_murid}`}
+                                type="button"
+                                onClick={() => setVal(m.id_murid, d.key, isSelected ? '' : opt.value)}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-all border ${
+                                  isSelected
+                                    ? `${opt.badgeClass} border-current font-medium shadow-sm`
+                                    : 'bg-white dark:bg-slate-700/50 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-white/20 hover:bg-slate-50 dark:hover:bg-slate-700'
+                                }`}
+                              >
+                                <span className="text-base leading-none">{opt.emoji}</span>
+                                <span>{opt.label}</span>
+                                {isSelected && <span className="ml-auto text-xs">✓</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Catatan khusus + tombol simpan */}
+                <div className="px-4 pb-4 flex flex-col sm:flex-row gap-3 items-start">
+                  <div className="flex-1">
+                    <label className="label-field text-xs">📝 Catatan Khusus (opsional)</label>
+                    <textarea
+                      id={`catatan-khusus-${m.id_murid}`}
+                      rows={2}
+                      placeholder="Kebutuhan belajar khusus, kondisi keluarga, atau hal penting lainnya..."
+                      value={getVal(m.id_murid, 'catatan_khusus')}
+                      onChange={e => setVal(m.id_murid, 'catatan_khusus', e.target.value)}
+                      className="textarea-field text-sm mt-1"
+                    />
+                  </div>
+                  <div className="self-end">
+                    <button
+                      id={`btn-save-nk-${m.id_murid}`}
+                      onClick={() => handleSaveRow(m)}
+                      disabled={isSaving}
+                      className={`btn-sm-primary whitespace-nowrap ${isSaving ? 'opacity-60 cursor-wait' : ''}`}
                     >
-                      <option value="">-- Pilih --</option>
-                      {GAYA_BELAJAR_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="label-field">Catatan Emosional</label>
-                    <textarea
-                      id={`emosi-${m.id_murid}`}
-                      rows={2}
-                      placeholder="Observasi sosial-emosional..."
-                      value={r.catatan_emosional ?? m.profil?.catatan_emosional ?? ''}
-                      onChange={e => setRows(prev => ({ ...prev, [m.id_murid]: { ...prev[m.id_murid], catatan_emosional: e.target.value } }))}
-                      className="textarea-field"
-                    />
-                  </div>
-                  <div>
-                    <label className="label-field">Catatan Khusus</label>
-                    <textarea
-                      id={`khusus-${m.id_murid}`}
-                      rows={2}
-                      placeholder="Kebutuhan belajar khusus..."
-                      value={r.catatan_khusus ?? m.profil?.catatan_khusus ?? ''}
-                      onChange={e => setRows(prev => ({ ...prev, [m.id_murid]: { ...prev[m.id_murid], catatan_khusus: e.target.value } }))}
-                      className="textarea-field"
-                    />
+                      {isSaving ? '⏳ Menyimpan...' : '💾 Simpan'}
+                    </button>
                   </div>
                 </div>
               </div>
