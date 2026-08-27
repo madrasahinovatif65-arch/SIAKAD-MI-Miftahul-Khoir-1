@@ -212,13 +212,14 @@ function LayarHasil({ hasil, namaMurid }) {
 // Komponen Utama
 // ─────────────────────────────────────────────────────────────
 export default function AsesmenKognitifInteraktif({ user, tahunAjaran, semester }) {
-  const [tahap, setTahap] = useState('disclaimer'); // disclaimer | tes | hasil
+  const [tahap, setTahap] = useState('disclaimer'); // disclaimer | loading | tes | submitting | hasil | error
   const [soalList, setSoalList] = useState([]);
   const [indeks, setIndeks] = useState(0);
   const [jawaban, setJawaban] = useState({});   // { [id_soal]: label_dipilih }
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [hasilAkhir, setHasilAkhir] = useState(null);
+  const [errorMsg, setErrorMsg] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
   const autoPlayedRef = useRef(new Set());
 
@@ -230,20 +231,38 @@ export default function AsesmenKognitifInteraktif({ user, tahunAjaran, semester 
   const mulaiTes = async () => {
     setLoading(true);
     try {
+      const ta = tahunAjaran || '-';
+      const sem = semester || '-';
       const res = await fetch(
-        `/api/asesmen/kognitif-interaktif?fase=${fase}&tahun_ajaran=${encodeURIComponent(tahunAjaran)}&semester=${encodeURIComponent(semester)}&id_murid=${user.id_user}`
+        `/api/asesmen/kognitif-interaktif?fase=${fase}&tahun_ajaran=${encodeURIComponent(ta)}&semester=${encodeURIComponent(sem)}&id_murid=${user.id_user}`
       );
       const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.error || 'Gagal memuat soal dari server.');
+        setTahap('error');
+        return;
+      }
 
       if (data.sudah_dikerjakan) {
         setHasilAkhir(data.hasil);
         setTahap('hasil');
         return;
       }
-      setSoalList(data.soal || []);
+
+      const soal = data.soal || [];
+      if (soal.length === 0) {
+        setErrorMsg('Belum ada soal tes yang tersedia untuk kelasmu saat ini. Silakan hubungi guru.');
+        setTahap('error');
+        return;
+      }
+
+      setSoalList(soal);
       setTahap('tes');
     } catch (err) {
       console.error(err);
+      setErrorMsg('Terjadi kesalahan koneksi. Pastikan internet kamu stabil, lalu coba lagi.');
+      setTahap('error');
     } finally {
       setLoading(false);
     }
@@ -305,6 +324,23 @@ export default function AsesmenKognitifInteraktif({ user, tahunAjaran, semester 
   const dimSekarang = soalSekarang ? DIMENSI_CONFIG[soalSekarang.dimensi] : null;
   const progress    = soalList.length > 0 ? ((indeks) / soalList.length) * 100 : 0;
   const sudahPilih  = soalSekarang ? !!jawaban[soalSekarang.id] : false;
+
+  // ── Error
+  if (tahap === 'error') {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-5 text-center px-4">
+        <div className="text-6xl">⚠️</div>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-white">Oops!</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm">{errorMsg}</p>
+        <button
+          onClick={() => { setErrorMsg(''); setTahap('disclaimer'); }}
+          className="px-6 py-2.5 rounded-xl bg-emerald-500 text-white font-semibold text-sm hover:bg-emerald-600 transition-colors"
+        >
+          ← Kembali
+        </button>
+      </div>
+    );
+  }
 
   // ── Disclaimer
   if (tahap === 'disclaimer') {
