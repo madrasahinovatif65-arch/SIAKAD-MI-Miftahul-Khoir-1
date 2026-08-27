@@ -64,21 +64,21 @@ const STATUS_BADGE = {
 
 function SectionHeader({ title, subtitle }) {
   return (
-    <div className="mb-6">
-      <h2 className="text-xl font-bold text-slate-800 dark:text-white">{title}</h2>
-      {subtitle && <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
+    <div className="mb-4 sm:mb-6">
+      <h2 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white leading-snug">{title}</h2>
+      {subtitle && <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{subtitle}</p>}
     </div>
   );
 }
 
 function FilterBar({ filters, onChange, mapelOptions = [], rombelOptions = [] }) {
   return (
-    <div className="flex flex-wrap gap-3 mb-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-white/10">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2 sm:gap-3 mb-4 sm:mb-6 p-3 sm:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-white/10">
       <select
         id="filter-tahun-ajaran"
         value={filters.tahun_ajaran}
         onChange={e => onChange('tahun_ajaran', e.target.value)}
-        className="select-field"
+        className="select-field w-full lg:w-auto"
       >
         <option value="2026/2027">2026/2027</option>
         <option value="2025/2026">2025/2026</option>
@@ -87,7 +87,7 @@ function FilterBar({ filters, onChange, mapelOptions = [], rombelOptions = [] })
         id="filter-semester"
         value={filters.semester}
         onChange={e => onChange('semester', e.target.value)}
-        className="select-field"
+        className="select-field w-full lg:w-auto"
       >
         <option value="Ganjil">Ganjil</option>
         <option value="Genap">Genap</option>
@@ -97,7 +97,7 @@ function FilterBar({ filters, onChange, mapelOptions = [], rombelOptions = [] })
           id="filter-rombel"
           value={filters.rombel}
           onChange={e => onChange('rombel', e.target.value)}
-          className="select-field"
+          className="select-field w-full lg:w-auto"
         >
           <option value="">-- Pilih Rombel --</option>
           {rombelOptions.map(r => (
@@ -110,7 +110,7 @@ function FilterBar({ filters, onChange, mapelOptions = [], rombelOptions = [] })
           id="filter-mapel"
           value={filters.mata_pelajaran}
           onChange={e => onChange('mata_pelajaran', e.target.value)}
-          className="select-field"
+          className="select-field w-full lg:w-auto"
         >
           <option value="">-- Pilih Mata Pelajaran --</option>
           {mapelOptions.map(m => (
@@ -1283,14 +1283,14 @@ export default function AsesmenPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header Halaman */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-white">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white leading-tight">
             {isMurid ? '📈 Perkembangan Belajarku' : '📋 Modul Asesmen'}
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">
             {isMurid
               ? 'Lihat rekam jejak perkembanganmu dari catatan gurumu.'
               : 'Kelola asesmen Kurikulum Merdeka: diagnostik, formatif, sumatif, dan narasi rapor AI.'}
@@ -1310,13 +1310,13 @@ export default function AsesmenPage() {
 
       {/* Tab Navigation */}
       {tabs.length > 1 && (
-        <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-x-auto">
+        <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-x-auto scrollbar-none -mx-1 px-1">
           {tabs.map(tab => (
             <button
               key={tab.id}
               id={`tab-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 min-w-max px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+              className={`flex-1 min-w-max px-2.5 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
@@ -1329,7 +1329,7 @@ export default function AsesmenPage() {
       )}
 
       {/* Tab Content */}
-      <div className="bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-white/10 p-5 shadow-sm">
+      <div className="bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-white/10 p-3 sm:p-5 shadow-sm">
         {activeTab === 'diagnostik' && isGuru && <TabDiagnostik user={user} filters={filters} />}
         {activeTab === 'profil-nk' && isWaliKelas && <TabProfilNK user={user} filters={filters} />}
         {activeTab === 'formatif' && isGuru && <TabFormatif user={user} filters={filters} />}
@@ -1343,19 +1343,25 @@ export default function AsesmenPage() {
           @apply px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-400 transition-all;
         }
         .textarea-field {
-          @apply px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-400 transition-all;
+          @apply w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-400 transition-all;
         }
         .label-field {
           @apply block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1;
         }
         .btn-primary {
-          @apply flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-emerald-500/40;
+          @apply flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-emerald-500/40;
         }
         .btn-sm-primary {
-          @apply flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed;
+          @apply flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed;
         }
         .btn-sm-secondary {
-          @apply flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-medium transition-all;
+          @apply flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-medium transition-all;
+        }
+        .scrollbar-none {
+          scrollbar-width: none;
+        }
+        .scrollbar-none::-webkit-scrollbar {
+          display: none;
         }
       `}</style>
     </div>
