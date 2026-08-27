@@ -964,6 +964,14 @@ export default function AsesmenPage() {
     };
   });
 
+  // Fetch jadwal guru mapel untuk filter rombel dan mapel yang diajar
+  const { data: jadwalGuru } = useSWR(user?.role === 'Guru Mapel' ? `jadwal_guru_asesmen_${user.id_user}` : null, async () => {
+    const { data } = await supabase.from('jadwal_pelajaran').select('rombel, mata_pelajaran').eq('id_guru', user.id_user);
+    const uniqueRombel = [...new Set((data || []).map(d => d.rombel).filter(Boolean))].sort();
+    const uniqueMapel = [...new Set((data || []).map(d => d.mata_pelajaran).filter(Boolean))].sort();
+    return { rombel: uniqueRombel, mapel: uniqueMapel };
+  });
+
   useEffect(() => {
     if (pengaturan && !filters.init) {
       setFilters(prev => ({
@@ -979,9 +987,20 @@ export default function AsesmenPage() {
   let mapelOptions = masterData?.mapel || [];
   let rombelOptions = masterData?.rombel || [];
 
-  // Filter mapel untuk guru mapel jika perlu (opsional)
-  if (user?.role === 'Guru Mapel' && user?.mapel && user.mapel !== '-') {
-    mapelOptions = mapelOptions.filter(m => user.mapel.includes(m));
+  // Filter mapel dan rombel untuk guru mapel berdasarkan jadwal_pelajaran
+  if (user?.role === 'Guru Mapel') {
+    if (jadwalGuru) {
+      // Filter Rombel
+      const guruRombelStripped = jadwalGuru.rombel.map(r => r.replace(/^Kelas\s+/i, ''));
+      const filteredRombel = (masterData?.rombel || []).filter(opt => guruRombelStripped.includes(opt.replace(/^Kelas\s+/i, '')));
+      rombelOptions = filteredRombel.length > 0 ? filteredRombel : jadwalGuru.rombel.map(r => r.toLowerCase().startsWith('kelas') ? r : `Kelas ${r}`);
+      
+      // Filter Mapel
+      mapelOptions = jadwalGuru.mapel;
+    } else {
+      rombelOptions = [];
+      mapelOptions = [];
+    }
   }
   
   // Filter rombel untuk wali kelas
