@@ -100,9 +100,10 @@ function TabDiagnostik({ user, filters }) {
 
   const { data: muridList = [], isLoading: loadingMurid } = useSWR(swrKeyMurid, async () => {
     const res = await fetch(
-      `/api/asesmen?rombel=${filters.rombel}&semester=${filters.semester}&tahun_ajaran=${filters.tahun_ajaran}&jenis=awal&mapel=${encodeURIComponent(filters.mata_pelajaran || '')}&id_guru=${user.id_user}`
+      `/api/asesmen?rombel=${encodeURIComponent(filters.rombel || '')}&semester=${encodeURIComponent(filters.semester || '')}&tahun_ajaran=${encodeURIComponent(filters.tahun_ajaran || '')}&jenis=awal&mapel=${encodeURIComponent(filters.mata_pelajaran || '')}&id_guru=${user.id_user}`
     );
     const existing = await res.json();
+    const existingArr = Array.isArray(existing) ? existing : [];
 
     // Ambil enrollment murid
     const { data: enrolled } = await supabase
@@ -113,9 +114,9 @@ function TabDiagnostik({ user, filters }) {
       .eq('tahun_ajaran', filters.tahun_ajaran)
       .order('nama_murid', { ascending: true });
 
-    return (enrolled || []).map(m => ({
+    return (Array.isArray(enrolled) ? enrolled : []).map(m => ({
       ...m,
-      existing: existing.find(e => e.id_murid === m.id_murid),
+      existing: existingArr.find(e => e.id_murid === m.id_murid),
     }));
   });
 
@@ -278,11 +279,12 @@ function TabProfilNK({ user, filters }) {
       .eq('semester', filters.semester)
       .order('nama_murid', { ascending: true });
 
-    const res = await fetch(`/api/asesmen/profil-nk?rombel=${filters.rombel}&tahun_ajaran=${filters.tahun_ajaran}`);
+    const res = await fetch(`/api/asesmen/profil-nk?rombel=${encodeURIComponent(filters.rombel || '')}&tahun_ajaran=${encodeURIComponent(filters.tahun_ajaran || '')}`);
     const profilData = await res.json();
-    const profilMap = Object.fromEntries((profilData || []).map(p => [p.id_murid, p]));
+    const profilArr = Array.isArray(profilData) ? profilData : [];
+    const profilMap = Object.fromEntries(profilArr.map(p => [p.id_murid, p]));
 
-    return (enrolled || []).map(m => ({ ...m, profil: profilMap[m.id_murid] }));
+    return (Array.isArray(enrolled) ? enrolled : []).map(m => ({ ...m, profil: profilMap[m.id_murid] }));
   });
 
   const showToast = (msg, type = 'success') => {
@@ -331,8 +333,8 @@ function TabProfilNK({ user, filters }) {
         <div className="flex items-center gap-2 text-slate-400 py-8"><div className="w-5 h-5 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" /><span>Memuat...</span></div>
       ) : (
         <div className="space-y-4">
-          {muridList.map((m, i) => {
-            const r = rows[m.id_murid] || {};
+          {(Array.isArray(muridList) ? muridList : []).map((m, i) => {
+            const r = rows[m?.id_murid] || {};
             return (
               <div key={m.id_murid} className="p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800/50 hover:shadow-sm transition-shadow">
                 <div className="flex items-center justify-between mb-3">
