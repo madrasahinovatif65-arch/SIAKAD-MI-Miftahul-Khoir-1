@@ -972,17 +972,11 @@ function TabFormatif({ user, filters }) {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// TAB 4: Sumatif + Generator AI
-// ──────────────────────────────────────────────────────────────────────────────
-
 function TabSumatif({ user, filters }) {
   const [rows, setRows] = useState({});
-  const [narasi, setNarasi] = useState({});
-  const [status, setStatus] = useState({}); // 'Belum'|'Generating'|'Draft'|'Tersimpan'
   const [saving, setSaving] = useState({});
-  const [generateAllRunning, setGenerateAllRunning] = useState(false);
-  const [generateProgress, setGenerateProgress] = useState({ current: 0, total: 0 });
   const [toast, setToast] = useState(null);
+  const [selectedTP, setSelectedTP] = useState('');
 
   const swrKeyMurid = filters.rombel && filters.semester && filters.tahun_ajaran
     ? `enrollment_${filters.rombel}_${filters.semester}_${filters.tahun_ajaran}`
@@ -999,6 +993,17 @@ function TabSumatif({ user, filters }) {
     return data || [];
   });
 
+  const tingkat = filters.rombel ? filters.rombel.replace(/[A-Z]$/, '').trim() : '';
+  const swrKeyTP = filters.mata_pelajaran && tingkat && filters.tahun_ajaran
+    ? `tp_${filters.mata_pelajaran}_${tingkat}_${filters.tahun_ajaran}`
+    : null;
+
+  const { data: tpList = [], isLoading: loadingTP } = useSWR(swrKeyTP, async () => {
+    const res = await fetch(`/api/asesmen/tp?mapel=${encodeURIComponent(filters.mata_pelajaran)}&tingkat_kelas=${encodeURIComponent(tingkat)}&tahun_ajaran=${filters.tahun_ajaran}`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  });
+
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
@@ -1010,8 +1015,14 @@ function TabSumatif({ user, filters }) {
       showToast('Isi skor terlebih dahulu.', 'error');
       return;
     }
+    if (!selectedTP) {
+      showToast('Pilih Tujuan Pembelajaran (TP) terlebih dahulu.', 'error');
+      return;
+    }
+    
     setSaving(prev => ({ ...prev, [murid.id_murid]: true }));
     try {
+      const selectedTPObj = tpList.find(t => t.id === selectedTP);
       const res = await fetch('/api/asesmen', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1025,6 +1036,8 @@ function TabSumatif({ user, filters }) {
           jenis: 'sumatif',
           mata_pelajaran: filters.mata_pelajaran,
           skor: parseFloat(skor),
+          id_tp: selectedTP,
+          tujuan_pembelajaran: selectedTPObj?.tujuan || null
         }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
@@ -1036,92 +1049,13 @@ function TabSumatif({ user, filters }) {
     }
   };
 
-  /** Generate narasi untuk 1 murid */
-  const generateSatu = async (murid) => {
-    setStatus(prev => ({ ...prev, [murid.id_murid]: 'Generating' }));
-    try {
-      const res = await fetch('/api/asesmen/generate-rapor', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id_murid: murid.id_murid,
-          nama_murid: murid.nama_murid,
-          rombel: filters.rombel,
-          mata_pelajaran: filters.mata_pelajaran,
-          semester: filters.semester,
-          tahun_ajaran: filters.tahun_ajaran,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setNarasi(prev => ({ ...prev, [murid.id_murid]: data.narasi }));
-      setStatus(prev => ({ ...prev, [murid.id_murid]: 'Draft' }));
-    } catch (err) {
-      showToast(`${murid.nama_murid}: ${err.message}`, 'error');
-      setStatus(prev => ({ ...prev, [murid.id_murid]: 'Belum' }));
-    }
-  };
-
-  /**
-   * Generate semua murid secara SEKUENSIAL (for...of + await)
-   * BUKAN Promise.all() — untuk menghindari timeout Vercel 15 detik
-   */
-  const handleGenerateAll = async () => {
-    setGenerateAllRunning(true);
-    setGenerateProgress({ current: 0, total: muridList.length });
-    for (let i = 0; i < muridList.length; i++) {
-      setGenerateProgress({ current: i + 1, total: muridList.length });
-      await generateSatu(muridList[i]);
-    }
-    setGenerateAllRunning(false);
-    showToast(`Narasi untuk ${muridList.length} murid berhasil di-generate!`);
-  };
-
-  const handleSaveNarasi = async (murid) => {
-    const narasiText = narasi[murid.id_murid];
-    if (!narasiText) return;
-    setSaving(prev => ({ ...prev, [`narasi_${murid.id_murid}`]: true }));
-    try {
-      // Ambil ID asesmen sumatif murid ini (ambil yang terbaru)
-      const { data: existing } = await supabase
-        .from('asesmen')
-        .select('id')
-        .eq('id_murid', murid.id_murid)
-        .eq('jenis', 'sumatif')
-        .eq('semester', filters.semester)
-        .eq('mata_pelajaran', filters.mata_pelajaran)
-        .eq('tahun_ajaran', filters.tahun_ajaran)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (existing) {
-        const res = await fetch(`/api/asesmen?id=${existing.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ narasi_rapor: narasiText }),
-        });
-        if (!res.ok) throw new Error((await res.json()).error);
-      }
-      setStatus(prev => ({ ...prev, [murid.id_murid]: 'Tersimpan' }));
-      showToast(`Narasi ${murid.nama_murid} berhasil disimpan ke database.`);
-    } catch (err) {
-      showToast(err.message, 'error');
-    } finally {
-      setSaving(prev => ({ ...prev, [`narasi_${murid.id_murid}`]: false }));
-    }
-  };
-
-  const handleCopy = (murid) => {
-    navigator.clipboard.writeText(narasi[murid.id_murid] || '');
-    showToast(`Narasi ${murid.nama_murid} disalin ke clipboard!`);
-  };
+  const needsFilter = !filters.rombel || !filters.mata_pelajaran;
 
   return (
     <div>
       <SectionHeader
-        title="Nilai Sumatif & Narasi Rapor AI ✨"
-        subtitle="Input nilai akhir per murid. Generate narasi rapor berbasis AI dari semua TP yang dipelajari semester ini."
+        title="Nilai Sumatif"
+        subtitle="Input nilai akhir sumatif per murid berdasarkan Tujuan Pembelajaran yang diujikan."
       />
       {toast && (
         <div className={`mb-4 p-3 rounded-lg text-sm font-medium ${toast.type === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'}`}>
@@ -1129,47 +1063,48 @@ function TabSumatif({ user, filters }) {
         </div>
       )}
 
-      {/* Tombol Generate Semua */}
-      {muridList.length > 0 && (
-        <div className="mb-5 flex items-center justify-between p-4 bg-gradient-to-r from-violet-50 to-fuchsia-50 dark:from-violet-500/10 dark:to-fuchsia-500/10 rounded-xl border border-violet-200 dark:border-violet-500/20">
-          <div>
-            <p className="font-semibold text-violet-800 dark:text-violet-200 text-sm">⚡ Generate Semua Sekaligus</p>
-            {generateAllRunning && (
-              <p className="text-xs text-violet-600 dark:text-violet-400 mt-0.5">
-                Memproses {generateProgress.current}/{generateProgress.total} murid...
-              </p>
-            )}
+      {/* TP Selector */}
+      <div className="mb-5 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-500/30">
+        <label className="label-field text-blue-700 dark:text-blue-300">📌 Pilih Tujuan Pembelajaran (Wajib)</label>
+        {loadingTP ? (
+          <div className="flex items-center gap-2 text-blue-500 text-sm mt-1">
+            <div className="w-4 h-4 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
+            <span>Memuat daftar TP...</span>
           </div>
-          <button
-            id="btn-generate-all"
-            onClick={handleGenerateAll}
-            disabled={generateAllRunning}
-            className="btn-primary bg-violet-600 hover:bg-violet-700 focus:ring-violet-500"
+        ) : tpList.length === 0 ? (
+          <p className="text-sm text-slate-400 mt-1">
+            {filters.mata_pelajaran
+              ? 'Belum ada Tujuan Pembelajaran untuk mapel ini. Tambahkan via tab Formatif.'
+              : 'Pilih Mata Pelajaran di filter terlebih dahulu.'}
+          </p>
+        ) : (
+          <select
+            id="select-tp-sumatif"
+            value={selectedTP}
+            onChange={e => setSelectedTP(e.target.value)}
+            className="select-field w-full mt-1"
           >
-            {generateAllRunning ? (
-              <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span>{generateProgress.current}/{generateProgress.total}</span></>
-            ) : `✨ Generate ${muridList.length} Murid`}
-          </button>
-        </div>
-      )}
+            <option value="">-- Pilih Tujuan Pembelajaran --</option>
+            {tpList.map(tp => <option key={tp.id} value={tp.id}>{tp.tujuan}</option>)}
+          </select>
+        )}
+      </div>
 
-      <div className="space-y-4">
-        {muridList.map((m, i) => {
-          const st = status[m.id_murid] || 'Belum';
-          const narasiText = narasi[m.id_murid] || '';
-          return (
+      {needsFilter ? (
+        <div className="text-center py-12 text-slate-400 dark:text-slate-500">
+          <svg className="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
+          <p>Isi Rombel dan Mata Pelajaran di filter untuk memuat daftar murid.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {muridList.map((m, i) => (
             <div key={m.id_murid} className="p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800/50 hover:shadow-sm transition-shadow">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-400">{i + 1}.</span>
                   <span className="font-semibold text-slate-700 dark:text-slate-200">{m.nama_murid}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[st === 'Generating' ? 'Generating' : st]}`}>
-                    {st === 'Generating' ? '⏳ Generating...' : st}
-                  </span>
                 </div>
                 <div className="flex gap-2">
-                  {/* Input Skor */}
                   <input
                     id={`skor-${m.id_murid}`}
                     type="number"
@@ -1178,64 +1113,22 @@ function TabSumatif({ user, filters }) {
                     placeholder="Skor"
                     value={rows[m.id_murid]?.skor ?? ''}
                     onChange={e => setRows(prev => ({ ...prev, [m.id_murid]: { ...prev[m.id_murid], skor: e.target.value } }))}
-                    className="w-20 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-700 text-sm text-center"
+                    className="w-20 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-700 text-sm text-center focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
                   />
                   <button
                     id={`btn-save-skor-${m.id_murid}`}
                     onClick={() => handleSaveSkor(m)}
-                    disabled={saving[m.id_murid]}
+                    disabled={saving[m.id_murid] || !selectedTP}
                     className="btn-sm-primary"
                   >
-                    {saving[m.id_murid] ? '...' : '💾'}
-                  </button>
-                  <button
-                    id={`btn-generate-${m.id_murid}`}
-                    onClick={() => generateSatu(m)}
-                    disabled={st === 'Generating'}
-                    className="btn-sm-primary bg-violet-600 hover:bg-violet-700"
-                  >
-                    ✨ Generate
+                    {saving[m.id_murid] ? '...' : '💾 Simpan'}
                   </button>
                 </div>
               </div>
-
-              {/* Narasi Area */}
-              {(narasiText || st === 'Generating') && (
-                <div className="mt-3">
-                  <textarea
-                    id={`narasi-${m.id_murid}`}
-                    rows={4}
-                    placeholder="Narasi akan muncul di sini setelah generate..."
-                    value={narasiText}
-                    onChange={e => {
-                      setNarasi(prev => ({ ...prev, [m.id_murid]: e.target.value }));
-                      setStatus(prev => ({ ...prev, [m.id_murid]: 'Draft' }));
-                    }}
-                    className="textarea-field w-full"
-                  />
-                  <div className="flex gap-2 mt-2 justify-end">
-                    <button
-                      id={`btn-copy-${m.id_murid}`}
-                      onClick={() => handleCopy(m)}
-                      className="btn-sm-secondary"
-                    >
-                      📋 Salin
-                    </button>
-                    <button
-                      id={`btn-save-narasi-${m.id_murid}`}
-                      onClick={() => handleSaveNarasi(m)}
-                      disabled={saving[`narasi_${m.id_murid}`]}
-                      className="btn-sm-primary"
-                    >
-                      {saving[`narasi_${m.id_murid}`] ? '...' : '💾 Simpan Narasi'}
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1414,7 +1307,7 @@ export default function AsesmenPage() {
       { id: 'diagnostik', label: '📋 Diagnostik' },
       ...(isWaliKelas ? [{ id: 'profil-nk', label: '🧠 Profil Murid' }] : []),
       { id: 'formatif', label: '📝 Jurnal Formatif' },
-      { id: 'sumatif', label: '✨ Sumatif & Rapor AI' },
+      { id: 'sumatif', label: 'Sumatif' },
     ] : []),
     ...(isMurid ? [{ id: 'perkembangan', label: '📈 Perkembangan Saya' }] : []),
   ];
@@ -1425,12 +1318,12 @@ export default function AsesmenPage() {
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white leading-tight">
-            {isMurid ? '📈 Perkembangan Belajarku' : '📋 Modul Asesmen'}
+            {isMurid ? '📈 Perkembangan Belajarku' : 'Modul Asesmen'}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">
             {isMurid
               ? 'Lihat rekam jejak perkembanganmu dari catatan gurumu.'
-              : 'Kelola asesmen Kurikulum Merdeka: diagnostik, formatif, sumatif, dan narasi rapor AI.'}
+              : 'Kelola asesmen Kurikulum Merdeka: diagnostik, formatif, dan sumatif.'}
           </p>
         </div>
       </div>
