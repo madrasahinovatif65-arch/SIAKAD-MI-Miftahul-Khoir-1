@@ -488,19 +488,35 @@ function TabDiagnostik({ user, filters }) {
 
       {/* ── Modal Editor Jawaban ── */}
       {editorModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col"
+            style={{ maxHeight: 'min(90vh, 700px)', height: 'auto' }}>
+
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-200 shrink-0">
               <div>
-                <h3 className="font-bold text-slate-800 text-lg">👁️ Koreksi Jawaban</h3>
-                <p className="text-sm text-slate-500">{editorModal.murid.nama_murid} — {filters.rombel}</p>
+                <h3 className="font-bold text-slate-800 text-base sm:text-lg">
+                  {editorModal.isNew ? '📝 Input Jawaban Manual' : '👁️ Koreksi Jawaban'}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500">
+                  {editorModal.murid.nama_murid} — {filters.rombel}
+                  {editorModal.isNew && (
+                    <span className="ml-2 text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">Input oleh guru</span>
+                  )}
+                </p>
               </div>
-              <button onClick={() => setEditorModal(null)} className="text-slate-400 hover:text-slate-600 text-2xl leading-none">×</button>
+              <button onClick={() => setEditorModal(null)} className="text-slate-400 hover:text-slate-600 text-2xl leading-none ml-4 shrink-0">×</button>
             </div>
 
-            {/* Body: daftar soal */}
-            <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
+            {/* Info banner untuk mode input baru */}
+            {editorModal.isNew && (
+              <div className="px-4 sm:px-6 py-2 bg-blue-50 border-b border-blue-100 shrink-0">
+                <p className="text-xs text-blue-700">📋 Bacakan soal kepada murid dan isikan jawaban mereka di bawah ini. Kunci jawaban disembunyikan.</p>
+              </div>
+            )}
+
+            {/* Body: daftar soal — scrollable */}
+            <div className="overflow-y-auto flex-1 px-4 sm:px-6 py-4 space-y-3">
               {editorModal.soalList.map((soal, idx) => {
                 const BADGE_COLOR = {
                   literasi: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -508,57 +524,73 @@ function TabDiagnostik({ user, filters }) {
                   reasoning: 'bg-violet-50 text-violet-700 border-violet-200',
                 };
                 return (
-                  <div key={soal.id} className="border border-slate-200 rounded-xl p-4">
-                    <div className="flex items-start gap-3">
-                      <span className="text-slate-400 text-sm font-medium mt-0.5">{idx + 1}.</span>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${BADGE_COLOR[soal.dimensi] || 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+                  <div key={soal.id} className="border border-slate-200 rounded-xl p-3 sm:p-4">
+                    <div className="flex items-start gap-2 sm:gap-3">
+                      <span className="text-slate-400 text-xs sm:text-sm font-medium mt-1 shrink-0 w-5 text-right">{idx + 1}.</span>
+                      <div className="flex-1 min-w-0">
+                        {/* Badge dimensi + status (hanya tampil jika bukan mode baru) */}
+                        <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                          <span className={`text-xs px-2 py-0.5 rounded-full border font-medium shrink-0 ${BADGE_COLOR[soal.dimensi] || 'bg-slate-50 text-slate-600 border-slate-200'}`}>
                             {soal.dimensi}
                           </span>
                           {soal.tipe_jawaban === 'fill' && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200 font-medium">✏️ Isian (AI)</span>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200 font-medium shrink-0">✏️ Isian</span>
                           )}
-                          {soal.is_benar
-                            ? <span className="text-xs text-emerald-600 font-semibold">✅ Benar</span>
-                            : <span className="text-xs text-red-500 font-semibold">❌ Salah</span>
-                          }
+                          {/* Hanya tampil status benar/salah jika bukan mode input baru */}
+                          {!editorModal.isNew && (
+                            soal.is_benar
+                              ? <span className="text-xs text-emerald-600 font-semibold">✅ Benar</span>
+                              : <span className="text-xs text-red-500 font-semibold">❌ Salah</span>
+                          )}
                         </div>
-                        <p className="text-sm font-medium text-slate-800 mb-3">{soal.teks_pertanyaan}</p>
+                        <p className="text-sm font-medium text-slate-800 mb-3 leading-snug">{soal.teks_pertanyaan}</p>
 
                         {soal.tipe_jawaban === 'fill' ? (
-                          <div className="space-y-1">
-                            <label className="text-xs text-slate-500">Jawaban murid (edit jika perlu):</label>
+                          <div className="space-y-1.5">
+                            <label className="text-xs text-slate-500">
+                              {editorModal.isNew ? 'Jawaban murid:' : 'Jawaban murid (edit jika perlu):'}
+                            </label>
                             <input
                               type="text"
                               value={editorJawaban[soal.id] || ''}
                               onChange={e => setEditorJawaban(p => ({ ...p, [soal.id]: e.target.value }))}
                               className="input-field text-sm w-full"
-                              placeholder="Ketik jawaban murid..."
+                              placeholder={editorModal.isNew ? 'Ketik jawaban murid...' : 'Edit jawaban murid...'}
                             />
-                            <p className="text-xs text-slate-400">Kunci: <em>{soal.jawaban_benar}</em></p>
+                            {/* Kunci hanya tampil saat mode koreksi (bukan input baru) */}
+                            {!editorModal.isNew && (
+                              <p className="text-xs text-slate-400">Kunci: <em>{soal.jawaban_benar}</em></p>
+                            )}
                           </div>
                         ) : (
                           <div className="space-y-1.5">
                             {(soal.opsi_jawaban || []).map(opsi => {
                               const dipilih = editorJawaban[soal.id] === opsi.label;
+                              // Mode input baru: tampilan netral (tidak berwarna benar/salah)
+                              // Mode koreksi: tampil warna benar/salah berdasarkan is_correct
+                              const bgClass = dipilih
+                                ? editorModal.isNew
+                                  ? 'bg-blue-50 border-blue-400 text-blue-900'
+                                  : opsi.is_correct
+                                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                                    : 'bg-red-50 border-red-300 text-red-800'
+                                : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100';
                               return (
-                                <label key={opsi.label} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer text-sm transition-colors ${
-                                  dipilih
-                                    ? opsi.is_correct ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-red-50 border-red-300 text-red-800'
-                                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                                }`}>
+                                <label key={opsi.label} className={`flex items-center gap-2 sm:gap-3 px-3 py-2 rounded-lg border cursor-pointer text-sm transition-colors ${bgClass}`}>
                                   <input
                                     type="radio"
                                     name={`soal-${soal.id}`}
                                     value={opsi.label}
                                     checked={dipilih}
                                     onChange={() => setEditorJawaban(p => ({ ...p, [soal.id]: opsi.label }))}
-                                    className="accent-emerald-600"
+                                    className="accent-blue-600 shrink-0"
                                   />
                                   {soal.tipe_jawaban === 'emoji' && <span className="text-xl">{opsi.emoji}</span>}
-                                  <span>{opsi.label}</span>
-                                  {opsi.is_correct && <span className="ml-auto text-xs text-emerald-600">✓ Kunci</span>}
+                                  <span className="flex-1">{opsi.label}</span>
+                                  {/* Kunci hanya muncul di mode koreksi, bukan input baru */}
+                                  {!editorModal.isNew && opsi.is_correct && (
+                                    <span className="ml-auto text-xs text-emerald-600 shrink-0">✓ Kunci</span>
+                                  )}
                                 </label>
                               );
                             })}
@@ -571,7 +603,7 @@ function TabDiagnostik({ user, filters }) {
               })}
 
               {/* Catatan Guru */}
-              <div className="border border-slate-200 rounded-xl p-4">
+              <div className="border border-slate-200 rounded-xl p-3 sm:p-4">
                 <label className="text-sm font-medium text-slate-700 mb-2 block">💬 Catatan Guru (opsional)</label>
                 <textarea
                   value={editorNote}
@@ -584,10 +616,13 @@ function TabDiagnostik({ user, filters }) {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
-              <button onClick={() => setEditorModal(null)} className="btn-secondary text-sm">Batal</button>
-              <button onClick={handleSaveKoreksi} disabled={savingEditor} className="btn-primary text-sm">
-                {savingEditor ? '⏳ Menyimpan...' : '🔄 Simpan & Hitung Ulang Nilai'}
+            <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-slate-200 flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 shrink-0">
+              <button onClick={() => setEditorModal(null)} className="btn-secondary text-sm order-2 sm:order-1">Batal</button>
+              <button onClick={handleSaveKoreksi} disabled={savingEditor} className="btn-primary text-sm order-1 sm:order-2">
+                {savingEditor
+                  ? '⏳ Menyimpan...'
+                  : editorModal.isNew ? '✅ Simpan & Nilai Jawaban' : '🔄 Simpan & Hitung Ulang Nilai'
+                }
               </button>
             </div>
           </div>
