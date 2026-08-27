@@ -223,9 +223,17 @@ export default function AsesmenKognitifInteraktif({ user, tahunAjaran, semester 
   const [isPlaying, setIsPlaying] = useState(false);
   const autoPlayedRef = useRef(new Set());
 
-  // Tentukan fase berdasarkan rombel/kelas murid
-  const kelas = user?.kelas || user?.rombel?.replace(/[A-Z]/g, '').trim();
-  const fase = parseInt(kelas) <= 2 ? 'A' : parseInt(kelas) <= 4 ? 'B' : 'C';
+  // Tentukan fase berdasarkan angka kelas di rombel (misal: "Kelas 2B" -> "2")
+  const getFase = (rombelStr) => {
+    if (!rombelStr) return 'C';
+    const match = String(rombelStr).match(/\d+/);
+    if (!match) return 'C'; // Fallback
+    const num = parseInt(match[0], 10);
+    if (num <= 2) return 'A';
+    if (num <= 4) return 'B';
+    return 'C';
+  };
+  const fase = getFase(user?.rombel || user?.kelas);
 
   // Muat soal dari API
   const mulaiTes = async () => {
