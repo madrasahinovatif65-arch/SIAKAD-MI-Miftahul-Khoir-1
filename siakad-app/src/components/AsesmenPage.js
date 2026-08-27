@@ -371,6 +371,13 @@ function TabProfilNK({ user, filters }) {
     return { filled, total: NK_DIMENSI.length };
   };
 
+  // Smooth scroll ke kartu murid berdasarkan id
+  const jumpToMurid = (id_murid) => {
+    if (!id_murid) return;
+    const el = document.getElementById(`nk-card-${id_murid}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
     <div>
       <SectionHeader
@@ -410,6 +417,39 @@ function TabProfilNK({ user, filters }) {
         </div>
       ) : (
         <div className="space-y-5">
+
+          {/* ── Sticky jump bar ── */}
+          <div className="sticky top-0 z-10 -mx-1 px-1 py-2 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-sm border-b border-slate-200 dark:border-white/10 mb-2">
+            <div className="flex items-center gap-3">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                🎯 Loncat ke:
+              </label>
+              <select
+                id="jump-to-murid"
+                defaultValue=""
+                onChange={e => { jumpToMurid(e.target.value); e.target.value = ''; }}
+                className="flex-1 select-field text-sm py-1.5"
+              >
+                <option value="">— Pilih nama murid —</option>
+                {(Array.isArray(muridList) ? muridList : []).map((m, i) => {
+                  const { filled, total } = completenessOf(m);
+                  const isComplete = filled === total;
+                  return (
+                    <option key={m.id_murid} value={m.id_murid}>
+                      {isComplete ? '✓' : `${i + 1}.`} {m.nama_murid} {isComplete ? '(Lengkap)' : `(${filled}/${total})`}
+                    </option>
+                  );
+                })}
+              </select>
+              {/* Progress ringkas */}
+              <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                {(Array.isArray(muridList) ? muridList : []).filter(m => completenessOf(m).filled === NK_DIMENSI.length).length}
+                /{muridList.length} selesai
+              </span>
+            </div>
+          </div>
+
+
           {(Array.isArray(muridList) ? muridList : []).map((m, i) => {
             const { filled, total } = completenessOf(m);
             const isComplete = filled === total;
@@ -417,8 +457,9 @@ function TabProfilNK({ user, filters }) {
 
             return (
               <div
+                id={`nk-card-${m.id_murid}`}
                 key={m.id_murid}
-                className={`rounded-xl border transition-all ${
+                className={`rounded-xl border transition-all scroll-mt-16 ${
                   isComplete
                     ? 'border-emerald-300 dark:border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-500/5'
                     : 'border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800/50'
