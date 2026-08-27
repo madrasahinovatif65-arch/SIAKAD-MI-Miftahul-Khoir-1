@@ -16,12 +16,12 @@ export default function AsesmenKognitifPage() {
       // Ambil tahun ajaran aktif dari pengaturan_sekolah
       const { data: settings } = await supabase
         .from('pengaturan_sekolah')
-        .select('tahun_ajaran_aktif, semester_aktif')
+        .select('tahun_ajaran, semester')
         .limit(1)
         .maybeSingle();
 
       if (settings) {
-        setMeta({ tahunAjaran: settings.tahun_ajaran_aktif, semester: settings.semester_aktif });
+        setMeta({ tahunAjaran: settings.tahun_ajaran, semester: settings.semester });
       }
       setLoadingMeta(false);
     })();
