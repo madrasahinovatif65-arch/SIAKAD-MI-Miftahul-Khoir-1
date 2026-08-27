@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import useSWR from 'swr';
 import { supabase } from '@/lib/supabase';
@@ -33,7 +33,7 @@ function SectionHeader({ title, subtitle }) {
   );
 }
 
-function FilterBar({ filters, onChange, mapelOptions = [] }) {
+function FilterBar({ filters, onChange, mapelOptions = [], rombelOptions = [] }) {
   return (
     <div className="flex flex-wrap gap-3 mb-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-white/10">
       <select
@@ -55,24 +55,30 @@ function FilterBar({ filters, onChange, mapelOptions = [] }) {
         <option value="Genap">Genap</option>
       </select>
       {filters.rombel !== undefined && (
-        <input
+        <select
           id="filter-rombel"
-          type="text"
-          placeholder="Rombel (cth: 4A)"
           value={filters.rombel}
           onChange={e => onChange('rombel', e.target.value)}
           className="select-field"
-        />
+        >
+          <option value="">-- Pilih Rombel --</option>
+          {rombelOptions.map(r => (
+            <option key={r} value={r}>{r}</option>
+          ))}
+        </select>
       )}
       {filters.mata_pelajaran !== undefined && (
-        <input
+        <select
           id="filter-mapel"
-          type="text"
-          placeholder="Mata Pelajaran"
           value={filters.mata_pelajaran}
           onChange={e => onChange('mata_pelajaran', e.target.value)}
           className="select-field"
-        />
+        >
+          <option value="">-- Pilih Mata Pelajaran --</option>
+          {mapelOptions.map(m => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
       )}
     </div>
   );
@@ -932,11 +938,56 @@ export default function AsesmenPage() {
   const [activeTab, setActiveTab] = useState(isMurid ? 'perkembangan' : 'diagnostik');
 
   const [filters, setFilters] = useState({
-    tahun_ajaran: '2026/2027',
-    semester: 'Ganjil',
+    tahun_ajaran: '',
+    semester: '',
     rombel: '',
     mata_pelajaran: '',
+    init: false
   });
+
+  // Fetch Pengaturan Sekolah untuk default tahun dan semester
+  const { data: pengaturan } = useSWR('pengaturan_sekolah', async () => {
+    const { data } = await supabase.from('pengaturan_sekolah').select('tahun_ajaran, semester').limit(1).maybeSingle();
+    return data;
+  });
+
+  // Fetch Master Data untuk dropdown rombel dan mata pelajaran
+  const { data: masterData } = useSWR('master_asesmen', async () => {
+    const [mapelRes, rombelRes] = await Promise.all([
+      supabase.from('master_mapel').select('nama_mapel').order('nama_mapel'),
+      supabase.from('master_user').select('rombel').eq('role', 'Murid'),
+    ]);
+    const uniqueRombel = [...new Set((rombelRes.data || []).map(d => d.rombel).filter(Boolean))].sort();
+    return { 
+      mapel: (mapelRes.data || []).map(m => m.nama_mapel), 
+      rombel: uniqueRombel 
+    };
+  });
+
+  useEffect(() => {
+    if (pengaturan && !filters.init) {
+      setFilters(prev => ({
+        ...prev,
+        tahun_ajaran: pengaturan.tahun_ajaran || '2026/2027',
+        semester: pengaturan.semester || 'Ganjil',
+        init: true
+      }));
+    }
+  }, [pengaturan, filters.init]);
+
+  // Siapkan options dropdown
+  let mapelOptions = masterData?.mapel || [];
+  let rombelOptions = masterData?.rombel || [];
+
+  // Filter mapel untuk guru mapel jika perlu (opsional)
+  if (user?.role === 'Guru Mapel' && user?.mapel && user.mapel !== '-') {
+    mapelOptions = mapelOptions.filter(m => user.mapel.includes(m));
+  }
+  
+  // Filter rombel untuk wali kelas
+  if (isWaliKelas && user?.rombel && user.rombel !== '-') {
+    rombelOptions = [user.rombel];
+  }
 
   const handleFilterChange = useCallback((key, val) => {
     setFilters(prev => ({ ...prev, [key]: val }));
@@ -973,7 +1024,12 @@ export default function AsesmenPage() {
 
       {/* Filter Bar (hanya untuk guru) */}
       {isGuru && (
-        <FilterBar filters={filters} onChange={handleFilterChange} />
+        <FilterBar 
+          filters={filters} 
+          onChange={handleFilterChange} 
+          mapelOptions={mapelOptions}
+          rombelOptions={rombelOptions}
+        />
       )}
 
       {/* Tab Navigation */}
