@@ -66,8 +66,8 @@ const NK_DIMENSI = [
 // ─────────────────────────────────────────────────────────────
 function DisclaimerNKModal({ onMulai }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-md w-full p-7">
+    <div className="flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl max-w-md w-full p-7 border border-slate-200 dark:border-white/10">
         <div className="text-center mb-5">
           <div className="w-16 h-16 bg-violet-100 dark:bg-violet-500/20 rounded-2xl flex items-center justify-center mx-auto mb-3 text-3xl">
             🛡️
