@@ -68,7 +68,7 @@ function DisclaimerModal({ onMulai }) {
           </div>
           <div className="flex gap-3 items-start p-3 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20">
             <span className="text-lg shrink-0">🔊</span>
-            <p>Setiap pertanyaan akan dibacakan oleh aplikasi. Anak cukup mendengarkan dan memilih jawaban.</p>
+            <p>Tekan ikon <strong>🔊</strong> untuk mendengarkan pertanyaan kapan saja. Anak tidak wajib mendengarkan audio, bisa langsung membaca teks pertanyaan.</p>
           </div>
         </div>
 
@@ -221,7 +221,6 @@ export default function AsesmenKognitifInteraktif({ user, tahunAjaran, semester 
   const [hasilAkhir, setHasilAkhir] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
-  const autoPlayedRef = useRef(new Set());
 
   // Tentukan fase berdasarkan angka kelas di rombel (misal: "Kelas 2B" -> "2")
   const getFase = (rombelStr) => {
@@ -278,14 +277,7 @@ export default function AsesmenKognitifInteraktif({ user, tahunAjaran, semester 
 
   const soalSekarang = soalList[indeks];
 
-  // Auto-play audio setiap soal baru tampil
-  useEffect(() => {
-    if (tahap !== 'tes' || !soalSekarang) return;
-    if (autoPlayedRef.current.has(soalSekarang.id)) return;
-    autoPlayedRef.current.add(soalSekarang.id);
-    setIsPlaying(true);
-    speakText(soalSekarang.teks_pertanyaan, () => setIsPlaying(false));
-  }, [tahap, soalSekarang]);
+  // Audio TIDAK autoplay — hanya diputar saat murid menekan tombol 🔊
 
   const handlePilih = (label) => {
     setJawaban(prev => ({ ...prev, [soalSekarang.id]: label }));

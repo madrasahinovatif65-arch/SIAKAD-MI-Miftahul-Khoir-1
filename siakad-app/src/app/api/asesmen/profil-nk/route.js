@@ -29,7 +29,7 @@ export async function GET(request) {
   try {
     let query = supabase
       .from('profil_non_kognitif')
-      .select('id_murid, sosial_emosional, dukungan_belajar, minat_dominan, catatan_khusus, tahun_ajaran, rombel');
+      .select('id_murid, sosial_emosional, dukungan_belajar, minat_dominan, catatan_khusus, tahun_ajaran, rombel, diisi_oleh');
 
     if (rombel)       query = query.eq('rombel', rombel);
     if (tahun_ajaran) query = query.eq('tahun_ajaran', tahun_ajaran);
@@ -56,6 +56,7 @@ export async function POST(request) {
       dukungan_belajar,
       minat_dominan,
       catatan_khusus,
+      diisi_oleh,       // 'murid' | 'guru' (opsional, default null)
     } = body;
 
     if (!id_murid || !id_wali_kelas || !rombel || !tahun_ajaran) {
@@ -99,6 +100,7 @@ export async function POST(request) {
           dukungan_belajar: dukungan_belajar || null,
           minat_dominan:    minat_dominan || null,
           catatan_khusus:   catatan_khusus || null,
+          diisi_oleh:       diisi_oleh || null,
         },
         { onConflict: 'id_murid,tahun_ajaran' }
       )

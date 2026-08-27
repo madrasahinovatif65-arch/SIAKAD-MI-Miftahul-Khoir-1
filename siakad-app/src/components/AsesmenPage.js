@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import useSWR from 'swr';
 import { supabase } from '@/lib/supabase';
+import AsesmenNKInteraktif from './AsesmenNKInteraktif';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Sub-komponen & Helpers
@@ -893,7 +894,14 @@ function TabProfilNK({ user, filters }) {
                       {isComplete ? '✓' : i + 1}
                     </div>
                     <div>
-                      <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">{m.nama_murid}</p>
+                      <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm flex items-center gap-2">
+                        {m.nama_murid}
+                        {m.profil?.diisi_oleh === 'murid' && (
+                          <span className="text-xs px-2 py-0.5 bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 rounded-full font-medium">
+                            🧒 Diisi murid
+                          </span>
+                        )}
+                      </p>
                       <p className="text-xs text-slate-400">
                         {filled}/{total} dimensi terisi
                         {isComplete && <span className="ml-1 text-emerald-500 font-medium">· Lengkap</span>}
@@ -1381,10 +1389,13 @@ function TabSumatif({ user, filters }) {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// TAB 5: Perkembangan Saya (Murid — Read-Only)
+// ──────────────────────────────────────────────────────────────────────────────
+// TAB 5: Perkembangan Saya (Murid) — dua sub-tab: Profil NK + Riwayat Akademik
 // ──────────────────────────────────────────────────────────────────────────────
 
-function TabPerkembanganMurid({ user }) {
+function TabPerkembanganMurid({ user, tahunAjaran }) {
+  const [subTab, setSubTab] = useState('profil'); // 'profil' | 'akademik'
+
   const { data: asesmenList = [], isLoading } = useSWR(
     user ? `asesmen_murid_${user.id_user}` : null,
     async () => {
@@ -1406,53 +1417,88 @@ function TabPerkembanganMurid({ user }) {
     <div>
       <SectionHeader
         title="📈 Perkembangan Belajarku"
-        subtitle="Rekam jejak perkembangan akademikmu dari setiap semester. Hanya kamu yang bisa melihat ini."
+        subtitle="Isi profil belajarmu dan lihat rekam jejak akademikmu."
       />
-      {isLoading ? (
-        <div className="flex items-center gap-2 text-slate-400 py-8"><div className="w-5 h-5 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" /></div>
-      ) : Object.keys(grouped).length === 0 ? (
-        <div className="text-center py-16 text-slate-400">
-          <p className="text-4xl mb-3">📚</p>
-          <p>Belum ada data perkembangan untuk ditampilkan.</p>
-        </div>
-      ) : (
-        <div className="space-y-8">
-          {Object.entries(grouped).map(([period, data]) => (
-            <div key={period}>
-              <h3 className="font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-                {period}
-              </h3>
-              {data.sumatif.length > 0 && (
-                <div className="mb-4">
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Narasi Rapor</p>
-                  {data.sumatif.map(s => (
-                    <div key={s.id} className="p-4 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10 rounded-xl border border-emerald-200 dark:border-emerald-500/20 mb-2">
-                      <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">{s.mata_pelajaran}</p>
-                      <p className="text-slate-700 dark:text-slate-200 text-sm leading-relaxed">{s.narasi_rapor}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {data.formatif.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Catatan Guru</p>
-                  <div className="space-y-2">
-                    {data.formatif.slice(0, 5).map(f => (
-                      <div key={f.id} className="flex gap-3 p-3 bg-white dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-white/10">
-                        <div className="w-1 rounded-full bg-sky-400 shrink-0" />
-                        <div>
-                          <p className="text-xs text-slate-400 mb-0.5">{f.mata_pelajaran} · {f.tanggal}</p>
-                          <p className="text-sm text-slate-600 dark:text-slate-300">{f.catatan_guru}</p>
-                        </div>
+
+      {/* Sub-tab navigasi */}
+      <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-5">
+        <button
+          onClick={() => setSubTab('profil')}
+          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+            subTab === 'profil'
+              ? 'bg-white dark:bg-slate-700 text-violet-600 dark:text-violet-400 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+          }`}
+        >
+          🧠 Profil Saya
+        </button>
+        <button
+          onClick={() => setSubTab('akademik')}
+          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+            subTab === 'akademik'
+              ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+          }`}
+        >
+          📚 Riwayat Akademik
+        </button>
+      </div>
+
+      {/* Profil NK Interaktif */}
+      {subTab === 'profil' && (
+        <AsesmenNKInteraktif user={user} tahunAjaran={tahunAjaran} />
+      )}
+
+      {/* Riwayat Akademik */}
+      {subTab === 'akademik' && (
+        isLoading ? (
+          <div className="flex items-center gap-2 text-slate-400 py-8">
+            <div className="w-5 h-5 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+          </div>
+        ) : Object.keys(grouped).length === 0 ? (
+          <div className="text-center py-16 text-slate-400">
+            <p className="text-4xl mb-3">📚</p>
+            <p>Belum ada data perkembangan untuk ditampilkan.</p>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {Object.entries(grouped).map(([period, data]) => (
+              <div key={period}>
+                <h3 className="font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                  {period}
+                </h3>
+                {data.sumatif.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Narasi Rapor</p>
+                    {data.sumatif.map(s => (
+                      <div key={s.id} className="p-4 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10 rounded-xl border border-emerald-200 dark:border-emerald-500/20 mb-2">
+                        <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">{s.mata_pelajaran}</p>
+                        <p className="text-slate-700 dark:text-slate-200 text-sm leading-relaxed">{s.narasi_rapor}</p>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+                )}
+                {data.formatif.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Catatan Guru</p>
+                    <div className="space-y-2">
+                      {data.formatif.slice(0, 5).map(f => (
+                        <div key={f.id} className="flex gap-3 p-3 bg-white dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-white/10">
+                          <div className="w-1 rounded-full bg-sky-400 shrink-0" />
+                          <div>
+                            <p className="text-xs text-slate-400 mb-0.5">{f.mata_pelajaran} · {f.tanggal}</p>
+                            <p className="text-sm text-slate-600 dark:text-slate-300">{f.catatan_guru}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )
       )}
     </div>
   );
@@ -1615,7 +1661,9 @@ export default function AsesmenPage() {
         {activeTab === 'profil-nk' && isWaliKelas && <TabProfilNK user={user} filters={filters} />}
         {activeTab === 'formatif' && isGuru && <TabFormatif user={user} filters={filters} />}
         {activeTab === 'sumatif' && isGuru && <TabSumatif user={user} filters={filters} />}
-        {activeTab === 'perkembangan' && isMurid && <TabPerkembanganMurid user={user} />}
+        {activeTab === 'perkembangan' && isMurid && (
+          <TabPerkembanganMurid user={user} tahunAjaran={filters.tahun_ajaran} />
+        )}
       </div>
 
       {/* CSS Inline untuk class utilitas lokal */}
