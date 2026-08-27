@@ -43,13 +43,17 @@ const NK_DIMENSI = [
     icon: '⭐',
     pertanyaan: 'Di waktu luang, kegiatan apa yang paling kamu sukai?',
     pilihan: [
-      { value: 'Seni',        label: 'Seni / Menggambar',    emoji: '🎨', badgeClass: 'bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-300' },
-      { value: 'Olahraga',   label: 'Olahraga / Fisik',     emoji: '⚽', badgeClass: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300' },
-      { value: 'Teknologi',  label: 'Teknologi / Gadget',   emoji: '📱', badgeClass: 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300' },
-      { value: 'Membaca',    label: 'Cerita / Membaca',     emoji: '📖', badgeClass: 'bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-300' },
+      { value: 'Seni',       label: 'Seni / Menggambar',    emoji: '🎨', badgeClass: 'bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-300' },
+      { value: 'Olahraga',  label: 'Olahraga / Fisik',     emoji: '⚽', badgeClass: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300' },
+      { value: 'Teknologi', label: 'Teknologi / Gadget',   emoji: '📱', badgeClass: 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300' },
+      { value: 'Membaca',   label: 'Cerita / Membaca',     emoji: '📖', badgeClass: 'bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-300' },
+      { value: 'Lainnya',   label: 'Lainnya...',           emoji: '✏️', badgeClass: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300' },
     ],
   },
 ];
+
+// Nilai minat yang sudah ditetapkan (di luar ini = kustom / Lainnya)
+const MINAT_PREDEFINED = ['Seni', 'Olahraga', 'Teknologi', 'Membaca', 'Lainnya'];
 
 const STATUS_BADGE = {
   Belum: 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400',
@@ -346,7 +350,14 @@ function TabProfilNK({ user, filters }) {
       tahun_ajaran: filters.tahun_ajaran,
       sosial_emosional: getVal(murid.id_murid, 'sosial_emosional') || null,
       dukungan_belajar: getVal(murid.id_murid, 'dukungan_belajar') || null,
-      minat_dominan:    getVal(murid.id_murid, 'minat_dominan') || null,
+      minat_dominan:    (() => {
+        const raw = getVal(murid.id_murid, 'minat_dominan');
+        if (raw === 'Lainnya') {
+          // Simpan teks kustom; jika kosong → null
+          return rows[murid.id_murid]?.minat_kustom?.trim() || null;
+        }
+        return raw || null;
+      })(),
       catatan_khusus:   getVal(murid.id_murid, 'catatan_khusus') || '',
     };
     try {
@@ -367,8 +378,34 @@ function TabProfilNK({ user, filters }) {
 
   // Hitung kelengkapan profil per murid
   const completenessOf = (m) => {
-    const filled = NK_DIMENSI.filter(d => getVal(m.id_murid, d.key)).length;
-    return { filled, total: NK_DIMENSI.length };
+    // minat dianggap terisi jika ada nilai (termasuk teks kustom)
+    const minatVal = getVal(m.id_murid, 'minat_dominan');
+    const minatFilled = minatVal === 'Lainnya'
+      ? !!(rows[m.id_murid]?.minat_kustom?.trim())
+      : !!minatVal;
+    const lainFilled = NK_DIMENSI
+      .filter(d => d.key !== 'minat_dominan')
+      .filter(d => getVal(m.id_murid, d.key)).length;
+    return { filled: lainFilled + (minatFilled ? 1 : 0), total: NK_DIMENSI.length };
+  };
+
+  // Cek apakah nilai minat dari DB adalah teks kustom (bukan pilihan baku)
+  const isMinatKustom = (id_murid) => {
+    const stored = muridList.find(x => x.id_murid === id_murid)?.profil?.minat_dominan;
+    return stored && !MINAT_PREDEFINED.includes(stored);
+  };
+
+  // Teks yang ditampilkan di input Lainnya
+  const getMinatKustomText = (id_murid) => {
+    if (rows[id_murid]?.minat_kustom !== undefined) return rows[id_murid].minat_kustom;
+    if (isMinatKustom(id_murid)) return muridList.find(x => x.id_murid === id_murid)?.profil?.minat_dominan || '';
+    return '';
+  };
+
+  // Apakah tombol Lainnya aktif?
+  const isLainnyaActive = (id_murid) => {
+    const val = getVal(id_murid, 'minat_dominan');
+    return val === 'Lainnya' || isMinatKustom(id_murid);
   };
 
   // Smooth scroll ke kartu murid berdasarkan id
@@ -512,13 +549,37 @@ function TabProfilNK({ user, filters }) {
                         </p>
                         <div className="flex flex-col gap-1.5">
                           {d.pilihan.map(opt => {
-                            const isSelected = currentVal === opt.value;
+                            // Logika seleksi khusus untuk dimensi minat_dominan
+                            let isSelected;
+                            if (d.key === 'minat_dominan' && opt.value === 'Lainnya') {
+                              isSelected = isLainnyaActive(m.id_murid);
+                            } else if (d.key === 'minat_dominan') {
+                              // Pilihan baku: hanya aktif jika nilainya persis sama
+                              const cur = rows[m.id_murid]?.minat_dominan !== undefined
+                                ? rows[m.id_murid].minat_dominan
+                                : (isMinatKustom(m.id_murid) ? 'Lainnya' : getVal(m.id_murid, d.key));
+                              isSelected = cur === opt.value;
+                            } else {
+                              isSelected = getVal(m.id_murid, d.key) === opt.value;
+                            }
+
                             return (
                               <button
                                 key={opt.value}
                                 id={`btn-nk-${d.key}-${opt.value}-${m.id_murid}`}
                                 type="button"
-                                onClick={() => setVal(m.id_murid, d.key, isSelected ? '' : opt.value)}
+                                onClick={() => {
+                                  if (d.key === 'minat_dominan' && opt.value === 'Lainnya') {
+                                    // Toggle Lainnya
+                                    if (isLainnyaActive(m.id_murid)) {
+                                      setVal(m.id_murid, 'minat_dominan', '');
+                                    } else {
+                                      setVal(m.id_murid, 'minat_dominan', 'Lainnya');
+                                    }
+                                  } else {
+                                    setVal(m.id_murid, d.key, isSelected ? '' : opt.value);
+                                  }
+                                }}
                                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-all border ${
                                   isSelected
                                     ? `${opt.badgeClass} border-current font-medium shadow-sm`
@@ -531,6 +592,26 @@ function TabProfilNK({ user, filters }) {
                               </button>
                             );
                           })}
+
+                          {/* Input teks kustom — muncul hanya saat Lainnya aktif di dimensi minat */}
+                          {d.key === 'minat_dominan' && isLainnyaActive(m.id_murid) && (
+                            <div className="mt-1">
+                              <input
+                                id={`minat-kustom-${m.id_murid}`}
+                                type="text"
+                                maxLength={50}
+                                placeholder="Tulis minat spesifik... (mis. Memasak, Musik, Berkebun)"
+                                value={getMinatKustomText(m.id_murid)}
+                                onChange={e => setRows(prev => ({
+                                  ...prev,
+                                  [m.id_murid]: { ...prev[m.id_murid], minat_kustom: e.target.value },
+                                }))}
+                                autoFocus
+                                className="w-full px-3 py-2 rounded-lg text-sm border border-slate-300 dark:border-white/20 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400 transition"
+                              />
+                              <p className="text-xs text-slate-400 mt-0.5 text-right">{getMinatKustomText(m.id_murid).length}/50</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

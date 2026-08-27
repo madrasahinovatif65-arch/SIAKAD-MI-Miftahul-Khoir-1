@@ -78,9 +78,10 @@ export async function POST(request) {
         { status: 400 }
       );
     }
-    if (minat_dominan && !VALID_MINAT_DOMINAN.includes(minat_dominan)) {
+    // Validasi minat_dominan: nilai baku + teks kustom diperbolehkan (maks 50 karakter)
+    if (minat_dominan && minat_dominan.length > 50) {
       return NextResponse.json(
-        { error: `minat_dominan tidak valid. Pilih: ${VALID_MINAT_DOMINAN.join(', ')}` },
+        { error: 'minat_dominan maksimal 50 karakter.' },
         { status: 400 }
       );
     }
