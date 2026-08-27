@@ -31,17 +31,32 @@ export async function GET(request) {
   const tahun_ajaran = searchParams.get('tahun_ajaran');
   const semester     = searchParams.get('semester');
   const id_murid     = searchParams.get('id_murid');
-
-  if (!fase) {
-    return NextResponse.json({ error: 'Parameter fase wajib diisi.' }, { status: 400 });
-  }
+  const rombel       = searchParams.get('rombel'); // Untuk guru ambil data sekelas
 
   try {
+    // Mode 1: Guru ambil data satu rombel
+    if (rombel && tahun_ajaran && semester) {
+      const { data: hasil, error } = await supabase
+        .from('hasil_kognitif_murid')
+        .select('*')
+        .eq('rombel', rombel)
+        .eq('tahun_ajaran', tahun_ajaran)
+        .eq('semester', semester);
+
+      if (error) throw error;
+      return NextResponse.json(hasil || []);
+    }
+
+    // Mode 2: Murid ambil soal tes
+    if (!fase) {
+      return NextResponse.json({ error: 'Parameter fase wajib diisi.' }, { status: 400 });
+    }
+
     // Cek apakah murid sudah pernah mengerjakan tes ini
     if (id_murid && tahun_ajaran && semester) {
       const { data: existing } = await supabase
         .from('hasil_kognitif_murid')
-        .select('id, skor_literasi, skor_numerasi, skor_reasoning, dikerjakan_at')
+        .select('id, skor_literasi, skor_numerasi, skor_reasoning, kategori_literasi, kategori_numerasi, kategori_reasoning, dikerjakan_at')
         .eq('id_murid', id_murid)
         .eq('tahun_ajaran', tahun_ajaran)
         .eq('semester', semester)

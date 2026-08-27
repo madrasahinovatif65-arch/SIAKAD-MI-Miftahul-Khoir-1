@@ -126,26 +126,15 @@ function TabDiagnostik({ user, filters }) {
   const [rows, setRows] = useState({});
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
-  // Mode toggle: 'umum' | 'per_materi'
   const [mode, setMode] = useState('umum');
   const [selectedTP, setSelectedTP] = useState('');
 
-  // ── SWR: Daftar murid
-  const swrKeyMurid = filters.rombel && filters.semester && filters.tahun_ajaran && filters.mata_pelajaran
+  // ── SWR: Daftar murid & Hasil Kognitif
+  const swrKeyMurid = filters.rombel && filters.semester && filters.tahun_ajaran
     ? `enrollment_${filters.rombel}_${filters.semester}_${filters.tahun_ajaran}_${filters.mata_pelajaran}_${mode}_${selectedTP}`
     : null;
 
-  const { data: muridList = [], isLoading: loadingMurid } = useSWR(swrKeyMurid, async () => {
-    // Ambil data asesmen yang sudah ada sesuai mode
-    const tpParam = mode === 'per_materi' && selectedTP ? `&id_tp=${selectedTP}` : '';
-    const modeFilter = mode === 'umum' ? '&id_tp_null=true' : '';
-    const res = await fetch(
-      `/api/asesmen?rombel=${encodeURIComponent(filters.rombel || '')}&semester=${encodeURIComponent(filters.semester || '')}&tahun_ajaran=${encodeURIComponent(filters.tahun_ajaran || '')}&jenis=awal&mapel=${encodeURIComponent(filters.mata_pelajaran || '')}&id_guru=${user.id_user}${tpParam}${modeFilter}`
-    );
-    const existing = await res.json();
-    const existingArr = Array.isArray(existing) ? existing : [];
-
-    // Ambil enrollment murid
+  const { data: muridList = [], isLoading: loadingMurid, mutate: mutateMurid } = useSWR(swrKeyMurid, async () => {
     const { data: enrolled } = await supabase
       .from('enrollment_murid')
       .select('id_murid, nama_murid')
@@ -154,33 +143,46 @@ function TabDiagnostik({ user, filters }) {
       .eq('tahun_ajaran', filters.tahun_ajaran)
       .order('nama_murid', { ascending: true });
 
-    return (Array.isArray(enrolled) ? enrolled : []).map(m => ({
-      ...m,
-      existing: existingArr.find(e => e.id_murid === m.id_murid),
-    }));
+    const enrolledArr = Array.isArray(enrolled) ? enrolled : [];
+
+    if (mode === 'umum') {
+      const res = await fetch(`/api/asesmen/kognitif-interaktif?rombel=${encodeURIComponent(filters.rombel)}&tahun_ajaran=${encodeURIComponent(filters.tahun_ajaran)}&semester=${encodeURIComponent(filters.semester)}`);
+      const existingArr = await res.json();
+      return enrolledArr.map(m => ({
+        ...m,
+        hasil_umum: (Array.isArray(existingArr) ? existingArr : []).find(e => e.id_murid === m.id_murid)
+      }));
+    } else {
+      const tpParam = selectedTP ? `&id_tp=${selectedTP}` : '';
+      const res = await fetch(
+        `/api/asesmen?rombel=${encodeURIComponent(filters.rombel || '')}&semester=${encodeURIComponent(filters.semester || '')}&tahun_ajaran=${encodeURIComponent(filters.tahun_ajaran || '')}&jenis=awal&mapel=${encodeURIComponent(filters.mata_pelajaran || '')}&id_guru=${user.id_user}${tpParam}`
+      );
+      const existing = await res.json();
+      const existingArr = Array.isArray(existing) ? existing : [];
+      return enrolledArr.map(m => ({
+        ...m,
+        existing: existingArr.find(e => e.id_murid === m.id_murid),
+      }));
+    }
   });
 
   // ── SWR: Profil non-kognitif
   const swrKeyProfil = filters.rombel && filters.tahun_ajaran
     ? `profil_nk_${filters.rombel}_${filters.tahun_ajaran}`
     : null;
-
   const { data: profilMap = {} } = useSWR(swrKeyProfil, async () => {
     const res = await fetch(`/api/asesmen/profil-nk?rombel=${encodeURIComponent(filters.rombel || '')}&tahun_ajaran=${encodeURIComponent(filters.tahun_ajaran || '')}`);
     const data = await res.json();
     return Object.fromEntries((Array.isArray(data) ? data : []).map(p => [p.id_murid, p]));
   });
 
-  // ── SWR: Daftar TP dari master (hanya mode per_materi)
+  // ── SWR: Daftar TP dari master
   const tingkat = filters.rombel ? filters.rombel.replace(/[A-Z]$/, '').trim() : '';
   const swrKeyTP = mode === 'per_materi' && filters.mata_pelajaran && tingkat
     ? `tp_${filters.mata_pelajaran}_${tingkat}_${filters.tahun_ajaran}`
     : null;
-
   const { data: tpList = [], isLoading: loadingTP } = useSWR(swrKeyTP, async () => {
-    const res = await fetch(
-      `/api/asesmen/tp?mapel=${encodeURIComponent(filters.mata_pelajaran || '')}&tingkat_kelas=${encodeURIComponent(tingkat)}&tahun_ajaran=${encodeURIComponent(filters.tahun_ajaran || '')}`
-    );
+    const res = await fetch(`/api/asesmen/tp?mapel=${encodeURIComponent(filters.mata_pelajaran || '')}&tingkat_kelas=${encodeURIComponent(tingkat)}&tahun_ajaran=${encodeURIComponent(filters.tahun_ajaran || '')}`);
     const data = await res.json();
     return Array.isArray(data) ? data : [];
   });
@@ -190,15 +192,9 @@ function TabDiagnostik({ user, filters }) {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const handleSaveAll = async () => {
-    if (!filters.rombel || !filters.mata_pelajaran) {
-      showToast('Isi Rombel dan Mata Pelajaran terlebih dahulu.', 'error');
-      return;
-    }
-    if (mode === 'per_materi' && !selectedTP) {
-      showToast('Pilih Tujuan Pembelajaran terlebih dahulu.', 'error');
-      return;
-    }
+  const handleSavePerMateri = async () => {
+    if (!filters.rombel || !filters.mata_pelajaran) return showToast('Isi Rombel dan Mata Pelajaran.', 'error');
+    if (!selectedTP) return showToast('Pilih Tujuan Pembelajaran.', 'error');
     setSaving(true);
     try {
       const records = muridList
@@ -212,43 +208,59 @@ function TabDiagnostik({ user, filters }) {
           semester: filters.semester,
           mata_pelajaran: filters.mata_pelajaran,
           hasil_kognitif: rows[m.id_murid].hasil_kognitif,
-          // id_tp: null untuk Umum, UUID untuk Per Materi
-          id_tp: mode === 'per_materi' ? selectedTP : null,
-          tujuan_pembelajaran: mode === 'per_materi'
-            ? (tpList.find(t => t.id === selectedTP)?.tujuan || null)
-            : null,
+          id_tp: selectedTP,
+          tujuan_pembelajaran: tpList.find(t => t.id === selectedTP)?.tujuan || null,
         }));
-
-      if (records.length === 0) {
-        showToast('Belum ada data kognitif yang diisi.', 'error');
-        setSaving(false);
-        return;
-      }
-
+      if (records.length === 0) { setSaving(false); return showToast('Belum ada data diisi.', 'error'); }
       const res = await fetch('/api/asesmen/bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ records }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ records }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      showToast(`✅ ${data.inserted} data diagnostik berhasil disimpan!`);
-      setRows({});
+      if (!res.ok) throw new Error((await res.json()).error);
+      showToast(`✅ Data per materi disimpan!`);
+      setRows({}); mutateMurid();
     } catch (err) {
       showToast(err.message, 'error');
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
-  const needsFilter = !filters.rombel || !filters.mata_pelajaran;
+  const handleSaveUmum = async (id_murid) => {
+    if (!rows[id_murid]) return;
+    setSaving(id_murid); // simpan state per baris
+    try {
+      const res = await fetch(`/api/asesmen/kognitif-interaktif?id_murid=${id_murid}&tahun_ajaran=${encodeURIComponent(filters.tahun_ajaran)}&semester=${encodeURIComponent(filters.semester)}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          override_literasi: rows[id_murid].override_literasi,
+          override_numerasi: rows[id_murid].override_numerasi,
+          override_reasoning: rows[id_murid].override_reasoning,
+          catatan_guru: rows[id_murid].catatan_guru,
+          divalidasi_oleh: user.id_user,
+        })
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      showToast('✅ Validasi tersimpan.');
+      mutateMurid();
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally { setSaving(false); }
+  };
+
+  const needsFilter = mode === 'per_materi' ? (!filters.rombel || !filters.mata_pelajaran) : !filters.rombel;
   const needsTP = mode === 'per_materi' && !selectedTP;
+
+  // Fungsi utilitas render dropdown umum
+  const OverrideSelect = ({ val, onChange }) => (
+    <select value={val || ''} onChange={onChange} className="select-field text-xs px-2 py-1 w-full max-w-[130px] border-amber-200 focus:border-amber-400 bg-amber-50">
+      <option value="">-- Tetap (Sistem) --</option>
+      {['Sangat Cakap', 'Cakap', 'Berkembang', 'Perlu Bimbingan'].map(o => <option key={o} value={o}>{o}</option>)}
+    </select>
+  );
 
   return (
     <div>
       <SectionHeader
         title="📋 Diagnostik Kognitif"
-        subtitle="Pemetaan kemampuan awal murid. Pilih mode Umum untuk asesmen awal semester, atau Per Materi untuk asesmen terkait Tujuan Pembelajaran tertentu."
+        subtitle="Pemetaan kemampuan awal murid. Kognitif Umum diisi mandiri oleh murid via Tes Interaktif, Kognitif Per Materi diisi oleh guru."
       />
 
       {/* ── Mode Toggle ── */}
@@ -256,176 +268,137 @@ function TabDiagnostik({ user, filters }) {
         <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 self-center whitespace-nowrap">Jenis Asesmen:</p>
         <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit">
           {[
-            { key: 'umum', label: '🔵 Kognitif Umum', sub: 'Awal Semester' },
-            { key: 'per_materi', label: '📌 Kognitif Per Materi', sub: 'Tujuan Pembelajaran' },
+            { key: 'umum', label: '🔵 Kognitif Umum', sub: 'Lintas Mapel (Sistem)' },
+            { key: 'per_materi', label: '📌 Kognitif Per Materi', sub: 'Input Manual Guru' },
           ].map(m => (
-            <button
-              key={m.key}
-              id={`mode-${m.key}`}
-              type="button"
-              onClick={() => { setMode(m.key); setSelectedTP(''); setRows({}); }}
+            <button key={m.key} onClick={() => { setMode(m.key); setSelectedTP(''); setRows({}); }}
               className={`flex flex-col items-start px-3 sm:px-4 py-2 rounded-lg text-left transition-all ${
-                mode === m.key
-                  ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-              }`}
-            >
+                mode === m.key ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}>
               <span className="text-xs sm:text-sm font-semibold whitespace-nowrap">{m.label}</span>
-              <span className="text-xs text-slate-400 dark:text-slate-500 hidden sm:block">{m.sub}</span>
+              <span className="text-xs text-slate-400 hidden sm:block">{m.sub}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* ── TP Selector (hanya mode Per Materi) ── */}
       {mode === 'per_materi' && (
-        <div className="mb-4 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-500/30">
-          <label className="label-field text-blue-700 dark:text-blue-300">
-            📌 Pilih Tujuan Pembelajaran
-          </label>
-          {loadingTP ? (
-            <div className="flex items-center gap-2 text-blue-500 text-sm mt-1">
-              <div className="w-4 h-4 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
-              <span>Memuat daftar TP...</span>
-            </div>
-          ) : tpList.length === 0 ? (
-            <p className="text-sm text-slate-400 mt-1">
-              {filters.mata_pelajaran
-                ? 'Belum ada Tujuan Pembelajaran untuk mapel ini. Tambahkan via tab Formatif.'
-                : 'Pilih Mata Pelajaran di filter terlebih dahulu.'}
-            </p>
-          ) : (
-            <select
-              id="select-tp-diagnostik"
-              value={selectedTP}
-              onChange={e => { setSelectedTP(e.target.value); setRows({}); }}
-              className="select-field w-full mt-1"
-            >
-              <option value="">-- Pilih Tujuan Pembelajaran --</option>
-              {tpList.map(tp => (
-                <option key={tp.id} value={tp.id}>{tp.tujuan}</option>
-              ))}
-            </select>
-          )}
-          {selectedTP && (
-            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1.5">
-              ✓ Data diagnostik ini akan ditandai dengan TP yang dipilih (id_tp tercatat).
-            </p>
-          )}
+        <div className="mb-4 p-3 sm:p-4 bg-blue-50 rounded-xl border border-blue-200">
+          <label className="label-field text-blue-700">📌 Pilih Tujuan Pembelajaran</label>
+          <select value={selectedTP} onChange={e => { setSelectedTP(e.target.value); setRows({}); }} className="select-field w-full mt-1">
+            <option value="">-- Pilih Tujuan Pembelajaran --</option>
+            {tpList.map(tp => <option key={tp.id} value={tp.id}>{tp.tujuan}</option>)}
+          </select>
         </div>
       )}
 
-      {/* ── Info mode Umum ── */}
       {mode === 'umum' && (
-        <div className="mb-4 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10">
+        <div className="mb-4 flex items-center gap-2 text-xs text-slate-500 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
           <span>ℹ️</span>
-          <span>Mode <strong>Kognitif Umum</strong>: data disimpan tanpa TP (<code>id_tp = null</code>). Digunakan untuk pemetaan awal semester secara menyeluruh.</span>
+          <span><strong>Dashboard Validasi:</strong> Skor dihasilkan otomatis dari tes mandiri murid. Guru dapat melihat hasil dan meng-override kategori (Pilih dropdown kuning) jika dirasa kurang sesuai.</span>
         </div>
       )}
 
       {toast && (
-        <div className={`mb-4 p-3 rounded-lg text-sm font-medium ${toast.type === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'}`}>
+        <div className={`mb-4 p-3 rounded-lg text-sm font-medium ${toast.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
           {toast.msg}
         </div>
       )}
 
       {needsFilter ? (
-        <div className="text-center py-12 text-slate-400 dark:text-slate-500">
-          <svg className="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
-          <p>Isi Rombel dan Mata Pelajaran di filter untuk memuat daftar murid.</p>
-        </div>
+        <div className="text-center py-12 text-slate-400"><p>Isi filter Rombel (dan Mapel) untuk memuat daftar murid.</p></div>
       ) : needsTP ? (
-        <div className="text-center py-12 text-slate-400 dark:text-slate-500">
-          <p className="text-3xl mb-2">📌</p>
-          <p className="text-sm">Pilih Tujuan Pembelajaran di atas untuk memuat daftar murid.</p>
-        </div>
+        <div className="text-center py-12 text-slate-400"><p>Pilih Tujuan Pembelajaran di atas.</p></div>
       ) : loadingMurid ? (
-        <div className="flex items-center gap-2 text-slate-400 py-8">
-          <div className="w-5 h-5 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
-          <span>Memuat daftar murid...</span>
-        </div>
+        <div className="text-center py-8 text-slate-400">Memuat data...</div>
       ) : (
-        <>
-          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-white/10">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-800/80">
-                <tr>
-                  <th className="text-left px-3 sm:px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 w-8">#</th>
-                  <th className="text-left px-3 sm:px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Nama Murid</th>
-                  <th className="text-left px-3 sm:px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 hidden sm:table-cell">Profil Belajar</th>
-                  <th className="text-left px-3 sm:px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Hasil Kognitif</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                {muridList.map((m, i) => {
+        <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="text-left px-3 py-3 font-semibold text-slate-600 w-8">#</th>
+                <th className="text-left px-3 py-3 font-semibold text-slate-600">Nama Murid</th>
+                {mode === 'umum' ? (
+                  <>
+                    <th className="text-left px-3 py-3 font-semibold text-slate-600">Literasi</th>
+                    <th className="text-left px-3 py-3 font-semibold text-slate-600">Numerasi</th>
+                    <th className="text-left px-3 py-3 font-semibold text-slate-600">Penalaran</th>
+                    <th className="text-left px-3 py-3 font-semibold text-slate-600">Aksi</th>
+                  </>
+                ) : (
+                  <>
+                    <th className="text-left px-3 py-3 font-semibold text-slate-600">Profil Belajar</th>
+                    <th className="text-left px-3 py-3 font-semibold text-slate-600">Hasil Kognitif</th>
+                  </>
+                )}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {muridList.map((m, i) => {
+                if (mode === 'umum') {
+                  const h = m.hasil_umum;
+                  const rowState = rows[m.id_murid] || {};
+                  const isEdited = rowState.override_literasi || rowState.override_numerasi || rowState.override_reasoning || rowState.catatan_guru;
+                  
+                  return (
+                    <tr key={m.id_murid} className="hover:bg-slate-50">
+                      <td className="px-3 py-3 text-slate-400">{i + 1}</td>
+                      <td className="px-3 py-3 font-medium text-slate-700">
+                        {m.nama_murid}
+                        {!h ? <span className="block text-xs text-red-400 font-normal mt-0.5">Belum Mengerjakan Tes</span> : null}
+                      </td>
+                      <td className="px-3 py-3">
+                        {h && <span className="block text-xs mb-1 font-semibold text-slate-600">{h.skor_literasi}% → {h.kategori_literasi}</span>}
+                        <OverrideSelect val={rowState.override_literasi || h?.override_literasi} onChange={e => setRows(p => ({...p, [m.id_murid]: {...p[m.id_murid], override_literasi: e.target.value}}))} />
+                      </td>
+                      <td className="px-3 py-3">
+                        {h && <span className="block text-xs mb-1 font-semibold text-slate-600">{h.skor_numerasi}% → {h.kategori_numerasi}</span>}
+                        <OverrideSelect val={rowState.override_numerasi || h?.override_numerasi} onChange={e => setRows(p => ({...p, [m.id_murid]: {...p[m.id_murid], override_numerasi: e.target.value}}))} />
+                      </td>
+                      <td className="px-3 py-3">
+                        {h && <span className="block text-xs mb-1 font-semibold text-slate-600">{h.skor_reasoning}% → {h.kategori_reasoning}</span>}
+                        <OverrideSelect val={rowState.override_reasoning || h?.override_reasoning} onChange={e => setRows(p => ({...p, [m.id_murid]: {...p[m.id_murid], override_reasoning: e.target.value}}))} />
+                      </td>
+                      <td className="px-3 py-3">
+                        <input type="text" placeholder="Catatan guru..." className="input-field text-xs px-2 py-1 mb-1 w-full" value={rowState.catatan_guru ?? (h?.catatan_guru || '')} onChange={e => setRows(p => ({...p, [m.id_murid]: {...p[m.id_murid], catatan_guru: e.target.value}}))} />
+                        <button onClick={() => handleSaveUmum(m.id_murid)} disabled={!isEdited && !h?.override_literasi} className="btn-sm-primary text-xs w-full py-1">
+                          {saving === m.id_murid ? '⏳' : '💾 Validasi'}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                } else {
+                  // Mode Per Materi
                   const profil = profilMap[m.id_murid];
                   const current = rows[m.id_murid]?.hasil_kognitif || m.existing?.hasil_kognitif || '';
-                  // Deteksi nilai sosial-emosional dari profil NK baru
-                  const seVal = profil?.sosial_emosional;
-                  const minatVal = profil?.minat_dominan;
                   return (
-                    <tr key={m.id_murid} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                      <td className="px-3 sm:px-4 py-3 text-slate-400">{i + 1}</td>
-                      <td className="px-3 sm:px-4 py-3 font-medium text-slate-700 dark:text-slate-200">
-                        {m.nama_murid}
-                        {m.existing?.hasil_kognitif && (
-                          <span className="ml-1.5 text-xs text-emerald-500">✓</span>
-                        )}
-                      </td>
-                      <td className="px-3 sm:px-4 py-3 hidden sm:table-cell">
-                        <div className="flex flex-wrap gap-1">
-                          {seVal ? (
-                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                              seVal === 'Antusias' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' :
-                              seVal === 'Biasa saja' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300' :
-                              'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300'
-                            }`}>
-                              {seVal === 'Antusias' ? '🟢' : seVal === 'Biasa saja' ? '🟡' : '🔴'} {seVal}
-                            </span>
-                          ) : null}
-                          {minatVal ? (
-                            <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300">
-                              ⭐ {minatVal}
-                            </span>
-                          ) : null}
-                          {!seVal && !minatVal && (
-                            <span className="text-xs text-slate-400 italic">Belum diisi</span>
-                          )}
+                    <tr key={m.id_murid} className="hover:bg-slate-50">
+                      <td className="px-3 py-3 text-slate-400">{i + 1}</td>
+                      <td className="px-3 py-3 font-medium text-slate-700">{m.nama_murid} {m.existing?.hasil_kognitif && <span className="text-emerald-500">✓</span>}</td>
+                      <td className="px-3 py-3">
+                        <div className="flex gap-1 text-xs">
+                          {profil?.sosial_emosional && <span className="bg-emerald-100 text-emerald-700 px-2 rounded-full">{profil.sosial_emosional}</span>}
+                          {profil?.minat_dominan && <span className="bg-violet-100 text-violet-700 px-2 rounded-full">⭐ {profil.minat_dominan}</span>}
                         </div>
                       </td>
-                      <td className="px-3 sm:px-4 py-3">
-                        <select
-                          id={`kognitif-${m.id_murid}`}
-                          value={current}
-                          onChange={e => setRows(prev => ({ ...prev, [m.id_murid]: { ...prev[m.id_murid], hasil_kognitif: e.target.value } }))}
-                          className="select-field text-sm w-full max-w-[200px]"
-                        >
+                      <td className="px-3 py-3">
+                        <select value={current} onChange={e => setRows(p => ({ ...p, [m.id_murid]: { hasil_kognitif: e.target.value } }))} className="select-field text-sm w-full">
                           <option value="">-- Pilih --</option>
                           {KOGNITIF_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                         </select>
                       </td>
                     </tr>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <p className="text-xs text-slate-400">
-              {mode === 'umum'
-                ? `📊 Mode: Kognitif Umum — data tanpa TP`
-                : `📌 Mode: Per Materi — "${tpList.find(t => t.id === selectedTP)?.tujuan || ''}"`}
-            </p>
-            <button
-              id="btn-simpan-diagnostik"
-              onClick={handleSaveAll}
-              disabled={saving}
-              className="btn-primary"
-            >
-              {saving ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span>Menyimpan...</span></> : '💾 Simpan Semua'}
-            </button>
-          </div>
-        </>
+                }
+              })}
+            </tbody>
+          </table>
+          {mode === 'per_materi' && (
+            <div className="p-4 border-t border-slate-200 flex justify-end">
+              <button onClick={handleSavePerMateri} disabled={saving} className="btn-primary">{saving ? 'Menyimpan...' : '💾 Simpan Semua'}</button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
