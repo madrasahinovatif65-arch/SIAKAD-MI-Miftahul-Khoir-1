@@ -1,4 +1,4 @@
-﻿import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
@@ -240,7 +240,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { id_murid, nama_murid, rombel, tahun_ajaran, semester, fase, jawaban } = body;
+    const { id_murid, nama_murid, rombel, tahun_ajaran, semester, fase, jawaban, catatan_guru, divalidasi_oleh } = body;
 
     if (!id_murid || !tahun_ajaran || !semester || !fase || !jawaban) {
       return NextResponse.json(
@@ -271,6 +271,9 @@ export async function POST(request) {
         kategori_numerasi:  skorKeKategori(skor_numerasi),
         kategori_reasoning: skorKeKategori(skor_reasoning),
         raw_jawaban,
+        catatan_guru: catatan_guru || null,
+        divalidasi_oleh: divalidasi_oleh || null,
+        divalidasi_at: divalidasi_oleh ? new Date().toISOString() : null,
         dikerjakan_at: new Date().toISOString(),
         updated_at:    new Date().toISOString(),
       }, {

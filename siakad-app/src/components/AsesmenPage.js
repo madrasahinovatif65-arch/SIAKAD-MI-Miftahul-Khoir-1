@@ -237,23 +237,65 @@ function TabDiagnostik({ user, filters }) {
     for (const s of soalList) prefill[s.id] = s.jawaban_murid || '';
     setEditorJawaban(prefill);
     setEditorNote(hasil.catatan_guru || '');
-    setEditorModal({ murid, hasil, soalList });
+    setEditorModal({ murid, hasil, soalList, isNew: false });
+  };
+
+  const openEditorBaru = async (murid) => {
+    try {
+      // Hitung fase dari rombel
+      const match = filters.rombel.match(/\d+/);
+      const kelasNum = match ? parseInt(match[0], 10) : 1;
+      let fase = 'A';
+      if (kelasNum >= 3 && kelasNum <= 4) fase = 'B';
+      if (kelasNum >= 5 && kelasNum <= 6) fase = 'C';
+
+      const res = await fetch(`/api/asesmen/kognitif-interaktif?fase=${fase}&tahun_ajaran=${encodeURIComponent(filters.tahun_ajaran)}&semester=${encodeURIComponent(filters.semester)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      const soalList = data.soal || [];
+      const prefill = {};
+      for (const s of soalList) prefill[s.id] = '';
+      
+      setEditorJawaban(prefill);
+      setEditorNote('');
+      setEditorModal({ murid, hasil: null, soalList, isNew: true, fase });
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
   };
 
   const handleSaveKoreksi = async () => {
     if (!editorModal) return;
     setSavingEditor(true);
     try {
-      const res = await fetch(
-        `/api/asesmen/kognitif-interaktif?id_murid=${editorModal.murid.id_murid}&tahun_ajaran=${encodeURIComponent(filters.tahun_ajaran)}&semester=${encodeURIComponent(filters.semester)}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+      const method = editorModal.isNew ? 'POST' : 'PATCH';
+      const endpoint = editorModal.isNew 
+        ? '/api/asesmen/kognitif-interaktif' 
+        : `/api/asesmen/kognitif-interaktif?id_murid=${editorModal.murid.id_murid}&tahun_ajaran=${encodeURIComponent(filters.tahun_ajaran)}&semester=${encodeURIComponent(filters.semester)}`;
+      
+      const payload = editorModal.isNew 
+        ? {
+            id_murid: editorModal.murid.id_murid,
+            nama_murid: editorModal.murid.nama_murid,
+            rombel: filters.rombel,
+            tahun_ajaran: filters.tahun_ajaran,
+            semester: filters.semester,
+            fase: editorModal.fase,
+            jawaban: editorJawaban,
+            catatan_guru: editorNote,
+            divalidasi_oleh: user.id_user,
+          }
+        : {
             jawaban_koreksi: editorJawaban,
             catatan_guru: editorNote,
             divalidasi_oleh: user.id_user,
-          }),
+          };
+
+      const res = await fetch(endpoint, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         }
       );
       if (!res.ok) throw new Error((await res.json()).error);
@@ -399,9 +441,14 @@ function TabDiagnostik({ user, filters }) {
                           >
                             👁️ Lihat & Koreksi
                           </button>
-                        ) : h ? (
-                          <span className="text-xs text-slate-400 italic">Jawaban tidak tersedia</span>
-                        ) : null}
+                        ) : (
+                          <button
+                            onClick={() => openEditorBaru(m)}
+                            className="text-xs px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors w-full font-medium"
+                          >
+                            📝 Input Manual
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
