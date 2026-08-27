@@ -8,7 +8,8 @@ const supabase = createClient(
 
 /**
  * GET /api/asesmen?rombel=...&mapel=...&jenis=...&semester=...&tahun_ajaran=...
- * Ambil daftar asesmen. Murid diambil dari enrollment_murid (historis).
+ *                 &id_tp=UUID        → filter diagnostik Per Materi (id_tp IS NOT NULL + id_tp = UUID)
+ *                 &id_tp_null=true   → filter diagnostik Umum (id_tp IS NULL)
  *
  * POST /api/asesmen
  * Simpan 1 asesmen baru.
@@ -22,13 +23,15 @@ const supabase = createClient(
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const rombel = searchParams.get('rombel');
-  const mapel = searchParams.get('mapel');
-  const jenis = searchParams.get('jenis');
-  const semester = searchParams.get('semester');
-  const tahun_ajaran = searchParams.get('tahun_ajaran');
-  const id_murid = searchParams.get('id_murid');
-  const id_guru = searchParams.get('id_guru');
+  const rombel        = searchParams.get('rombel');
+  const mapel         = searchParams.get('mapel');
+  const jenis         = searchParams.get('jenis');
+  const semester      = searchParams.get('semester');
+  const tahun_ajaran  = searchParams.get('tahun_ajaran');
+  const id_murid      = searchParams.get('id_murid');
+  const id_guru       = searchParams.get('id_guru');
+  const id_tp         = searchParams.get('id_tp');         // UUID TP tertentu
+  const id_tp_null    = searchParams.get('id_tp_null');    // 'true' → hanya ambil yang id_tp IS NULL
 
   try {
     let query = supabase
@@ -36,13 +39,17 @@ export async function GET(request) {
       .select('*')
       .order('tanggal', { ascending: false });
 
-    if (rombel) query = query.eq('rombel', rombel);
-    if (mapel) query = query.eq('mata_pelajaran', mapel);
-    if (jenis) query = query.eq('jenis', jenis);
-    if (semester) query = query.eq('semester', semester);
+    if (rombel)       query = query.eq('rombel', rombel);
+    if (mapel)        query = query.eq('mata_pelajaran', mapel);
+    if (jenis)        query = query.eq('jenis', jenis);
+    if (semester)     query = query.eq('semester', semester);
     if (tahun_ajaran) query = query.eq('tahun_ajaran', tahun_ajaran);
-    if (id_murid) query = query.eq('id_murid', id_murid);
-    if (id_guru) query = query.eq('id_guru', id_guru);
+    if (id_murid)     query = query.eq('id_murid', id_murid);
+    if (id_guru)      query = query.eq('id_guru', id_guru);
+
+    // Filter berdasarkan mode diagnostik
+    if (id_tp)              query = query.eq('id_tp', id_tp);           // Per Materi: TP spesifik
+    else if (id_tp_null === 'true') query = query.is('id_tp', null);    // Umum: id_tp IS NULL
 
     const { data, error } = await query;
     if (error) throw error;

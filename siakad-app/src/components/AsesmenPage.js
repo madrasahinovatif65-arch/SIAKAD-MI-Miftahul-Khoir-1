@@ -122,23 +122,25 @@ function FilterBar({ filters, onChange, mapelOptions = [], rombelOptions = [] })
   );
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// TAB 1: Diagnostik Kognitif (Guru Mapel)
-// ──────────────────────────────────────────────────────────────────────────────
-
 function TabDiagnostik({ user, filters }) {
   const [rows, setRows] = useState({});
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
+  // Mode toggle: 'umum' | 'per_materi'
+  const [mode, setMode] = useState('umum');
+  const [selectedTP, setSelectedTP] = useState('');
 
-  // SWR: cache murid per rombel+semester+tahun_ajaran
-  const swrKeyMurid = filters.rombel && filters.semester && filters.tahun_ajaran
-    ? `enrollment_${filters.rombel}_${filters.semester}_${filters.tahun_ajaran}`
+  // ── SWR: Daftar murid
+  const swrKeyMurid = filters.rombel && filters.semester && filters.tahun_ajaran && filters.mata_pelajaran
+    ? `enrollment_${filters.rombel}_${filters.semester}_${filters.tahun_ajaran}_${filters.mata_pelajaran}_${mode}_${selectedTP}`
     : null;
 
   const { data: muridList = [], isLoading: loadingMurid } = useSWR(swrKeyMurid, async () => {
+    // Ambil data asesmen yang sudah ada sesuai mode
+    const tpParam = mode === 'per_materi' && selectedTP ? `&id_tp=${selectedTP}` : '';
+    const modeFilter = mode === 'umum' ? '&id_tp_null=true' : '';
     const res = await fetch(
-      `/api/asesmen?rombel=${encodeURIComponent(filters.rombel || '')}&semester=${encodeURIComponent(filters.semester || '')}&tahun_ajaran=${encodeURIComponent(filters.tahun_ajaran || '')}&jenis=awal&mapel=${encodeURIComponent(filters.mata_pelajaran || '')}&id_guru=${user.id_user}`
+      `/api/asesmen?rombel=${encodeURIComponent(filters.rombel || '')}&semester=${encodeURIComponent(filters.semester || '')}&tahun_ajaran=${encodeURIComponent(filters.tahun_ajaran || '')}&jenis=awal&mapel=${encodeURIComponent(filters.mata_pelajaran || '')}&id_guru=${user.id_user}${tpParam}${modeFilter}`
     );
     const existing = await res.json();
     const existingArr = Array.isArray(existing) ? existing : [];
@@ -158,15 +160,29 @@ function TabDiagnostik({ user, filters }) {
     }));
   });
 
-  // SWR: cache profil non-kognitif per rombel+tahun_ajaran
+  // ── SWR: Profil non-kognitif
   const swrKeyProfil = filters.rombel && filters.tahun_ajaran
     ? `profil_nk_${filters.rombel}_${filters.tahun_ajaran}`
     : null;
 
   const { data: profilMap = {} } = useSWR(swrKeyProfil, async () => {
-    const res = await fetch(`/api/asesmen/profil-nk?rombel=${filters.rombel}&tahun_ajaran=${filters.tahun_ajaran}`);
+    const res = await fetch(`/api/asesmen/profil-nk?rombel=${encodeURIComponent(filters.rombel || '')}&tahun_ajaran=${encodeURIComponent(filters.tahun_ajaran || '')}`);
     const data = await res.json();
-    return Object.fromEntries((data || []).map(p => [p.id_murid, p]));
+    return Object.fromEntries((Array.isArray(data) ? data : []).map(p => [p.id_murid, p]));
+  });
+
+  // ── SWR: Daftar TP dari master (hanya mode per_materi)
+  const tingkat = filters.rombel ? filters.rombel.replace(/[A-Z]$/, '').trim() : '';
+  const swrKeyTP = mode === 'per_materi' && filters.mata_pelajaran && tingkat
+    ? `tp_${filters.mata_pelajaran}_${tingkat}_${filters.tahun_ajaran}`
+    : null;
+
+  const { data: tpList = [], isLoading: loadingTP } = useSWR(swrKeyTP, async () => {
+    const res = await fetch(
+      `/api/asesmen/tp?mapel=${encodeURIComponent(filters.mata_pelajaran || '')}&tingkat_kelas=${encodeURIComponent(tingkat)}&tahun_ajaran=${encodeURIComponent(filters.tahun_ajaran || '')}`
+    );
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   });
 
   const showToast = (msg, type = 'success') => {
@@ -177,6 +193,10 @@ function TabDiagnostik({ user, filters }) {
   const handleSaveAll = async () => {
     if (!filters.rombel || !filters.mata_pelajaran) {
       showToast('Isi Rombel dan Mata Pelajaran terlebih dahulu.', 'error');
+      return;
+    }
+    if (mode === 'per_materi' && !selectedTP) {
+      showToast('Pilih Tujuan Pembelajaran terlebih dahulu.', 'error');
       return;
     }
     setSaving(true);
@@ -192,6 +212,11 @@ function TabDiagnostik({ user, filters }) {
           semester: filters.semester,
           mata_pelajaran: filters.mata_pelajaran,
           hasil_kognitif: rows[m.id_murid].hasil_kognitif,
+          // id_tp: null untuk Umum, UUID untuk Per Materi
+          id_tp: mode === 'per_materi' ? selectedTP : null,
+          tujuan_pembelajaran: mode === 'per_materi'
+            ? (tpList.find(t => t.id === selectedTP)?.tujuan || null)
+            : null,
         }));
 
       if (records.length === 0) {
@@ -207,7 +232,8 @@ function TabDiagnostik({ user, filters }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      showToast(`${data.inserted} data diagnostik berhasil disimpan!`);
+      showToast(`✅ ${data.inserted} data diagnostik berhasil disimpan!`);
+      setRows({});
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
@@ -215,59 +241,164 @@ function TabDiagnostik({ user, filters }) {
     }
   };
 
+  const needsFilter = !filters.rombel || !filters.mata_pelajaran;
+  const needsTP = mode === 'per_materi' && !selectedTP;
+
   return (
     <div>
       <SectionHeader
-        title="Diagnostik Kognitif"
-        subtitle="Pemetaan kemampuan awal murid di awal semester. Input sekali per murid per mata pelajaran."
+        title="📋 Diagnostik Kognitif"
+        subtitle="Pemetaan kemampuan awal murid. Pilih mode Umum untuk asesmen awal semester, atau Per Materi untuk asesmen terkait Tujuan Pembelajaran tertentu."
       />
+
+      {/* ── Mode Toggle ── */}
+      <div className="mb-4 flex flex-col sm:flex-row gap-2">
+        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 self-center whitespace-nowrap">Jenis Asesmen:</p>
+        <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit">
+          {[
+            { key: 'umum', label: '🔵 Kognitif Umum', sub: 'Awal Semester' },
+            { key: 'per_materi', label: '📌 Kognitif Per Materi', sub: 'Tujuan Pembelajaran' },
+          ].map(m => (
+            <button
+              key={m.key}
+              id={`mode-${m.key}`}
+              type="button"
+              onClick={() => { setMode(m.key); setSelectedTP(''); setRows({}); }}
+              className={`flex flex-col items-start px-3 sm:px-4 py-2 rounded-lg text-left transition-all ${
+                mode === m.key
+                  ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              }`}
+            >
+              <span className="text-xs sm:text-sm font-semibold whitespace-nowrap">{m.label}</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500 hidden sm:block">{m.sub}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── TP Selector (hanya mode Per Materi) ── */}
+      {mode === 'per_materi' && (
+        <div className="mb-4 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-500/30">
+          <label className="label-field text-blue-700 dark:text-blue-300">
+            📌 Pilih Tujuan Pembelajaran
+          </label>
+          {loadingTP ? (
+            <div className="flex items-center gap-2 text-blue-500 text-sm mt-1">
+              <div className="w-4 h-4 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
+              <span>Memuat daftar TP...</span>
+            </div>
+          ) : tpList.length === 0 ? (
+            <p className="text-sm text-slate-400 mt-1">
+              {filters.mata_pelajaran
+                ? 'Belum ada Tujuan Pembelajaran untuk mapel ini. Tambahkan via tab Formatif.'
+                : 'Pilih Mata Pelajaran di filter terlebih dahulu.'}
+            </p>
+          ) : (
+            <select
+              id="select-tp-diagnostik"
+              value={selectedTP}
+              onChange={e => { setSelectedTP(e.target.value); setRows({}); }}
+              className="select-field w-full mt-1"
+            >
+              <option value="">-- Pilih Tujuan Pembelajaran --</option>
+              {tpList.map(tp => (
+                <option key={tp.id} value={tp.id}>{tp.tujuan}</option>
+              ))}
+            </select>
+          )}
+          {selectedTP && (
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1.5">
+              ✓ Data diagnostik ini akan ditandai dengan TP yang dipilih (id_tp tercatat).
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* ── Info mode Umum ── */}
+      {mode === 'umum' && (
+        <div className="mb-4 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10">
+          <span>ℹ️</span>
+          <span>Mode <strong>Kognitif Umum</strong>: data disimpan tanpa TP (<code>id_tp = null</code>). Digunakan untuk pemetaan awal semester secara menyeluruh.</span>
+        </div>
+      )}
+
       {toast && (
         <div className={`mb-4 p-3 rounded-lg text-sm font-medium ${toast.type === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'}`}>
           {toast.msg}
         </div>
       )}
-      {!filters.rombel ? (
+
+      {needsFilter ? (
         <div className="text-center py-12 text-slate-400 dark:text-slate-500">
           <svg className="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
           <p>Isi Rombel dan Mata Pelajaran di filter untuk memuat daftar murid.</p>
         </div>
+      ) : needsTP ? (
+        <div className="text-center py-12 text-slate-400 dark:text-slate-500">
+          <p className="text-3xl mb-2">📌</p>
+          <p className="text-sm">Pilih Tujuan Pembelajaran di atas untuk memuat daftar murid.</p>
+        </div>
       ) : loadingMurid ? (
-        <div className="flex items-center gap-2 text-slate-400 py-8"><div className="w-5 h-5 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" /><span>Memuat daftar murid...</span></div>
+        <div className="flex items-center gap-2 text-slate-400 py-8">
+          <div className="w-5 h-5 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+          <span>Memuat daftar murid...</span>
+        </div>
       ) : (
         <>
           <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-white/10">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 dark:bg-slate-800/80">
                 <tr>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 w-8">#</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Nama Murid</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Profil Belajar</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Hasil Kognitif</th>
+                  <th className="text-left px-3 sm:px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 w-8">#</th>
+                  <th className="text-left px-3 sm:px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Nama Murid</th>
+                  <th className="text-left px-3 sm:px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 hidden sm:table-cell">Profil Belajar</th>
+                  <th className="text-left px-3 sm:px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Hasil Kognitif</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                 {muridList.map((m, i) => {
                   const profil = profilMap[m.id_murid];
                   const current = rows[m.id_murid]?.hasil_kognitif || m.existing?.hasil_kognitif || '';
+                  // Deteksi nilai sosial-emosional dari profil NK baru
+                  const seVal = profil?.sosial_emosional;
+                  const minatVal = profil?.minat_dominan;
                   return (
                     <tr key={m.id_murid} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                      <td className="px-4 py-3 text-slate-400">{i + 1}</td>
-                      <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-200">{m.nama_murid}</td>
-                      <td className="px-4 py-3">
-                        {profil?.gaya_belajar ? (
-                          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${BADGE_GAYA[profil.gaya_belajar] || 'bg-slate-100 text-slate-600'}`}>
-                            {profil.gaya_belajar}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-slate-400 italic">Belum diisi</span>
+                      <td className="px-3 sm:px-4 py-3 text-slate-400">{i + 1}</td>
+                      <td className="px-3 sm:px-4 py-3 font-medium text-slate-700 dark:text-slate-200">
+                        {m.nama_murid}
+                        {m.existing?.hasil_kognitif && (
+                          <span className="ml-1.5 text-xs text-emerald-500">✓</span>
                         )}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 sm:px-4 py-3 hidden sm:table-cell">
+                        <div className="flex flex-wrap gap-1">
+                          {seVal ? (
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+                              seVal === 'Antusias' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' :
+                              seVal === 'Biasa saja' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300' :
+                              'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300'
+                            }`}>
+                              {seVal === 'Antusias' ? '🟢' : seVal === 'Biasa saja' ? '🟡' : '🔴'} {seVal}
+                            </span>
+                          ) : null}
+                          {minatVal ? (
+                            <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300">
+                              ⭐ {minatVal}
+                            </span>
+                          ) : null}
+                          {!seVal && !minatVal && (
+                            <span className="text-xs text-slate-400 italic">Belum diisi</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 sm:px-4 py-3">
                         <select
                           id={`kognitif-${m.id_murid}`}
                           value={current}
                           onChange={e => setRows(prev => ({ ...prev, [m.id_murid]: { ...prev[m.id_murid], hasil_kognitif: e.target.value } }))}
-                          className="select-field text-sm w-full max-w-[220px]"
+                          className="select-field text-sm w-full max-w-[200px]"
                         >
                           <option value="">-- Pilih --</option>
                           {KOGNITIF_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
@@ -279,7 +410,12 @@ function TabDiagnostik({ user, filters }) {
               </tbody>
             </table>
           </div>
-          <div className="mt-4 flex justify-end">
+          <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <p className="text-xs text-slate-400">
+              {mode === 'umum'
+                ? `📊 Mode: Kognitif Umum — data tanpa TP`
+                : `📌 Mode: Per Materi — "${tpList.find(t => t.id === selectedTP)?.tujuan || ''}"`}
+            </p>
             <button
               id="btn-simpan-diagnostik"
               onClick={handleSaveAll}
@@ -294,6 +430,7 @@ function TabDiagnostik({ user, filters }) {
     </div>
   );
 }
+
 
 // ──────────────────────────────────────────────────────────────────────────────
 // TAB 2: Profil Non-Kognitif (Wali Kelas Eksklusif)
