@@ -110,7 +110,8 @@ function TabDiagnostik({ user, filters }) {
       .select('id_murid, nama_murid')
       .eq('rombel', filters.rombel)
       .eq('semester', filters.semester)
-      .eq('tahun_ajaran', filters.tahun_ajaran);
+      .eq('tahun_ajaran', filters.tahun_ajaran)
+      .order('nama_murid', { ascending: true });
 
     return (enrolled || []).map(m => ({
       ...m,
@@ -274,7 +275,8 @@ function TabProfilNK({ user, filters }) {
       .select('id_murid, nama_murid')
       .eq('rombel', filters.rombel)
       .eq('tahun_ajaran', filters.tahun_ajaran)
-      .eq('semester', filters.semester);
+      .eq('semester', filters.semester)
+      .order('nama_murid', { ascending: true });
 
     const res = await fetch(`/api/asesmen/profil-nk?rombel=${filters.rombel}&tahun_ajaran=${filters.tahun_ajaran}`);
     const profilData = await res.json();
@@ -420,7 +422,8 @@ function TabFormatif({ user, filters }) {
       .select('id_murid, nama_murid')
       .eq('rombel', filters.rombel)
       .eq('semester', filters.semester)
-      .eq('tahun_ajaran', filters.tahun_ajaran);
+      .eq('tahun_ajaran', filters.tahun_ajaran)
+      .order('nama_murid', { ascending: true });
     return data || [];
   });
 
@@ -601,7 +604,8 @@ function TabSumatif({ user, filters }) {
       .select('id_murid, nama_murid')
       .eq('rombel', filters.rombel)
       .eq('semester', filters.semester)
-      .eq('tahun_ajaran', filters.tahun_ajaran);
+      .eq('tahun_ajaran', filters.tahun_ajaran)
+      .order('nama_murid', { ascending: true });
     return data || [];
   });
 
