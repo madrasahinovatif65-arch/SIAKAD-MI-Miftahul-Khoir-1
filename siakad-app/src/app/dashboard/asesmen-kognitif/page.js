@@ -1,43 +1,31 @@
 'use client';
 import AsesmenKognitifInteraktif from '@/components/AsesmenKognitifInteraktif';
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 export default function AsesmenKognitifPage() {
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [meta, setMeta] = useState({ tahunAjaran: '', semester: '' });
+  const [loadingMeta, setLoadingMeta] = useState(true);
 
   useEffect(() => {
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const { data: profile } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-
-      setUser(profile);
-
-      // Ambil tahun ajaran aktif
+      // Ambil tahun ajaran aktif dari pengaturan_sekolah
       const { data: settings } = await supabase
-        .from('settings')
-        .select('tahun_ajaran, semester')
-        .single();
+        .from('pengaturan_sekolah')
+        .select('tahun_ajaran_aktif, semester_aktif')
+        .limit(1)
+        .maybeSingle();
 
       if (settings) {
-        setMeta({ tahunAjaran: settings.tahun_ajaran, semester: settings.semester });
+        setMeta({ tahunAjaran: settings.tahun_ajaran_aktif, semester: settings.semester_aktif });
       }
+      setLoadingMeta(false);
     })();
   }, []);
 
-  if (!user) {
+  if (!user || loadingMeta) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-8 h-8 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
