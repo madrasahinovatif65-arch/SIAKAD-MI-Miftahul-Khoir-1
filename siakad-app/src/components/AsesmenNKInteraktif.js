@@ -233,6 +233,7 @@ export default function AsesmenNKInteraktif({ user, tahunAjaran }) {
   const [minatKustom, setMinatKustom] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [hasilAkhir, setHasilAkhir] = useState(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const handleMulai = async () => {
     // Cek apakah sudah pernah mengisi tahun ini
@@ -253,6 +254,10 @@ export default function AsesmenNKInteraktif({ user, tahunAjaran }) {
 
   const handlePilih = (key, value) => {
     setJawaban(prev => ({ ...prev, [key]: value }));
+    // Jika bukan di pertanyaan terakhir dan tidak memilih "Lainnya" (yang butuh input teks), otomatis next
+    if (value !== 'Lainnya' && currentIndex < NK_DIMENSI.length - 1) {
+      setTimeout(() => setCurrentIndex(prev => prev + 1), 400); // jeda sedikit agar efek klik terlihat
+    }
   };
 
   const allFilled = NK_DIMENSI.every(d => {
@@ -330,44 +335,68 @@ export default function AsesmenNKInteraktif({ user, tahunAjaran }) {
       <div className="mb-5">
         <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1.5">
           <span className="font-medium">🧠 Profil Belajarku</span>
-          <span>{progress} / {NK_DIMENSI.length} pertanyaan</span>
+          <span>Pertanyaan {currentIndex + 1} / {NK_DIMENSI.length}</span>
         </div>
         <div className="h-2.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
           <div
             className="h-full rounded-full bg-gradient-to-r from-violet-500 to-purple-400 transition-all duration-500"
-            style={{ width: `${(progress / NK_DIMENSI.length) * 100}%` }}
+            style={{ width: `${((currentIndex + 1) / NK_DIMENSI.length) * 100}%` }}
           />
         </div>
       </div>
 
-      {/* Kartu per dimensi (semua tampil sekaligus — bukan satu per satu) */}
-      <div className="space-y-4">
-        {NK_DIMENSI.map(d => (
-          <KartuPilihanNK
-            key={d.key}
-            dimensi={d}
-            jawabanDipilih={jawaban[d.key] || ''}
-            minatKustom={minatKustom}
-            onPilih={handlePilih}
-            onKustom={setMinatKustom}
-          />
-        ))}
+      {/* Kartu per dimensi (tampil satu per satu) */}
+      <div className="space-y-4 min-h-[300px]">
+        <KartuPilihanNK
+          key={NK_DIMENSI[currentIndex].key}
+          dimensi={NK_DIMENSI[currentIndex]}
+          jawabanDipilih={jawaban[NK_DIMENSI[currentIndex].key] || ''}
+          minatKustom={minatKustom}
+          onPilih={handlePilih}
+          onKustom={setMinatKustom}
+        />
       </div>
 
-      {/* Tombol Simpan */}
-      <div className="mt-6 flex justify-end">
+      {/* Tombol Navigasi */}
+      <div className="mt-6 flex justify-between">
         <button
-          id="btn-simpan-nk"
-          onClick={handleSubmit}
-          disabled={!allFilled || submitting}
-          className={`px-8 py-3 rounded-xl font-semibold text-sm transition-all ${
-            allFilled
-              ? 'bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-md hover:shadow-lg hover:scale-[1.02]'
-              : 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+          onClick={() => setCurrentIndex(prev => prev - 1)}
+          disabled={currentIndex === 0}
+          className={`px-6 py-2.5 rounded-xl font-medium text-sm transition-all ${
+            currentIndex === 0
+              ? 'bg-slate-100 text-slate-400 dark:bg-slate-800 cursor-not-allowed opacity-0 pointer-events-none'
+              : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-700'
           }`}
         >
-          {submitting ? '⏳ Menyimpan...' : '✅ Kirim Profil Saya'}
+          ← Sebelumnya
         </button>
+
+        {currentIndex < NK_DIMENSI.length - 1 ? (
+          <button
+            onClick={() => setCurrentIndex(prev => prev + 1)}
+            disabled={!jawaban[NK_DIMENSI[currentIndex].key]}
+            className={`px-6 py-2.5 rounded-xl font-medium text-sm transition-all ${
+              !jawaban[NK_DIMENSI[currentIndex].key]
+                ? 'bg-slate-100 text-slate-400 dark:bg-slate-800 cursor-not-allowed'
+                : 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300 hover:bg-violet-200'
+            }`}
+          >
+            Selanjutnya →
+          </button>
+        ) : (
+          <button
+            id="btn-simpan-nk"
+            onClick={handleSubmit}
+            disabled={!allFilled || submitting}
+            className={`px-6 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+              allFilled
+                ? 'bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-md hover:shadow-lg hover:scale-[1.02]'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+            }`}
+          >
+            {submitting ? '⏳ Menyimpan...' : '✅ Kirim Profil Saya'}
+          </button>
+        )}
       </div>
     </div>
   );
