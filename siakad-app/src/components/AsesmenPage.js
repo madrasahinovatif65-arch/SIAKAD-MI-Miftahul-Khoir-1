@@ -1563,8 +1563,8 @@ export default function AsesmenPage() {
   // Tab config berdasarkan role
   const tabs = [
     ...(isGuru ? [
-      { id: 'diagnostik', label: '📋 Diagnostik' },
-      ...(isWaliKelas ? [{ id: 'profil-nk', label: '🧠 Profil Murid' }] : []),
+      { id: 'diagnostik', label: '📋 Diagnostik Kognitif' },
+      { id: 'profil-nk', label: '🧠 Diagnostik Non-Kognitif' },
       { id: 'formatif', label: '📝 Jurnal Formatif' },
       { id: 'sumatif', label: 'Sumatif' },
     ] : []),
@@ -1620,7 +1620,7 @@ export default function AsesmenPage() {
       {/* Tab Content */}
       <div className="bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-white/10 p-3 sm:p-5 shadow-sm">
         {activeTab === 'diagnostik' && isGuru && <TabDiagnostik user={user} filters={filters} />}
-        {activeTab === 'profil-nk' && isWaliKelas && <TabProfilNK user={user} filters={filters} />}
+        {activeTab === 'profil-nk' && isGuru && <TabProfilNK user={user} filters={filters} />}
         {activeTab === 'formatif' && isGuru && <TabFormatif user={user} filters={filters} />}
         {activeTab === 'sumatif' && isGuru && <TabSumatif user={user} filters={filters} />}
         {activeTab === 'perkembangan' && isMurid && <TabPerkembanganMurid user={user} />}
