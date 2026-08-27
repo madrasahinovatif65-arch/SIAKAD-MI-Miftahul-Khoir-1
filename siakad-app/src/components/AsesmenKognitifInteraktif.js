@@ -281,6 +281,14 @@ export default function AsesmenKognitifInteraktif({ user, tahunAjaran, semester 
 
   const handlePilih = (label) => {
     setJawaban(prev => ({ ...prev, [soalSekarang.id]: label }));
+
+    // Auto next jika tipe soal bukan isian teks dan belum di soal terakhir
+    if (soalSekarang.tipe_jawaban !== 'fill' && indeks < soalList.length - 1) {
+      setTimeout(() => {
+        window.speechSynthesis?.cancel();
+        setIndeks(i => i + 1);
+      }, 400);
+    }
   };
 
   const handleLanjut = () => {
@@ -445,20 +453,50 @@ export default function AsesmenKognitifInteraktif({ user, tahunAjaran, semester 
         )}
       </div>
 
-      {/* Tombol Lanjut */}
-      <div className="mt-5 flex justify-end">
+      {/* Tombol Navigasi */}
+      <div className="mt-6 flex justify-between">
         <button
-          id="btn-lanjut"
-          onClick={handleLanjut}
-          disabled={!sudahPilih}
-          className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all ${
-            sudahPilih
-              ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md hover:shadow-lg hover:scale-[1.02]'
-              : 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+          onClick={() => {
+            window.speechSynthesis?.cancel();
+            setIndeks(i => i - 1);
+          }}
+          disabled={indeks === 0}
+          className={`px-6 py-2.5 rounded-xl font-medium text-sm transition-all ${
+            indeks === 0
+              ? 'bg-slate-100 text-slate-400 dark:bg-slate-800 cursor-not-allowed opacity-0 pointer-events-none'
+              : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-700'
           }`}
         >
-          {indeks < soalList.length - 1 ? 'Soal Berikutnya →' : '✅ Selesai & Kirim Jawaban'}
+          ← Sebelumnya
         </button>
+
+        {indeks < soalList.length - 1 ? (
+          <button
+            id="btn-lanjut"
+            onClick={handleLanjut}
+            disabled={!sudahPilih}
+            className={`px-6 py-2.5 rounded-xl font-medium text-sm transition-all ${
+              !sudahPilih
+                ? 'bg-slate-100 text-slate-400 dark:bg-slate-800 cursor-not-allowed'
+                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 hover:bg-emerald-200'
+            }`}
+          >
+            Selanjutnya →
+          </button>
+        ) : (
+          <button
+            id="btn-lanjut"
+            onClick={handleLanjut}
+            disabled={!sudahPilih || submitting}
+            className={`px-6 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+              sudahPilih
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md hover:shadow-lg hover:scale-[1.02]'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+            }`}
+          >
+            {submitting ? '⏳ Mengirim...' : '✅ Selesai & Kirim'}
+          </button>
+        )}
       </div>
     </div>
   );
