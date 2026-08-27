@@ -223,38 +223,50 @@ function TabDiagnostik({ user, filters }) {
     } finally { setSaving(false); }
   };
 
-  const handleSaveUmum = async (id_murid) => {
-    if (!rows[id_murid]) return;
-    setSaving(id_murid); // simpan state per baris
+  // ── State Modal Editor Jawaban ──
+  const [editorModal, setEditorModal] = useState(null);
+  // editorModal = { murid, hasil, soalList, jawaban }
+  const [editorJawaban, setEditorJawaban] = useState({});
+  const [savingEditor, setSavingEditor] = useState(false);
+  const [editorNote, setEditorNote] = useState('');
+
+  const openEditor = async (murid, hasil) => {
+    if (!hasil?.raw_jawaban) return showToast('Belum ada data jawaban murid.', 'error');
+    const soalList = Object.entries(hasil.raw_jawaban).map(([id, s]) => ({ id, ...s }));
+    const prefill = {};
+    for (const s of soalList) prefill[s.id] = s.jawaban_murid || '';
+    setEditorJawaban(prefill);
+    setEditorNote(hasil.catatan_guru || '');
+    setEditorModal({ murid, hasil, soalList });
+  };
+
+  const handleSaveKoreksi = async () => {
+    if (!editorModal) return;
+    setSavingEditor(true);
     try {
-      const res = await fetch(`/api/asesmen/kognitif-interaktif?id_murid=${id_murid}&tahun_ajaran=${encodeURIComponent(filters.tahun_ajaran)}&semester=${encodeURIComponent(filters.semester)}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          override_literasi: rows[id_murid].override_literasi,
-          override_numerasi: rows[id_murid].override_numerasi,
-          override_reasoning: rows[id_murid].override_reasoning,
-          catatan_guru: rows[id_murid].catatan_guru,
-          divalidasi_oleh: user.id_user,
-        })
-      });
+      const res = await fetch(
+        `/api/asesmen/kognitif-interaktif?id_murid=${editorModal.murid.id_murid}&tahun_ajaran=${encodeURIComponent(filters.tahun_ajaran)}&semester=${encodeURIComponent(filters.semester)}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jawaban_koreksi: editorJawaban,
+            catatan_guru: editorNote,
+            divalidasi_oleh: user.id_user,
+          }),
+        }
+      );
       if (!res.ok) throw new Error((await res.json()).error);
-      showToast('✅ Validasi tersimpan.');
+      showToast('✅ Jawaban tersimpan & skor dihitung ulang.');
+      setEditorModal(null);
       mutateMurid();
     } catch (err) {
       showToast(err.message, 'error');
-    } finally { setSaving(false); }
+    } finally { setSavingEditor(false); }
   };
 
   const needsFilter = mode === 'per_materi' ? (!filters.rombel || !filters.mata_pelajaran) : !filters.rombel;
   const needsTP = mode === 'per_materi' && !selectedTP;
-
-  // Fungsi utilitas render dropdown umum
-  const OverrideSelect = ({ val, onChange }) => (
-    <select value={val || ''} onChange={onChange} className="select-field text-xs px-2 py-1 w-full max-w-[130px] border-amber-200 focus:border-amber-400 bg-amber-50">
-      <option value="">-- Tetap (Sistem) --</option>
-      {['Sangat Cakap', 'Cakap', 'Berkembang', 'Perlu Bimbingan'].map(o => <option key={o} value={o}>{o}</option>)}
-    </select>
-  );
 
   return (
     <div>
@@ -293,9 +305,9 @@ function TabDiagnostik({ user, filters }) {
       )}
 
       {mode === 'umum' && (
-        <div className="mb-4 flex items-center gap-2 text-xs text-slate-500 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
-          <span>ℹ️</span>
-          <span><strong>Dashboard Validasi:</strong> Skor dihasilkan otomatis dari tes mandiri murid. Guru dapat melihat hasil dan meng-override kategori (Pilih dropdown kuning) jika dirasa kurang sesuai.</span>
+        <div className="mb-4 flex items-center gap-2 text-xs text-slate-500 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
+          <span>🤖</span>
+          <span><strong>Dashboard Validasi AI:</strong> Skor dihitung otomatis dari tes mandiri murid. Untuk soal isian, jawaban dinilai oleh AI (Gemini) secara semantik. Guru dapat menekan <strong>"👁️ Lihat & Koreksi"</strong> untuk melihat jawaban murid dan mengeditnya jika perlu — sistem akan menghitung ulang skor secara otomatis.</span>
         </div>
       )}
 
@@ -323,7 +335,7 @@ function TabDiagnostik({ user, filters }) {
                     <th className="text-left px-3 py-3 font-semibold text-slate-600">Literasi</th>
                     <th className="text-left px-3 py-3 font-semibold text-slate-600">Numerasi</th>
                     <th className="text-left px-3 py-3 font-semibold text-slate-600">Penalaran</th>
-                    <th className="text-left px-3 py-3 font-semibold text-slate-600">Aksi</th>
+                    <th className="text-left px-3 py-3 font-semibold text-slate-600">Catatan & Aksi</th>
                   </>
                 ) : (
                   <>
@@ -337,33 +349,59 @@ function TabDiagnostik({ user, filters }) {
               {muridList.map((m, i) => {
                 if (mode === 'umum') {
                   const h = m.hasil_umum;
-                  const rowState = rows[m.id_murid] || {};
-                  const isEdited = rowState.override_literasi || rowState.override_numerasi || rowState.override_reasoning || rowState.catatan_guru;
-                  
+
+                  // Badge helper
+                  const BADGE_COLOR = {
+                    'Sangat Cakap':   'bg-emerald-100 text-emerald-700',
+                    'Cakap':          'bg-blue-100 text-blue-700',
+                    'Berkembang':     'bg-amber-100 text-amber-700',
+                    'Perlu Bimbingan':'bg-red-100 text-red-700',
+                  };
+                  const KategoriBadge = ({ skor, kategori }) => {
+                    if (!kategori) return <span className="text-xs text-slate-400">—</span>;
+                    return (
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs text-slate-500">{skor}%</span>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full w-fit ${BADGE_COLOR[kategori] || 'bg-slate-100 text-slate-600'}`}>{kategori}</span>
+                      </div>
+                    );
+                  };
+
                   return (
                     <tr key={m.id_murid} className="hover:bg-slate-50">
                       <td className="px-3 py-3 text-slate-400">{i + 1}</td>
                       <td className="px-3 py-3 font-medium text-slate-700">
                         {m.nama_murid}
-                        {!h ? <span className="block text-xs text-red-400 font-normal mt-0.5">Belum Mengerjakan Tes</span> : null}
+                        {!h
+                          ? <span className="block text-xs text-red-400 font-normal mt-0.5">Belum Mengerjakan Tes</span>
+                          : h.divalidasi_at
+                            ? <span className="block text-xs text-emerald-500 font-normal mt-0.5">✓ Sudah dikoreksi guru</span>
+                            : null
+                        }
                       </td>
                       <td className="px-3 py-3">
-                        {h && <span className="block text-xs mb-1 font-semibold text-slate-600">{h.skor_literasi}% → {h.kategori_literasi}</span>}
-                        <OverrideSelect val={rowState.override_literasi || h?.override_literasi} onChange={e => setRows(p => ({...p, [m.id_murid]: {...p[m.id_murid], override_literasi: e.target.value}}))} />
+                        <KategoriBadge skor={h?.skor_literasi} kategori={h?.kategori_literasi} />
                       </td>
                       <td className="px-3 py-3">
-                        {h && <span className="block text-xs mb-1 font-semibold text-slate-600">{h.skor_numerasi}% → {h.kategori_numerasi}</span>}
-                        <OverrideSelect val={rowState.override_numerasi || h?.override_numerasi} onChange={e => setRows(p => ({...p, [m.id_murid]: {...p[m.id_murid], override_numerasi: e.target.value}}))} />
+                        <KategoriBadge skor={h?.skor_numerasi} kategori={h?.kategori_numerasi} />
                       </td>
                       <td className="px-3 py-3">
-                        {h && <span className="block text-xs mb-1 font-semibold text-slate-600">{h.skor_reasoning}% → {h.kategori_reasoning}</span>}
-                        <OverrideSelect val={rowState.override_reasoning || h?.override_reasoning} onChange={e => setRows(p => ({...p, [m.id_murid]: {...p[m.id_murid], override_reasoning: e.target.value}}))} />
+                        <KategoriBadge skor={h?.skor_reasoning} kategori={h?.kategori_reasoning} />
                       </td>
-                      <td className="px-3 py-3">
-                        <input type="text" placeholder="Catatan guru..." className="input-field text-xs px-2 py-1 mb-1 w-full" value={rowState.catatan_guru ?? (h?.catatan_guru || '')} onChange={e => setRows(p => ({...p, [m.id_murid]: {...p[m.id_murid], catatan_guru: e.target.value}}))} />
-                        <button onClick={() => handleSaveUmum(m.id_murid)} disabled={!isEdited && !h?.override_literasi} className="btn-sm-primary text-xs w-full py-1">
-                          {saving === m.id_murid ? '⏳' : '💾 Validasi'}
-                        </button>
+                      <td className="px-3 py-3 min-w-[160px]">
+                        {h?.catatan_guru && (
+                          <p className="text-xs text-slate-500 italic mb-1 line-clamp-1">💬 {h.catatan_guru}</p>
+                        )}
+                        {h?.raw_jawaban ? (
+                          <button
+                            onClick={() => openEditor(m, h)}
+                            className="text-xs px-3 py-1.5 bg-violet-50 border border-violet-200 text-violet-700 rounded-lg hover:bg-violet-100 transition-colors w-full font-medium"
+                          >
+                            👁️ Lihat & Koreksi
+                          </button>
+                        ) : h ? (
+                          <span className="text-xs text-slate-400 italic">Jawaban tidak tersedia</span>
+                        ) : null}
                       </td>
                     </tr>
                   );
@@ -398,6 +436,114 @@ function TabDiagnostik({ user, filters }) {
               <button onClick={handleSavePerMateri} disabled={saving} className="btn-primary">{saving ? 'Menyimpan...' : '💾 Simpan Semua'}</button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Modal Editor Jawaban ── */}
+      {editorModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <div>
+                <h3 className="font-bold text-slate-800 text-lg">👁️ Koreksi Jawaban</h3>
+                <p className="text-sm text-slate-500">{editorModal.murid.nama_murid} — {filters.rombel}</p>
+              </div>
+              <button onClick={() => setEditorModal(null)} className="text-slate-400 hover:text-slate-600 text-2xl leading-none">×</button>
+            </div>
+
+            {/* Body: daftar soal */}
+            <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
+              {editorModal.soalList.map((soal, idx) => {
+                const BADGE_COLOR = {
+                  literasi: 'bg-blue-50 text-blue-700 border-blue-200',
+                  numerasi: 'bg-amber-50 text-amber-700 border-amber-200',
+                  reasoning: 'bg-violet-50 text-violet-700 border-violet-200',
+                };
+                return (
+                  <div key={soal.id} className="border border-slate-200 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <span className="text-slate-400 text-sm font-medium mt-0.5">{idx + 1}.</span>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${BADGE_COLOR[soal.dimensi] || 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+                            {soal.dimensi}
+                          </span>
+                          {soal.tipe_jawaban === 'fill' && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200 font-medium">✏️ Isian (AI)</span>
+                          )}
+                          {soal.is_benar
+                            ? <span className="text-xs text-emerald-600 font-semibold">✅ Benar</span>
+                            : <span className="text-xs text-red-500 font-semibold">❌ Salah</span>
+                          }
+                        </div>
+                        <p className="text-sm font-medium text-slate-800 mb-3">{soal.teks_pertanyaan}</p>
+
+                        {soal.tipe_jawaban === 'fill' ? (
+                          <div className="space-y-1">
+                            <label className="text-xs text-slate-500">Jawaban murid (edit jika perlu):</label>
+                            <input
+                              type="text"
+                              value={editorJawaban[soal.id] || ''}
+                              onChange={e => setEditorJawaban(p => ({ ...p, [soal.id]: e.target.value }))}
+                              className="input-field text-sm w-full"
+                              placeholder="Ketik jawaban murid..."
+                            />
+                            <p className="text-xs text-slate-400">Kunci: <em>{soal.jawaban_benar}</em></p>
+                          </div>
+                        ) : (
+                          <div className="space-y-1.5">
+                            {(soal.opsi_jawaban || []).map(opsi => {
+                              const dipilih = editorJawaban[soal.id] === opsi.label;
+                              return (
+                                <label key={opsi.label} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer text-sm transition-colors ${
+                                  dipilih
+                                    ? opsi.is_correct ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-red-50 border-red-300 text-red-800'
+                                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                                }`}>
+                                  <input
+                                    type="radio"
+                                    name={`soal-${soal.id}`}
+                                    value={opsi.label}
+                                    checked={dipilih}
+                                    onChange={() => setEditorJawaban(p => ({ ...p, [soal.id]: opsi.label }))}
+                                    className="accent-emerald-600"
+                                  />
+                                  {soal.tipe_jawaban === 'emoji' && <span className="text-xl">{opsi.emoji}</span>}
+                                  <span>{opsi.label}</span>
+                                  {opsi.is_correct && <span className="ml-auto text-xs text-emerald-600">✓ Kunci</span>}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Catatan Guru */}
+              <div className="border border-slate-200 rounded-xl p-4">
+                <label className="text-sm font-medium text-slate-700 mb-2 block">💬 Catatan Guru (opsional)</label>
+                <textarea
+                  value={editorNote}
+                  onChange={e => setEditorNote(e.target.value)}
+                  rows={2}
+                  placeholder="Tambahkan catatan observasi guru..."
+                  className="input-field text-sm w-full resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
+              <button onClick={() => setEditorModal(null)} className="btn-secondary text-sm">Batal</button>
+              <button onClick={handleSaveKoreksi} disabled={savingEditor} className="btn-primary text-sm">
+                {savingEditor ? '⏳ Menyimpan...' : '🔄 Simpan & Hitung Ulang Nilai'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
