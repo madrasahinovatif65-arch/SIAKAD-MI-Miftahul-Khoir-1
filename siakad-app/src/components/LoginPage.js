@@ -262,7 +262,7 @@ export default function LoginPage({ onLoginSuccess }) {
                 <button
                   type="button"
                   onClick={() => setShowPin(!showPin)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-teal-200/50 hover:text-teal-200/80 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-700 dark:text-teal-200/70 dark:hover:text-teal-200 transition-colors"
                 >
                   {showPin ? (
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">

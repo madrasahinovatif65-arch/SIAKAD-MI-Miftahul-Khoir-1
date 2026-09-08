@@ -305,7 +305,7 @@ export default function ProfilPage() {
                       <button
                         type="button"
                         onClick={() => field.setShow(!field.show)}
-                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
+                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors"
                       >
                         {field.show ? (
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
