@@ -73,8 +73,8 @@ const QUICK_MENU_CONFIG = {
 export default function DashboardHome() {
   const { user } = useAuth();
   
-  // URL deployment APK Gen (Vercel)
-  const APK_GEN_URL = process.env.REACT_APP_APK_GEN_URL || "https://apk-gen-two.vercel.app"; // Fallback URL atau URL local untuk testing
+  // URL deployment APK Gen (Vercel) — hardcoded agar tidak bergantung pada env variable
+  const APK_GEN_URL = process.env.NEXT_PUBLIC_APK_GEN_URL || "https://rpm-gen-smoky.vercel.app";
 
   // 📍 Geofence Reminder: secara otomatis memantau posisi GPS guru
   // dan mengirim pengingat absensi jika berada di area sekolah
@@ -466,11 +466,17 @@ export default function DashboardHome() {
               onClick={async () => {
                 try {
                   const { data } = await supabase.auth.getSession();
+                  const targetUrl = `https://rpm-gen-smoky.vercel.app`;
+                  console.log('[APK Gen SSO] Target URL:', targetUrl);
+                  console.log('[APK Gen SSO] Session ada:', !!data.session);
                   if (data.session) {
                     const { access_token, refresh_token } = data.session;
-                    const url = new URL(`${APK_GEN_URL}/sso`);
+                    const url = new URL(`${targetUrl}/sso`);
                     url.hash = `access_token=${access_token}&refresh_token=${refresh_token}`;
+                    console.log('[APK Gen SSO] Membuka URL:', url.origin + url.pathname + '#...(token)');
                     window.open(url.toString(), '_blank');
+                  } else {
+                    alert('Sesi login tidak ditemukan. Silakan logout dan login ulang ke SIAKAD.');
                   }
                 } catch (err) {
                   console.error('SSO Error:', err);
