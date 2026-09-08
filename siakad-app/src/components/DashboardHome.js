@@ -564,10 +564,8 @@ export default function DashboardHome() {
                 try {
                   const targetUrl = `https://rpm-gen-smoky.vercel.app`;
                   if (user.role === 'Admin') {
-                    // Admin: SSO lokal dengan kredensial tetap
-                    const url = new URL(`${targetUrl}/sso`);
-                    url.hash = `username=madrasahinovatif&password=123456`;
-                    window.location.href = url.toString();
+                    // Admin: SSO tidak langsung masuk, arahkan ke halaman login darurat (lokal) APK Gen
+                    window.location.href = `${targetUrl}/?admin=true`;
                   } else {
                     // Guru: SSO via Supabase session token
                     const { data } = await supabase.auth.getSession();
