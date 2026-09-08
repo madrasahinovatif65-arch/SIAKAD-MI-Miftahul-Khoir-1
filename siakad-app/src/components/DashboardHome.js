@@ -541,7 +541,7 @@ export default function DashboardHome() {
 
 
       {/* 🚀 Banner Integrasi Aplikasi Guru AI */}
-      {user && ['Wali Kelas', 'Guru Mapel', 'Kepala Madrasah', 'Admin'].includes(user.role) && (
+      {user && ['Wali Kelas', 'Guru Mapel', 'Admin'].includes(user.role) && (
         <div className="relative overflow-hidden rounded-[2rem] p-6 sm:p-8 bg-gradient-to-r from-emerald-600 to-teal-500 shadow-[0_8px_30px_rgb(16,185,129,0.3)] text-white group mb-6">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none group-hover:bg-white/20 transition-colors duration-500" />
           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
@@ -562,18 +562,23 @@ export default function DashboardHome() {
             <button
               onClick={async () => {
                 try {
-                  const { data } = await supabase.auth.getSession();
                   const targetUrl = `https://rpm-gen-smoky.vercel.app`;
-                  console.log('[APK Gen SSO] Target URL:', targetUrl);
-                  console.log('[APK Gen SSO] Session ada:', !!data.session);
-                  if (data.session) {
-                    const { access_token, refresh_token } = data.session;
+                  if (user.role === 'Admin') {
+                    // Admin: SSO lokal dengan kredensial tetap
                     const url = new URL(`${targetUrl}/sso`);
-                    url.hash = `access_token=${access_token}&refresh_token=${refresh_token}`;
-                    console.log('[APK Gen SSO] Membuka URL:', url.origin + url.pathname + '#...(token)');
-                    window.open(url.toString(), '_blank');
+                    url.hash = `username=madrasahinovatif&password=123456`;
+                    window.location.href = url.toString();
                   } else {
-                    alert('Sesi login tidak ditemukan. Silakan logout dan login ulang ke SIAKAD.');
+                    // Guru: SSO via Supabase session token
+                    const { data } = await supabase.auth.getSession();
+                    if (data.session) {
+                      const { access_token, refresh_token } = data.session;
+                      const url = new URL(`${targetUrl}/sso`);
+                      url.hash = `access_token=${access_token}&refresh_token=${refresh_token}`;
+                      window.location.href = url.toString();
+                    } else {
+                      alert('Sesi login tidak ditemukan. Silakan logout dan login ulang ke SIAKAD.');
+                    }
                   }
                 } catch (err) {
                   console.error('SSO Error:', err);

@@ -36,7 +36,7 @@ export async function GET(request) {
     // 3. Ambil data semua Guru
     const { data: guruData, error: guruError } = await supabase
       .from('master_user')
-      .select('nama, id_user, mapel, role')
+      .select('nama, id_user, mapel, role, rombel')
       .neq('role', 'Murid')
       .order('nama', { ascending: true });
 
@@ -55,12 +55,31 @@ export async function GET(request) {
       Semester: semester,
 
       // Data Guru
-      Guru: guruData.map(guru => ({
-        Nama_Guru: guru.nama,
-        NIP_Guru: guru.id_user,
-        siakadMapel: guru.mapel,
-        siakadRole: guru.role
-      }))
+      Guru: guruData.map(guru => {
+        let formattedRombel = '';
+        if (guru.rombel && guru.rombel !== '-' && guru.rombel.trim() !== '') {
+          const match = guru.rombel.match(/\d+/);
+          if (match) {
+            const grade = parseInt(match[0], 10);
+            let fase = '';
+            if (grade === 1 || grade === 2) fase = 'A';
+            else if (grade === 3 || grade === 4) fase = 'B';
+            else if (grade === 5 || grade === 6) fase = 'C';
+            
+            if (fase) {
+              formattedRombel = `Fase ${fase} / Kelas ${grade}`;
+            }
+          }
+        }
+
+        return {
+          Nama_Guru: guru.nama,
+          NIP_Guru: guru.id_user,
+          siakadMapel: guru.mapel,
+          siakadRole: guru.role,
+          siakadRombel: formattedRombel
+        };
+      })
     };
 
     return NextResponse.json(responseData, { status: 200 });
