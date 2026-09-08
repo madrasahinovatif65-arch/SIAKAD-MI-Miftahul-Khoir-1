@@ -443,56 +443,6 @@ export default function DashboardHome() {
 
       <AbsenGPSWidget />
 
-      {/* 🚀 Banner Integrasi Aplikasi Guru AI */}
-      {user && ['Wali Kelas', 'Guru Mapel', 'Kepala Madrasah', 'Admin'].includes(user.role) && (
-        <div className="relative overflow-hidden rounded-[2rem] p-6 sm:p-8 bg-gradient-to-r from-emerald-600 to-teal-500 shadow-[0_8px_30px_rgb(16,185,129,0.3)] text-white group mb-6">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none group-hover:bg-white/20 transition-colors duration-500" />
-          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-5">
-              <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shrink-0 border border-white/30">
-                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09l2.846.813-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-xl sm:text-2xl font-black mb-1">Aplikasi Guru AI (EdAdmin Pro)</h3>
-                <p className="text-emerald-50 text-sm max-w-lg leading-relaxed">
-                  Buat RPP, Modul Ajar, ATP, CP, LKPD Interaktif dan Media Mengajar secara otomatis menggunakan kecerdasan buatan.
-                </p>
-              </div>
-            </div>
-            
-            <button
-              onClick={async () => {
-                try {
-                  const { data } = await supabase.auth.getSession();
-                  const targetUrl = `https://rpm-gen-smoky.vercel.app`;
-                  console.log('[APK Gen SSO] Target URL:', targetUrl);
-                  console.log('[APK Gen SSO] Session ada:', !!data.session);
-                  if (data.session) {
-                    const { access_token, refresh_token } = data.session;
-                    const url = new URL(`${targetUrl}/sso`);
-                    url.hash = `access_token=${access_token}&refresh_token=${refresh_token}`;
-                    console.log('[APK Gen SSO] Membuka URL:', url.origin + url.pathname + '#...(token)');
-                    window.open(url.toString(), '_blank');
-                  } else {
-                    alert('Sesi login tidak ditemukan. Silakan logout dan login ulang ke SIAKAD.');
-                  }
-                } catch (err) {
-                  console.error('SSO Error:', err);
-                  alert('Gagal menghubungkan sesi ke Aplikasi Guru AI.');
-                }
-              }}
-              className="w-full md:w-auto px-6 py-3.5 bg-white text-emerald-600 font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2"
-            >
-              Buka Aplikasi AI
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Quick Menu Section */}
       <div className="md:hidden">
@@ -590,6 +540,57 @@ export default function DashboardHome() {
         </div>
       )}
 
+
+      {/* 🚀 Banner Integrasi Aplikasi Guru AI */}
+      {user && ['Wali Kelas', 'Guru Mapel', 'Kepala Madrasah', 'Admin'].includes(user.role) && (
+        <div className="relative overflow-hidden rounded-[2rem] p-6 sm:p-8 bg-gradient-to-r from-emerald-600 to-teal-500 shadow-[0_8px_30px_rgb(16,185,129,0.3)] text-white group mb-6">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none group-hover:bg-white/20 transition-colors duration-500" />
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-5">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shrink-0 border border-white/30">
+                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09l2.846.813-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-xl sm:text-2xl font-black mb-1">Aplikasi Guru AI (EdAdmin Pro)</h3>
+                <p className="text-emerald-50 text-sm max-w-lg leading-relaxed">
+                  Buat RPP, Modul Ajar, ATP, CP, LKPD Interaktif dan Media Mengajar secara otomatis menggunakan kecerdasan buatan.
+                </p>
+              </div>
+            </div>
+            
+            <button
+              onClick={async () => {
+                try {
+                  const { data } = await supabase.auth.getSession();
+                  const targetUrl = `https://rpm-gen-smoky.vercel.app`;
+                  console.log('[APK Gen SSO] Target URL:', targetUrl);
+                  console.log('[APK Gen SSO] Session ada:', !!data.session);
+                  if (data.session) {
+                    const { access_token, refresh_token } = data.session;
+                    const url = new URL(`${targetUrl}/sso`);
+                    url.hash = `access_token=${access_token}&refresh_token=${refresh_token}`;
+                    console.log('[APK Gen SSO] Membuka URL:', url.origin + url.pathname + '#...(token)');
+                    window.open(url.toString(), '_blank');
+                  } else {
+                    alert('Sesi login tidak ditemukan. Silakan logout dan login ulang ke SIAKAD.');
+                  }
+                } catch (err) {
+                  console.error('SSO Error:', err);
+                  alert('Gagal menghubungkan sesi ke Aplikasi Guru AI.');
+                }
+              }}
+              className="w-full md:w-auto px-6 py-3.5 bg-white text-emerald-600 font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2"
+            >
+              Buka Aplikasi AI
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
       {user.role === 'Admin' && chartData && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-white/5 rounded-2xl p-6 lg:col-span-2">
