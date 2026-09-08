@@ -141,8 +141,12 @@ export default function DashboardHome() {
         supabase.from('log_gps_guru').select('id', { count: 'exact', head: true }).eq('tanggal', today).eq('status', 'Menunggu Verifikasi'),
         user.role === 'Kepala Madrasah' ? supabase.from('master_user').select('id_user').in('role', ['Wali Kelas', 'Guru Mapel', 'Kepala Madrasah']).eq('status_aktif', 'Aktif') : Promise.resolve({ data: null }),
         user.role === 'Kepala Madrasah' ? supabase.from('verifikasi_guru').select('tanggal, id_guru').gte('tanggal', calcStart).lte('tanggal', today) : Promise.resolve({ data: null }),
+        // tapGuruRes: hitung guru yang hadir via NFC/GPS mandiri hari ini
         user.role === 'Kepala Madrasah' ? supabase.from('view_rekap_kehadiran_guru_final').select('id_guru', { count: 'exact', head: true }).eq('tanggal', today).in('metode', ['NFC', 'GPS', 'NFC+GPS']) : Promise.resolve({ count: 0 }),
-        user.role === 'Kepala Madrasah' ? supabase.from('view_rekap_kehadiran_murid_final').select('id_murid', { count: 'exact', head: true }).eq('tanggal', today).or('waktu_datang.neq.-,waktu_pulang.neq.-') : Promise.resolve({ count: 0 }),
+        // tapMuridRes: hitung murid yang tap NFC mandiri hari ini
+        // Menggunakan kolom 'catatan' bukan waktu_datang, karena waktu_datang bisa NULL
+        // (NULL != '-' selalu NULL di SQL, sehingga count selalu 0)
+        user.role === 'Kepala Madrasah' ? supabase.from('view_rekap_kehadiran_murid_final').select('id_murid', { count: 'exact', head: true }).eq('tanggal', today).or('catatan.eq.Tap NFC,catatan.eq.Terlambat') : Promise.resolve({ count: 0 }),
       ]);
 
       let unverifiedDaysCount = 0;
