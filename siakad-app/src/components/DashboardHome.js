@@ -144,10 +144,37 @@ export default function DashboardHome() {
         // tapGuruRes: hitung guru yang hadir via NFC/GPS mandiri hari ini
         user.role === 'Kepala Madrasah' ? supabase.from('view_rekap_kehadiran_guru_final').select('id_guru', { count: 'exact', head: true }).eq('tanggal', today).in('metode', ['NFC', 'GPS', 'NFC+GPS']) : Promise.resolve({ count: 0 }),
         // tapMuridRes: hitung murid yang tap NFC mandiri hari ini
-        // Menggunakan kolom 'catatan' bukan waktu_datang, karena waktu_datang bisa NULL
-        // (NULL != '-' selalu NULL di SQL, sehingga count selalu 0)
         user.role === 'Kepala Madrasah' ? supabase.from('view_rekap_kehadiran_murid_final').select('id_murid', { count: 'exact', head: true }).eq('tanggal', today).or('catatan.eq.Tap NFC,catatan.eq.Terlambat') : Promise.resolve({ count: 0 }),
       ]);
+
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // 🔍 DEBUG LOG — hapus setelah masalah ditemukan
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      if (user.role === 'Kepala Madrasah') {
+        console.group('[DEBUG] Dashboard Tap Mandiri — tanggal:', today);
+        console.log('tapGuruRes  →', { count: tapGuruRes?.count, error: tapGuruRes?.error });
+        console.log('tapMuridRes →', { count: tapMuridRes?.count, error: tapMuridRes?.error });
+
+        // Sample raw data view guru (tanpa filter metode) untuk cek kolom yg ada
+        const { data: sampleGuru, error: errSampleGuru } = await supabase
+          .from('view_rekap_kehadiran_guru_final')
+          .select('id_guru, tanggal, metode, status, waktu')
+          .eq('tanggal', today)
+          .limit(5);
+        console.log('sample view guru hari ini (max 5):', sampleGuru, '| error:', errSampleGuru?.message);
+
+        // Sample raw data view murid (tanpa filter catatan) untuk cek kolom yg ada
+        const { data: sampleMurid, error: errSampleMurid } = await supabase
+          .from('view_rekap_kehadiran_murid_final')
+          .select('id_murid, tanggal, catatan, waktu_datang, waktu_pulang, status')
+          .eq('tanggal', today)
+          .limit(5);
+        console.log('sample view murid hari ini (max 5):', sampleMurid, '| error:', errSampleMurid?.message);
+        console.groupEnd();
+      }
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
 
       let unverifiedDaysCount = 0;
       if (user.role === 'Kepala Madrasah' && activeTeachersRes.data && verifikasiDataRes.data) {
