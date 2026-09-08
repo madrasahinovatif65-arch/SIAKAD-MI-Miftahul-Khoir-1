@@ -47,9 +47,9 @@ export async function GET(request) {
 
     // 2. Ambil id_user berdasarkan NISN dari master_murid
     const { data: murids, error: errMurid } = await supabase
-      .from('master_murid')
-      .select('nisn, id_user, nama')
-      .in('nisn', targetNisn);
+      .from('master_user')
+      .select('id_user, nama')
+      .in('id_user', targetNisn);
 
     if (errMurid) throw errMurid;
 
@@ -63,7 +63,7 @@ export async function GET(request) {
         id_user: m.id_user,
         role_target: null,
         title: 'Peringatan Absensi ⚠️',
-        message: `Ananda ${m.nama} telah tercatat Alfa sebanyak ${alfaCount[m.nisn]} kali di bulan ini. Mohon perhatikan tingkat kehadiran.`,
+        message: `Ananda ${m.nama} telah tercatat Alfa sebanyak ${alfaCount[m.id_user]} kali di bulan ini. Mohon perhatikan tingkat kehadiran.`,
         type: 'peringatan',
         link: '/dashboard/riwayat-murid',
         is_read: false

@@ -29,16 +29,16 @@ async function seed() {
 
   // 2. Master Murid
   const murid = [
-    { nisn: '1001', nama_murid: 'Budi Santoso', rombel: 'Kelas 1A', status: 'Aktif' },
-    { nisn: '1002', nama_murid: 'Ani Wijaya', rombel: 'Kelas 1A', status: 'Aktif' },
-    { nisn: '1003', nama_murid: 'Citra Kirana', rombel: 'Kelas 1A', status: 'Aktif' },
-    { nisn: '1004', nama_murid: 'Dodi Pratama', rombel: 'Kelas 1B', status: 'Aktif' },
-    { nisn: '1005', nama_murid: 'Eka Sari', rombel: 'Kelas 1B', status: 'Aktif' },
+    { id_user: '1001', nama: 'Andi Budiman', role: 'Murid', rombel: 'Kelas 1A', status_aktif: 'Aktif' },
+    { id_user: '1002', nama: 'Budi Santoso', role: 'Murid', rombel: 'Kelas 1A', status_aktif: 'Aktif' },
+    { id_user: '1003', nama: 'Citra Kirana', role: 'Murid', rombel: 'Kelas 1A', status_aktif: 'Aktif' },
+    { id_user: '1004', nama: 'Dian Sastro', role: 'Murid', rombel: 'Kelas 1B', status_aktif: 'Aktif' },
+    { id_user: '1005', nama: 'Eka Sari', role: 'Murid', rombel: 'Kelas 1B', status_aktif: 'Aktif' },
   ];
 
-  const { data: muridData, error: muridErr } = await supabase.from('master_murid').upsert(murid, { onConflict: 'nisn' }).select();
-  if (muridErr) console.error('❌ master_murid:', muridErr.message);
-  else console.log(`✅ master_murid: ${muridData.length} baris`);
+  const { data: muridData, error: muridErr } = await supabase.from('master_user').upsert(murid, { onConflict: 'id_user' }).select();
+  if (muridErr) console.error('❌ master_user:', muridErr.message);
+  else console.log(`✅ master_user: ${muridData.length} baris`);
 
   // 3. Master Mapel
   const mapel = [
