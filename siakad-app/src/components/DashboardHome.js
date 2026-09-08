@@ -152,24 +152,26 @@ export default function DashboardHome() {
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       if (user.role === 'Kepala Madrasah') {
         console.group('[DEBUG] Dashboard Tap Mandiri — tanggal:', today);
-        console.log('tapGuruRes  →', { count: tapGuruRes?.count, error: tapGuruRes?.error });
-        console.log('tapMuridRes →', { count: tapMuridRes?.count, error: tapMuridRes?.error });
+        console.log('tapGuruRes  count:', tapGuruRes?.count, '| ERROR:', tapGuruRes?.error?.message || tapGuruRes?.error?.code || JSON.stringify(tapGuruRes?.error));
+        console.log('tapMuridRes count:', tapMuridRes?.count, '| ERROR:', tapMuridRes?.error?.message || tapMuridRes?.error?.code || JSON.stringify(tapMuridRes?.error));
 
-        // Sample raw data view guru (tanpa filter metode) untuk cek kolom yg ada
+        // Sample raw data view guru (tanpa filter extra) — lihat nilai kolom aktual
         const { data: sampleGuru, error: errSampleGuru } = await supabase
           .from('view_rekap_kehadiran_guru_final')
           .select('id_guru, tanggal, metode, status, waktu')
           .eq('tanggal', today)
           .limit(5);
-        console.log('sample view guru hari ini (max 5):', sampleGuru, '| error:', errSampleGuru?.message);
+        console.log('sample GURU (metode values):', JSON.stringify((sampleGuru || []).map(r => ({ metode: r.metode, status: r.status }))));
+        if (errSampleGuru) console.error('errSampleGuru:', errSampleGuru.message);
 
-        // Sample raw data view murid (tanpa filter catatan) untuk cek kolom yg ada
+        // Sample raw data view murid — lihat nilai kolom catatan aktual
         const { data: sampleMurid, error: errSampleMurid } = await supabase
           .from('view_rekap_kehadiran_murid_final')
-          .select('id_murid, tanggal, catatan, waktu_datang, waktu_pulang, status')
+          .select('id_murid, tanggal, catatan, waktu_datang, status')
           .eq('tanggal', today)
           .limit(5);
-        console.log('sample view murid hari ini (max 5):', sampleMurid, '| error:', errSampleMurid?.message);
+        console.log('sample MURID (catatan values):', JSON.stringify((sampleMurid || []).map(r => ({ catatan: r.catatan, waktu_datang: r.waktu_datang, status: r.status }))));
+        if (errSampleMurid) console.error('errSampleMurid:', errSampleMurid.message);
         console.groupEnd();
       }
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
