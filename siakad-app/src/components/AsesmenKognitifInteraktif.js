@@ -139,15 +139,24 @@ function KartuDropdown({ opsi, jawabanDipilih, onPilih }) {
 // ─────────────────────────────────────────────────────────────
 // Kartu Soal: Fill / Isian (Fase B–C)
 // ─────────────────────────────────────────────────────────────
-function KartuFill({ jawabanDipilih, onPilih }) {
+function KartuFill({ jawabanDipilih, onPilih, onLanjut }) {
   return (
     <div className="mt-6">
+      <p className="text-xs text-slate-400 dark:text-slate-500 mb-2">
+        ✏️ Ketik jawabanmu, lalu tekan <strong>Enter</strong> atau klik tombol <strong>Selanjutnya</strong>
+      </p>
       <input
         id="pilihan-fill"
         type="text"
         placeholder="Tulis jawaban kamu di sini..."
         value={jawabanDipilih || ''}
         onChange={e => onPilih(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && (jawabanDipilih || '').trim()) {
+            e.preventDefault();
+            onLanjut?.();
+          }
+        }}
         className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-base focus:outline-none focus:border-emerald-500 transition-colors"
       />
     </div>
@@ -296,6 +305,16 @@ export default function AsesmenKognitifInteraktif({ user, tahunAjaran, semester 
     if (indeks < soalList.length - 1) {
       setIndeks(i => i + 1);
     } else {
+      // Validasi: pastikan semua soal sudah dijawab sebelum submit
+      const indeksBelumDijawab = soalList.findIndex(s => {
+        const jwb = jawaban[s.id] || '';
+        return s.tipe_jawaban === 'fill' ? !jwb.trim() : !jwb;
+      });
+      if (indeksBelumDijawab !== -1) {
+        // Arahkan murid ke soal pertama yang belum dijawab
+        setIndeks(indeksBelumDijawab);
+        return;
+      }
       handleSubmit();
     }
   };
@@ -318,12 +337,16 @@ export default function AsesmenKognitifInteraktif({ user, tahunAjaran, semester 
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || 'Gagal menyimpan jawaban.');
       setHasilAkhir(data.hasil);
       setTahap('hasil');
     } catch (err) {
-      console.error(err);
-      setTahap('tes');
+      console.error('[Submit Asesmen]', err);
+      // Tampilkan pesan error ke murid — jangan silent fail
+      setErrorMsg(
+        err.message || 'Gagal mengirim jawaban. Pastikan internet stabil, lalu coba lagi.'
+      );
+      setTahap('error');
     } finally {
       setSubmitting(false);
     }
@@ -331,7 +354,12 @@ export default function AsesmenKognitifInteraktif({ user, tahunAjaran, semester 
 
   const dimSekarang = soalSekarang ? DIMENSI_CONFIG[soalSekarang.dimensi] : null;
   const progress    = soalList.length > 0 ? ((indeks) / soalList.length) * 100 : 0;
-  const sudahPilih  = soalSekarang ? !!jawaban[soalSekarang.id] : false;
+  // Untuk fill blank, harus ada teks yang tidak hanya spasi
+  const sudahPilih  = soalSekarang
+    ? (soalSekarang.tipe_jawaban === 'fill'
+        ? (jawaban[soalSekarang.id] || '').trim().length > 0
+        : !!jawaban[soalSekarang.id])
+    : false;
 
   // ── Error
   if (tahap === 'error') {
@@ -449,6 +477,7 @@ export default function AsesmenKognitifInteraktif({ user, tahunAjaran, semester 
           <KartuFill
             jawabanDipilih={jawaban[soalSekarang.id]}
             onPilih={handlePilih}
+            onLanjut={handleLanjut}
           />
         )}
       </div>
