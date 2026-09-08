@@ -141,40 +141,11 @@ export default function DashboardHome() {
         supabase.from('log_gps_guru').select('id', { count: 'exact', head: true }).eq('tanggal', today).eq('status', 'Menunggu Verifikasi'),
         user.role === 'Kepala Madrasah' ? supabase.from('master_user').select('id_user').in('role', ['Wali Kelas', 'Guru Mapel', 'Kepala Madrasah']).eq('status_aktif', 'Aktif') : Promise.resolve({ data: null }),
         user.role === 'Kepala Madrasah' ? supabase.from('verifikasi_guru').select('tanggal, id_guru').gte('tanggal', calcStart).lte('tanggal', today) : Promise.resolve({ data: null }),
-        // tapGuruRes: hitung guru yang hadir via NFC/GPS mandiri hari ini
-        user.role === 'Kepala Madrasah' ? supabase.from('view_rekap_kehadiran_guru_final').select('id_guru', { count: 'exact', head: true }).eq('tanggal', today).in('metode', ['NFC', 'GPS', 'NFC+GPS']) : Promise.resolve({ count: 0 }),
-        // tapMuridRes: hitung murid yang tap NFC mandiri hari ini
-        user.role === 'Kepala Madrasah' ? supabase.from('view_rekap_kehadiran_murid_final').select('id_murid', { count: 'exact', head: true }).eq('tanggal', today).or('catatan.eq.Tap NFC,catatan.eq.Terlambat') : Promise.resolve({ count: 0 }),
+        // tapGuruRes: ambil data guru hari ini, filter mandiri di JS (hindari HEAD+complex filter → HTTP 500)
+        user.role === 'Kepala Madrasah' ? supabase.from('view_rekap_kehadiran_guru_final').select('id_guru, metode').eq('tanggal', today) : Promise.resolve({ data: [] }),
+        // tapMuridRes: ambil data murid hari ini, filter tap NFC di JS (hindari .or() dengan spasi → HTTP 500)
+        user.role === 'Kepala Madrasah' ? supabase.from('view_rekap_kehadiran_murid_final').select('id_murid, catatan').eq('tanggal', today) : Promise.resolve({ data: [] }),
       ]);
-
-      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      // 🔍 DEBUG LOG — hapus setelah masalah ditemukan
-      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      if (user.role === 'Kepala Madrasah') {
-        console.group('[DEBUG] Dashboard Tap Mandiri — tanggal:', today);
-        console.log('tapGuruRes  count:', tapGuruRes?.count, '| ERROR:', tapGuruRes?.error?.message || tapGuruRes?.error?.code || JSON.stringify(tapGuruRes?.error));
-        console.log('tapMuridRes count:', tapMuridRes?.count, '| ERROR:', tapMuridRes?.error?.message || tapMuridRes?.error?.code || JSON.stringify(tapMuridRes?.error));
-
-        // Sample raw data view guru (tanpa filter extra) — lihat nilai kolom aktual
-        const { data: sampleGuru, error: errSampleGuru } = await supabase
-          .from('view_rekap_kehadiran_guru_final')
-          .select('id_guru, tanggal, metode, status, waktu')
-          .eq('tanggal', today)
-          .limit(5);
-        console.log('sample GURU (metode values):', JSON.stringify((sampleGuru || []).map(r => ({ metode: r.metode, status: r.status }))));
-        if (errSampleGuru) console.error('errSampleGuru:', errSampleGuru.message);
-
-        // Sample raw data view murid — lihat nilai kolom catatan aktual
-        const { data: sampleMurid, error: errSampleMurid } = await supabase
-          .from('view_rekap_kehadiran_murid_final')
-          .select('id_murid, tanggal, catatan, waktu_datang, status')
-          .eq('tanggal', today)
-          .limit(5);
-        console.log('sample MURID (catatan values):', JSON.stringify((sampleMurid || []).map(r => ({ catatan: r.catatan, waktu_datang: r.waktu_datang, status: r.status }))));
-        if (errSampleMurid) console.error('errSampleMurid:', errSampleMurid.message);
-        console.groupEnd();
-      }
-      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 
 
@@ -203,8 +174,10 @@ export default function DashboardHome() {
         persentaseJurnal: 0,
         persentaseHadirMurid: 0,
         totalHadirMurid: 0,
-        tapGuruHariIni: tapGuruRes?.count || 0,
-        tapMuridHariIni: tapMuridRes?.count || 0
+        // Filter di JS: metode bukan 'Otomatis' = tap mandiri guru
+        tapGuruHariIni: (tapGuruRes?.data || []).filter(g => g.metode && g.metode !== 'Otomatis').length,
+        // Filter di JS: catatan 'Tap NFC' atau 'Terlambat' = tap mandiri murid
+        tapMuridHariIni: (tapMuridRes?.data || []).filter(m => m.catatan === 'Tap NFC' || m.catatan === 'Terlambat').length
       };
 
       if (['Wali Kelas', 'Guru Mapel'].includes(user.role)) {
