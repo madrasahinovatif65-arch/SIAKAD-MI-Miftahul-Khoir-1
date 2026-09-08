@@ -23,10 +23,10 @@ export default function MasterUserPage() {
   // Selection
   const [selectedIds, setSelectedIds] = useState([]);
 
-  // Editing RFID
-  const [editingRfidId, setEditingRfidId] = useState(null);
-  const [rfidInput, setRfidInput] = useState('');
-  const rfidInputRef = useRef(null);
+  // Inline Editing
+  const [editingCell, setEditingCell] = useState(null); // { id, field }
+  const [editValue, setEditValue] = useState('');
+  const editInputRef = useRef(null);
 
   // Bulk Actions State
   const [showMoveRombel, setShowMoveRombel] = useState(false);
@@ -73,47 +73,56 @@ export default function MasterUserPage() {
     return <div className="p-8 text-center text-red-500">Akses ditolak.</div>;
   }
 
-  // Handle Scan / RFID Edit
-  const handleRfidClick = (id, currentRfid) => {
-    setEditingRfidId(id);
-    setRfidInput(currentRfid || '');
+  // Handle Inline Edit
+  const handleCellClick = (id, field, currentValue) => {
+    setEditingCell({ id, field });
+    setEditValue(currentValue || '');
     setTimeout(() => {
-      if (rfidInputRef.current) rfidInputRef.current.focus();
+      if (editInputRef.current) editInputRef.current.focus();
     }, 100);
   };
 
-  const saveRfid = async (id, rfidValue) => {
-    const val = rfidValue.trim();
+  const saveCell = async (id, field, value) => {
+    const val = typeof value === 'string' ? value.trim() : value;
+    
     // Validate uniqueness locally first to be friendly
-    if (val) {
+    if (field === 'rfid' && val) {
       const duplicate = users.find(u => u.id !== id && u.rfid === val);
       if (duplicate) {
         setMessage({ type: 'error', text: `RFID ${val} sudah dipakai oleh ${duplicate.nama}` });
-        setEditingRfidId(null);
+        setEditingCell(null);
+        return;
+      }
+    }
+    if (field === 'id_user' && val) {
+      const duplicate = users.find(u => u.id !== id && u.id_user === val);
+      if (duplicate) {
+        setMessage({ type: 'error', text: `ID/NISN ${val} sudah dipakai oleh ${duplicate.nama}` });
+        setEditingCell(null);
         return;
       }
     }
 
     const { error } = await supabase
       .from('master_user')
-      .update({ rfid: val || null })
+      .update({ [field]: val || null })
       .eq('id', id);
 
     if (error) {
-      setMessage({ type: 'error', text: 'Gagal update RFID: ' + error.message });
+      setMessage({ type: 'error', text: `Gagal update ${field}: ` + error.message });
     } else {
-      mutate(users.map(u => u.id === id ? { ...u, rfid: val || null } : u), false);
-      setMessage({ type: 'success', text: 'RFID berhasil diperbarui!' });
+      mutate(users.map(u => u.id === id ? { ...u, [field]: val || null } : u), false);
+      setMessage({ type: 'success', text: 'Data berhasil diperbarui!' });
     }
-    setEditingRfidId(null);
+    setEditingCell(null);
   };
 
-  const handleRfidKeyDown = (e, id) => {
+  const handleCellKeyDown = (e, id, field) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      saveRfid(id, rfidInput);
+      saveCell(id, field, editValue);
     } else if (e.key === 'Escape') {
-      setEditingRfidId(null);
+      setEditingCell(null);
     }
   };
 
@@ -480,7 +489,23 @@ export default function MasterUserPage() {
                         <input type="checkbox" checked={selectedIds.includes(u.id)} onChange={() => handleSelect(u.id)} className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
                       </td>
                     )}
-                    <td className="px-5 py-3 text-sm text-slate-400 dark:text-slate-500 font-mono">{u.id_user}</td>
+                    <td className="px-5 py-3 text-sm text-slate-400 dark:text-slate-500 font-mono">
+                      {editingCell?.id === u.id && editingCell?.field === 'id_user' && user?.role === 'Admin' ? (
+                        <input
+                          ref={editInputRef}
+                          type="text"
+                          value={editValue}
+                          onChange={e => setEditValue(e.target.value)}
+                          onKeyDown={e => handleCellKeyDown(e, u.id, 'id_user')}
+                          onBlur={() => saveCell(u.id, 'id_user', editValue)}
+                          className="w-full min-w-[80px] px-2 py-1 bg-white dark:bg-slate-950 border-2 border-emerald-500 rounded text-sm text-slate-800 dark:text-white font-mono focus:outline-none"
+                        />
+                      ) : (
+                        <div onClick={() => user?.role === 'Admin' && handleCellClick(u.id, 'id_user', u.id_user)} className={`px-2 py-1 -ml-2 rounded transition-colors ${user?.role === 'Admin' ? 'cursor-text hover:bg-slate-100 dark:hover:bg-slate-800' : ''}`}>
+                          {u.id_user}
+                        </div>
+                      )}
+                    </td>
                     <td className="px-5 py-3 text-sm text-slate-800 dark:text-white font-semibold">
                       <div className="flex items-center gap-3">
                         <div className="relative group/avatar cursor-pointer shrink-0" onClick={() => user?.role === 'Admin' && handleAvatarClick(u)}>
@@ -497,39 +522,92 @@ export default function MasterUserPage() {
                             </div>
                           )}
                         </div>
-                        <span className="truncate max-w-[150px] sm:max-w-[200px]" title={u.nama}>{u.nama}</span>
+                        {editingCell?.id === u.id && editingCell?.field === 'nama' && user?.role === 'Admin' ? (
+                          <input
+                            ref={editInputRef}
+                            type="text"
+                            value={editValue}
+                            onChange={e => setEditValue(e.target.value)}
+                            onKeyDown={e => handleCellKeyDown(e, u.id, 'nama')}
+                            onBlur={() => saveCell(u.id, 'nama', editValue)}
+                            className="w-full max-w-[200px] px-2 py-1 bg-white dark:bg-slate-950 border-2 border-emerald-500 rounded text-sm font-semibold focus:outline-none"
+                          />
+                        ) : (
+                          <span onClick={() => user?.role === 'Admin' && handleCellClick(u.id, 'nama', u.nama)} className={`truncate max-w-[150px] sm:max-w-[200px] px-2 py-1 -ml-2 rounded transition-colors ${user?.role === 'Admin' ? 'cursor-text hover:bg-slate-100 dark:hover:bg-slate-800' : ''}`} title={u.nama}>{u.nama}</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-5 py-3 max-w-[200px]">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded text-xs font-semibold">{u.role}</span>
-                        {u.rombel && u.rombel !== '-' && <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded text-xs font-bold">{u.rombel}</span>}
-                        {u.mapel && u.mapel !== '-' && <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded text-xs font-bold">{u.mapel}</span>}
+                        {editingCell?.id === u.id && editingCell?.field === 'role' && user?.role === 'Admin' ? (
+                          <select
+                            ref={editInputRef}
+                            value={editValue}
+                            onChange={e => saveCell(u.id, 'role', e.target.value)}
+                            onBlur={() => setEditingCell(null)}
+                            className="w-24 px-1 py-1 bg-white dark:bg-slate-950 border-2 border-emerald-500 rounded text-xs focus:outline-none"
+                          >
+                            <option value="Admin">Admin</option>
+                            <option value="Guru Mapel">Guru Mapel</option>
+                            <option value="Wali Kelas">Wali Kelas</option>
+                            <option value="Murid">Murid</option>
+                          </select>
+                        ) : (
+                          <span onClick={() => user?.role === 'Admin' && handleCellClick(u.id, 'role', u.role)} className={`px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded text-xs font-semibold ${user?.role === 'Admin' ? 'cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700' : ''}`}>{u.role}</span>
+                        )}
+
+                        {editingCell?.id === u.id && editingCell?.field === 'rombel' && user?.role === 'Admin' ? (
+                          <input
+                            ref={editInputRef}
+                            type="text"
+                            value={editValue}
+                            onChange={e => setEditValue(e.target.value)}
+                            onKeyDown={e => handleCellKeyDown(e, u.id, 'rombel')}
+                            onBlur={() => saveCell(u.id, 'rombel', editValue)}
+                            className="w-20 px-2 py-1 bg-white dark:bg-slate-950 border-2 border-emerald-500 rounded text-xs focus:outline-none"
+                          />
+                        ) : (
+                          (u.rombel && u.rombel !== '-' || user?.role === 'Admin') && <span onClick={() => user?.role === 'Admin' && handleCellClick(u.id, 'rombel', u.rombel)} className={`px-2 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded text-xs font-bold min-w-[2rem] text-center ${user?.role === 'Admin' ? 'cursor-text hover:bg-blue-100 dark:hover:bg-blue-500/20' : ''}`}>{u.rombel === '-' ? '+' : u.rombel}</span>
+                        )}
+
+                        {editingCell?.id === u.id && editingCell?.field === 'mapel' && user?.role === 'Admin' ? (
+                          <input
+                            ref={editInputRef}
+                            type="text"
+                            value={editValue}
+                            onChange={e => setEditValue(e.target.value)}
+                            onKeyDown={e => handleCellKeyDown(e, u.id, 'mapel')}
+                            onBlur={() => saveCell(u.id, 'mapel', editValue)}
+                            className="w-24 px-2 py-1 bg-white dark:bg-slate-950 border-2 border-emerald-500 rounded text-xs focus:outline-none"
+                          />
+                        ) : (
+                          (u.mapel && u.mapel !== '-' || user?.role === 'Admin') && <span onClick={() => user?.role === 'Admin' && handleCellClick(u.id, 'mapel', u.mapel)} className={`px-2 py-0.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded text-xs font-bold min-w-[2rem] text-center ${user?.role === 'Admin' ? 'cursor-text hover:bg-indigo-100 dark:hover:bg-indigo-500/20' : ''}`}>{u.mapel === '-' ? '+' : u.mapel}</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-5 py-3 bg-emerald-50/30 dark:bg-emerald-500/5 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-500/10 transition-colors w-56">
-                      {editingRfidId === u.id && user?.role === 'Admin' ? (
+                      {editingCell?.id === u.id && editingCell?.field === 'rfid' && user?.role === 'Admin' ? (
                         <input
-                          ref={rfidInputRef}
+                          ref={editInputRef}
                           type="text"
-                          value={rfidInput}
-                          onChange={e => setRfidInput(e.target.value)}
-                          onKeyDown={e => handleRfidKeyDown(e, u.id)}
-                          onBlur={() => saveRfid(u.id, rfidInput)}
+                          value={editValue}
+                          onChange={e => setEditValue(e.target.value)}
+                          onKeyDown={e => handleCellKeyDown(e, u.id, 'rfid')}
+                          onBlur={() => saveCell(u.id, 'rfid', editValue)}
                           placeholder="Scan RFID..."
                           className="w-full px-2 py-1.5 bg-white dark:bg-slate-950 border-2 border-emerald-500 rounded-lg text-sm text-slate-800 dark:text-white font-mono focus:outline-none animate-in fade-in"
                         />
                       ) : (
                         <div className="flex items-center gap-2">
                           <div
-                            onClick={() => user?.role === 'Admin' && handleRfidClick(u.id, u.rfid)}
+                            onClick={() => user?.role === 'Admin' && handleCellClick(u.id, 'rfid', u.rfid)}
                             className={`flex-1 px-2 py-1.5 rounded-lg text-sm font-mono border border-transparent transition-colors ${user?.role === 'Admin' ? 'cursor-text hover:border-emerald-200 dark:hover:border-emerald-500/30' : ''} ${u.rfid ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-500 italic'}`}
                           >
                             {u.rfid || 'Belum ada RFID'}
                           </div>
                           {user?.role === 'Admin' && (
                             <button
-                              onClick={() => handleRfidClick(u.id, u.rfid)}
+                              onClick={() => handleCellClick(u.id, 'rfid', u.rfid)}
                               className="p-1.5 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/40 text-emerald-600 dark:text-emerald-400 rounded-lg transition-colors shadow-sm"
                               title="Scan RFID"
                             >
@@ -542,7 +620,11 @@ export default function MasterUserPage() {
                       )}
                     </td>
                     <td className="px-5 py-3 text-center">
-                      <span className={`inline-block w-2.5 h-2.5 rounded-full ${u.status_aktif === 'Aktif' ? 'bg-emerald-500' : 'bg-rose-500'}`} title={u.status_aktif} />
+                      {user?.role === 'Admin' ? (
+                        <button onClick={() => saveCell(u.id, 'status_aktif', u.status_aktif === 'Aktif' ? 'Nonaktif' : 'Aktif')} className={`inline-block w-3 h-3 rounded-full cursor-pointer hover:scale-125 transition-transform ${u.status_aktif === 'Aktif' ? 'bg-emerald-500' : 'bg-rose-500'}`} title={`Klik ubah status (Saat ini: ${u.status_aktif})`} />
+                      ) : (
+                        <span className={`inline-block w-2.5 h-2.5 rounded-full ${u.status_aktif === 'Aktif' ? 'bg-emerald-500' : 'bg-rose-500'}`} title={u.status_aktif} />
+                      )}
                     </td>
                   </tr>
                 ))
