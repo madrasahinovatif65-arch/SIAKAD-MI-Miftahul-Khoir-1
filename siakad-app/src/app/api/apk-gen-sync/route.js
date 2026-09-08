@@ -7,10 +7,10 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function GET(request) {
   try {
-    // 1. Ambil data pengaturan sekolah
+    // 1. Ambil data pengaturan sekolah (tahun ajaran + semester)
     const { data: pengaturanData, error: pengaturanError } = await supabase
       .from('pengaturan_sekolah')
-      .select('tahun_ajaran')
+      .select('tahun_ajaran, semester')
       .limit(1)
       .single();
 
@@ -19,6 +19,7 @@ export async function GET(request) {
     }
 
     const tahunPelajaran = pengaturanData?.tahun_ajaran || '2026/2027';
+    const semester = pengaturanData?.semester || 'Ganjil';
 
     // 2. Ambil data Kepala Madrasah
     const { data: kepsekData, error: kepsekError } = await supabase
@@ -44,20 +45,15 @@ export async function GET(request) {
     }
 
     // 4. Transformasi dan Mapping Data sesuai kebutuhan APK Gen
-    // APK Gen biasanya memproses array data, maka kita akan buatkan array guru,
-    // di mana setiap item di array memiliki data sekolah/kepsek yang sama (redundant tapi aman untuk diparsing per baris).
-    
-    // Atau jika APK Gen mengharapkan response JSON terpisah antara setting dan list guru:
     const responseData = {
-      // Data Pengaturan Global
       Nama_Sekolah: "MI Miftahul Khoir 1 Karangrejo",
+      Nama_Yayasan: "Yayasan NU Miftakhul Khoir Damarjati",
+      Jalan: "Jalan Sumber Keling No. 11, Dsn. Krajan, Ds. Karangrejo",
       Nama_Kepsek: kepsekData?.nama || "-",
       NIP_Kepsek: kepsekData?.id_user || "-",
       Tahun_Pelajaran: tahunPelajaran,
-      Kantor_Kemenag: "-",
-      Pemerintah: "-",
-      Nama_Yayasan: "Yayasan NU Miftakhul Khoir Damarjati",
-      
+      Semester: semester,
+
       // Data Guru
       Guru: guruData.map(guru => ({
         Nama_Guru: guru.nama,
