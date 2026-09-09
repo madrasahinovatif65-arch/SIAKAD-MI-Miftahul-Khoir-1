@@ -84,87 +84,179 @@ export default function DashboardHome() {
     const today = getTodayDate();
     const monthStart = today.slice(0, 7) + '-01';
 
-    // 1. Ambil pengaturan sekolah untuk mendapatkan hari pertama tahun ajaran (berlaku untuk semua)
-    const { data: pengaturanData } = await supabase.from('pengaturan_sekolah').select('tgl_mulai_efektif').limit(1).maybeSingle();
-    const pengaturan = pengaturanData || {};
-    let calcStart = pengaturan.tgl_mulai_efektif || monthStart;
-    if (calcStart > today) calcStart = monthStart; // fallback jika tgl efektif di masa depan
+    // ─── TAHAP 1: Ambil data fondasi secara PARALEL ───────────────────────────
+    // pengaturan_sekolah + kalender diambil bersamaan untuk menghilangkan waterfall
+    const [pengaturanRes, kalenderBaseRes] = await Promise.all([
+      supabase.from('pengaturan_sekolah').select('tgl_mulai_efektif').limit(1).maybeSingle(),
+      // Ambil kalender dari awal bulan dulu sebagai fallback sementara calcStart belum diketahui
+      supabase.from('master_kalender').select('tanggal, tipe_hari').gte('tanggal', monthStart).lte('tanggal', today),
+    ]);
 
-    // Hitung Hari Efektif
-    const { data: kalenderData } = await supabase.from('master_kalender').select('tanggal, tipe_hari').gte('tanggal', calcStart).lte('tanggal', today);
+    const pengaturan = pengaturanRes.data || {};
+    let calcStart = pengaturan.tgl_mulai_efektif || monthStart;
+    if (calcStart > today) calcStart = monthStart;
+
+    // Jika calcStart lebih awal dari monthStart, perlu ambil kalender ulang dengan range yang benar
+    let kalenderData = kalenderBaseRes.data;
+    if (calcStart < monthStart) {
+      const { data: fullKalender } = await supabase
+        .from('master_kalender').select('tanggal, tipe_hari')
+        .gte('tanggal', calcStart).lte('tanggal', today);
+      kalenderData = fullKalender;
+    }
+
     const liburSet = new Set((kalenderData || []).filter(k => k.tipe_hari === 'Libur').map(k => k.tanggal));
 
+    // Hitung hari efektif & validDates dalam satu loop
     let hariEfektif = 0;
     const validDates = [];
+    const validDateSet = new Set(); // untuk lookup O(1), gantikan Array.includes()
     let curr = new Date(calcStart);
     const end = new Date(today);
     while (curr <= end) {
-      if (curr.getDay() !== 0) { // Bukan Minggu
+      if (curr.getDay() !== 0) {
         const dateStr = curr.toISOString().split('T')[0];
         if (!liburSet.has(dateStr)) {
           hariEfektif++;
           validDates.push(dateStr);
+          validDateSet.add(dateStr);
         }
       }
       curr.setDate(curr.getDate() + 1);
     }
 
+    // ─── MURID ────────────────────────────────────────────────────────────────
     if (user.role === 'Murid') {
+      // Filter status di DB: hanya ambil non-hadir agar payload lebih kecil
       const { data: absenMurid } = await supabase
         .from('view_rekap_kehadiran_murid_final')
         .select('status, tanggal')
         .eq('id_murid', user.id_user)
+        .in('status', ['Sakit', 'Izin', 'Alfa', 'Alpa'])
         .gte('tanggal', calcStart)
         .lte('tanggal', today);
 
       let s = 0, i = 0, a = 0;
       (absenMurid || []).forEach(ab => {
-        if (validDates.includes(ab.tanggal)) {
+        if (validDateSet.has(ab.tanggal)) {
           if (ab.status === 'Sakit') s++;
           else if (ab.status === 'Izin') i++;
-          else if (ab.status === 'Alfa' || ab.status === 'Alpa') a++;
+          else a++; // Alfa / Alpa
         }
       });
 
       const h = Math.max(0, hariEfektif - (s + i + a));
       const pct = hariEfektif > 0 ? Math.round((h / hariEfektif) * 100) : 0;
       return { muridStats: { hadir: h, izin: i, sakit: s, alpa: a, persentase: pct } };
+
     } else {
-      // Logic untuk Admin, Wali Kelas, Guru Mapel, Kepala Madrasah
+      // ─── GURU / KEPALA / ADMIN / WALI KELAS ──────────────────────────────────
 
+      const isKepala = user.role === 'Kepala Madrasah';
+      const isWali   = user.role === 'Wali Kelas';
+      const isGuru   = user.role === 'Guru Mapel';
+      const isAdmin  = user.role === 'Admin';
 
-      let muridQuery = supabase.from('master_user').select('id_user', { count: 'exact', head: true }).eq('role', 'Murid').eq('status_aktif', 'Aktif');
-      if (user.role === 'Wali Kelas' && user.rombel && user.rombel !== '-') {
-        muridQuery = muridQuery.eq('rombel', user.rombel);
+      // Bangun query jumlah murid (filter rombel untuk Wali Kelas)
+      let muridCountQuery = supabase
+        .from('master_user').select('id_user', { count: 'exact', head: true })
+        .eq('role', 'Murid').eq('status_aktif', 'Aktif');
+      if (isWali && user.rombel && user.rombel !== '-') {
+        muridCountQuery = muridCountQuery.eq('rombel', user.rombel);
       }
 
-      const [guruRes, muridRes, pendingRes, activeTeachersRes, verifikasiDataRes, tapGuruRes, tapMuridRes] = await Promise.all([
-        supabase.from('master_user').select('id', { count: 'exact', head: true }).in('role', ['Wali Kelas', 'Guru Mapel', 'Kepala Madrasah']).eq('status_aktif', 'Aktif'),
-        muridQuery,
-        supabase.from('log_gps_guru').select('id', { count: 'exact', head: true }).eq('tanggal', today).eq('status', 'Menunggu Verifikasi'),
-        user.role === 'Kepala Madrasah' ? supabase.from('master_user').select('id_user').in('role', ['Wali Kelas', 'Guru Mapel', 'Kepala Madrasah']).eq('status_aktif', 'Aktif') : Promise.resolve({ data: null }),
-        user.role === 'Kepala Madrasah' ? supabase.from('verifikasi_guru').select('tanggal, id_guru').gte('tanggal', calcStart).lte('tanggal', today) : Promise.resolve({ data: null }),
-        // tapGuruRes: ambil data guru hari ini, filter mandiri di JS (hindari HEAD+complex filter → HTTP 500)
-        user.role === 'Kepala Madrasah' ? supabase.from('view_rekap_kehadiran_guru_final').select('id_guru, metode').eq('tanggal', today) : Promise.resolve({ data: [] }),
-        // tapMuridRes: ambil data murid hari ini, filter tap NFC di JS (hindari .or() dengan spasi → HTTP 500)
-        user.role === 'Kepala Madrasah' ? supabase.from('view_rekap_kehadiran_murid_final').select('id_murid, catatan').eq('tanggal', today) : Promise.resolve({ data: [] }),
+      // ─── TAHAP 2: Semua query dasar secara PARALEL ────────────────────────
+      const [
+        guruRes,
+        muridRes,
+        pendingRes,
+        activeTeachersRes,
+        verifikasiDataRes,
+        tapGuruRes,
+        tapMuridRes,
+        guruAbsenRes,    // hanya untuk Wali/Guru
+        muridRombelRes,  // hanya untuk Wali Kelas
+      ] = await Promise.all([
+        // Jumlah guru aktif
+        supabase.from('master_user')
+          .select('id', { count: 'exact', head: true })
+          .in('role', ['Wali Kelas', 'Guru Mapel', 'Kepala Madrasah'])
+          .eq('status_aktif', 'Aktif'),
+
+        // Jumlah murid (sudah difilter sesuai role di atas)
+        muridCountQuery,
+
+        // Absen GPS menunggu verifikasi hari ini
+        supabase.from('log_gps_guru')
+          .select('id', { count: 'exact', head: true })
+          .eq('tanggal', today).eq('status', 'Menunggu Verifikasi'),
+
+        // Kepala: daftar guru aktif (untuk hitung unverified days)
+        isKepala
+          ? supabase.from('master_user').select('id_user')
+              .in('role', ['Wali Kelas', 'Guru Mapel', 'Kepala Madrasah'])
+              .eq('status_aktif', 'Aktif')
+          : Promise.resolve({ data: null }),
+
+        // Kepala: data verifikasi guru dalam periode
+        isKepala
+          ? supabase.from('verifikasi_guru').select('tanggal, id_guru')
+              .gte('tanggal', calcStart).lte('tanggal', today)
+          : Promise.resolve({ data: null }),
+
+        // Kepala: tap mandiri guru hari ini
+        isKepala
+          ? supabase.from('view_rekap_kehadiran_guru_final')
+              .select('id_guru, metode').eq('tanggal', today)
+          : Promise.resolve({ data: [] }),
+
+        // Kepala: tap mandiri murid hari ini
+        isKepala
+          ? supabase.from('view_rekap_kehadiran_murid_final')
+              .select('id_murid, catatan').eq('tanggal', today)
+          : Promise.resolve({ data: [] }),
+
+        // Wali/Guru: absensi guru sendiri (untuk % kehadiran guru)
+        (isWali || isGuru)
+          ? supabase.from('view_rekap_kehadiran_guru_final')
+              .select('status, tanggal')
+              .eq('id_guru', user.id_user)
+              .in('status', ['Sakit', 'Izin', 'Alfa'])
+              .gte('tanggal', calcStart).lte('tanggal', today)
+          : Promise.resolve({ data: [] }),
+
+        // Wali Kelas: daftar murid rombel (untuk hitung % kehadiran murid)
+        isWali
+          ? supabase.from('master_user').select('id_user')
+              .eq('role', 'Murid').eq('rombel', user.rombel).eq('status_aktif', 'Aktif')
+          : Promise.resolve({ data: [] }),
       ]);
 
-
-
+      // ─── Hitung unverified days (Kepala) ──────────────────────────────────
       let unverifiedDaysCount = 0;
-      if (user.role === 'Kepala Madrasah' && activeTeachersRes.data && verifikasiDataRes.data) {
+      if (isKepala && activeTeachersRes.data && verifikasiDataRes.data) {
         const activeTeacherIds = activeTeachersRes.data.map(t => t.id_user);
         const verifikasiSet = new Set(verifikasiDataRes.data.map(v => `${v.tanggal}_${v.id_guru}`));
-
         for (const dateStr of validDates) {
           for (const teacherId of activeTeacherIds) {
             if (!verifikasiSet.has(`${dateStr}_${teacherId}`)) {
               unverifiedDaysCount++;
-              break; // Lanjut ke hari berikutnya jika sudah ditemukan 1 yang belum diverifikasi
+              break;
             }
           }
         }
+      }
+
+      // ─── % Kehadiran Guru (Wali/Guru) ────────────────────────────────────
+      let persentaseHadirGuru = 0;
+      if (isWali || isGuru) {
+        // guruAbsenRes sudah difilter status non-hadir di DB
+        let tidakHadirGuruCount = 0;
+        (guruAbsenRes.data || []).forEach(a => {
+          if (validDateSet.has(a.tanggal)) tidakHadirGuruCount++;
+        });
+        const totalHadirGuru = Math.max(0, hariEfektif - tidakHadirGuruCount);
+        persentaseHadirGuru = hariEfektif > 0 ? Math.min(100, Math.round((totalHadirGuru / hariEfektif) * 100)) : 0;
       }
 
       let resStats = {
@@ -173,54 +265,69 @@ export default function DashboardHome() {
         pending: pendingRes.count ?? '-',
         unverifiedDays: unverifiedDaysCount,
         jurnal: '-',
-        persentaseHadirGuru: 0,
+        persentaseHadirGuru,
         persentaseJurnal: 0,
         persentaseHadirMurid: 0,
         totalHadirMurid: 0,
-        // Filter di JS: metode bukan 'Otomatis' = tap mandiri guru
         tapGuruHariIni: (tapGuruRes?.data || []).filter(g => g.metode && g.metode !== 'Otomatis').length,
-        // Filter di JS: catatan 'Tap NFC' atau 'Terlambat' = tap mandiri murid
-        tapMuridHariIni: (tapMuridRes?.data || []).filter(m => m.catatan === 'Tap NFC' || m.catatan === 'Terlambat').length
+        tapMuridHariIni: (tapMuridRes?.data || []).filter(m => m.catatan === 'Tap NFC' || m.catatan === 'Terlambat').length,
       };
 
-      if (['Wali Kelas', 'Guru Mapel'].includes(user.role)) {
-        // Ambil absensi guru keseluruhan (menggunakan view Auto-Hadir)
-        const { data: guruAbsen } = await supabase.from('view_rekap_kehadiran_guru_final')
-          .select('status, tanggal')
-          .eq('id_guru', user.id_user)
-          .gte('tanggal', calcStart)
-          .lte('tanggal', today);
+      // ─── TAHAP 3: Query lanjutan (Jurnal + Absen Murid) paralel ──────────
+      if (isWali || isGuru) {
+        const nisnList = (muridRombelRes.data || []).map(m => m.id_user);
 
-        let tidakHadirGuruCount = 0;
-        (guruAbsen || []).forEach(a => {
-          if (validDates.includes(a.tanggal) && ['Sakit', 'Izin', 'Alfa'].includes(a.status)) {
-            tidakHadirGuruCount++;
-          }
-        });
-        const totalHadirGuru = Math.max(0, hariEfektif - tidakHadirGuruCount);
-        resStats.persentaseHadirGuru = hariEfektif > 0 ? Math.min(100, Math.round((totalHadirGuru / hariEfektif) * 100)) : 0;
-
-        // Hitung persentase jurnal
-        if (user.role === 'Wali Kelas') {
-          // Wali Kelas: tolok ukur = hariEfektif (hari sekolah aktif)
-          const { data: jurnalData } = await supabase.from('jurnal_guru')
-            .select('tanggal')
+        // Siapkan semua query sekunder secara paralel
+        const [
+          jurnalRes,
+          jadwalRes,         // hanya Guru Mapel
+          absenMuridRes,     // absensi murid periode
+          totalMuridAktifRes // hanya Guru Mapel (untuk % murid sekolah)
+        ] = await Promise.all([
+          // Jurnal guru
+          supabase.from('jurnal_guru')
+            .select('tanggal' + (isGuru ? ', rombel' : ''))
             .eq('id_guru', user.id_user)
-            .gte('tanggal', calcStart)
-            .lte('tanggal', today);
-          const uniqueJurnalDates = new Set((jurnalData || []).map(j => j.tanggal));
+            .gte('tanggal', calcStart).lte('tanggal', today),
+
+          // Jadwal pelajaran (hanya Guru Mapel)
+          isGuru
+            ? supabase.from('jadwal_pelajaran').select('hari, rombel').eq('id_guru', user.id_user)
+            : Promise.resolve({ data: [] }),
+
+          // Absensi murid: filter non-hadir di DB untuk kurangi payload
+          isWali && nisnList.length > 0
+            ? supabase.from('view_rekap_kehadiran_murid_final')
+                .select('status, tanggal')
+                .in('id_murid', nisnList)
+                .in('status', ['Sakit', 'Izin', 'Alfa', 'Alpa'])
+                .gte('tanggal', calcStart).lte('tanggal', today)
+            : isGuru
+              ? supabase.from('view_rekap_kehadiran_murid_final')
+                  .select('status, tanggal')
+                  .in('status', ['Sakit', 'Izin', 'Alfa', 'Alpa'])
+                  .gte('tanggal', calcStart).lte('tanggal', today)
+              : Promise.resolve({ data: [] }),
+
+          // Jumlah murid aktif sekolah (hanya untuk Guru Mapel)
+          isGuru
+            ? supabase.from('master_user')
+                .select('id', { count: 'exact', head: true })
+                .eq('role', 'Murid').eq('status_aktif', 'Aktif')
+            : Promise.resolve({ count: 0 }),
+        ]);
+
+        const jurnalArr = jurnalRes.data || [];
+
+        // ── Hitung % Jurnal ──────────────────────────────────────────────────
+        if (isWali) {
+          const uniqueJurnalDates = new Set(jurnalArr.map(j => j.tanggal));
           resStats.persentaseJurnal = hariEfektif > 0 ? Math.min(100, Math.round((uniqueJurnalDates.size / hariEfektif) * 100)) : 0;
-          resStats.jurnal = jurnalData ? jurnalData.length : 0;
+          resStats.jurnal = jurnalArr.length;
         } else {
-          // Guru Mapel: tolok ukur dari jadwal_pelajaran resmi (fallback ke deduksi riwayat jika kosong)
-          const [jurnalRes, jadwalRes] = await Promise.all([
-            supabase.from('jurnal_guru').select('tanggal, rombel').eq('id_guru', user.id_user).gte('tanggal', calcStart).lte('tanggal', today),
-            supabase.from('jadwal_pelajaran').select('hari, rombel').eq('id_guru', user.id_user),
-          ]);
-          const jurnalArr = jurnalRes.data || [];
+          // Guru Mapel: hitung dari jadwal_pelajaran
           const jadwalArr = jadwalRes.data || [];
 
-          // Hitung kemunculan setiap hari-dalam-seminggu dari calcStart s.d. today (minus Minggu & libur)
           const dowOccurrences = {};
           let cur2 = new Date(calcStart + 'T00:00:00');
           const endDate2 = new Date(today + 'T00:00:00');
@@ -235,10 +342,8 @@ export default function DashboardHome() {
 
           let scheduleSet;
           if (jadwalArr.length > 0) {
-            // ✅ Gunakan jadwal resmi dari jadwal_pelajaran
             scheduleSet = new Set(jadwalArr.map(j => `${j.hari}__${j.rombel}`));
           } else {
-            // ⚠️ Fallback: deduksi dari riwayat jurnal jika belum ada jadwal
             scheduleSet = new Set();
             jurnalArr.forEach(j => {
               const dow = new Date(j.tanggal + 'T00:00:00').getDay();
@@ -246,83 +351,41 @@ export default function DashboardHome() {
             });
           }
 
-          // Total expected = kemunculan hari untuk setiap (hari, rombel) dalam jadwal
           let totalExpected = 0;
           scheduleSet.forEach(key => {
             const dow = parseInt(key.split('__')[0], 10);
             totalExpected += dowOccurrences[dow] || 0;
           });
 
-          // Total aktual = pasangan unik (tanggal, rombel) yang sudah diisi jurnal
           const uniqueTanggalRombel = new Set(jurnalArr.map(j => `${j.tanggal}__${j.rombel}`));
-          const totalActual = uniqueTanggalRombel.size;
-
-          resStats.persentaseJurnal = totalExpected > 0 ? Math.min(100, Math.round((totalActual / totalExpected) * 100)) : 0;
+          resStats.persentaseJurnal = totalExpected > 0 ? Math.min(100, Math.round((uniqueTanggalRombel.size / totalExpected) * 100)) : 0;
           resStats.jurnal = jurnalArr.length;
-          // Tandai apakah menggunakan jadwal resmi atau fallback
           resStats.jadwalResmi = jadwalArr.length > 0;
         }
 
+        // ── Hitung % Kehadiran Murid ─────────────────────────────────────────
+        const absenMuridArr = absenMuridRes.data || [];
+        let tidakHadirCount = 0;
+        absenMuridArr.forEach(a => {
+          if (validDateSet.has(a.tanggal)) tidakHadirCount++;
+        });
 
-        // Ambil absensi murid keseluruhan
-        if (user.role === 'Wali Kelas') {
-          const { data: muridRombel } = await supabase.from('master_user').select('id_user').eq('role', 'Murid').eq('rombel', user.rombel).eq('status_aktif', 'Aktif');
-          const nisnList = muridRombel ? muridRombel.map(m => m.id_user) : [];
-          if (nisnList.length > 0) {
-            const { data: absenMurid } = await supabase.from('view_rekap_kehadiran_murid_final')
-              .select('status, tanggal')
-              .in('id_murid', nisnList)
-              .gte('tanggal', calcStart)
-              .lte('tanggal', today);
-
-            let tidakHadirMuridCount = 0;
-            (absenMurid || []).forEach(a => {
-              if (validDates.includes(a.tanggal) && ['Sakit', 'Izin', 'Alfa', 'Alpa'].includes(a.status)) {
-                tidakHadirMuridCount++;
-              }
-            });
-            const totalPossible = hariEfektif * nisnList.length;
-            const hadirMurid = Math.max(0, totalPossible - tidakHadirMuridCount);
-            resStats.persentaseHadirMurid = totalPossible > 0 ? Math.min(100, Math.round((hadirMurid / totalPossible) * 100)) : 0;
-          }
-        } else if (user.role === 'Guru Mapel') {
-          const { data: absenMurid } = await supabase.from('view_rekap_kehadiran_murid_final')
-            .select('status, tanggal')
-            .gte('tanggal', calcStart)
-            .lte('tanggal', today);
-
-          let tidakHadirTotalCount = 0;
-          (absenMurid || []).forEach(a => {
-            if (validDates.includes(a.tanggal) && ['Sakit', 'Izin', 'Alfa', 'Alpa'].includes(a.status)) {
-              tidakHadirTotalCount++;
-            }
-          });
-
-          const { count: totalMuridAktif } = await supabase.from('master_user')
-            .select('id', { count: 'exact', head: true })
-            .eq('role', 'Murid')
-            .eq('status_aktif', 'Aktif');
-
-          const totalPossible = hariEfektif * (totalMuridAktif || 0);
-          const totalMasuk = Math.max(0, totalPossible - tidakHadirTotalCount);
+        if (isWali) {
+          const totalPossible = hariEfektif * nisnList.length;
+          const hadirMurid = Math.max(0, totalPossible - tidakHadirCount);
+          resStats.persentaseHadirMurid = totalPossible > 0 ? Math.min(100, Math.round((hadirMurid / totalPossible) * 100)) : 0;
+        } else {
+          const totalMuridAktif = totalMuridAktifRes.count || 0;
+          const totalPossible = hariEfektif * totalMuridAktif;
+          const totalMasuk = Math.max(0, totalPossible - tidakHadirCount);
           resStats.persentaseHadirMurid = totalPossible > 0 ? Math.min(100, Math.round((totalMasuk / totalPossible) * 100)) : 0;
           resStats.totalHadirMurid = totalMasuk;
         }
       }
 
+      // ─── Chart data (Admin / Kepala) ──────────────────────────────────────
       let resChartData = null;
-      if (user.role === 'Admin' || user.role === 'Kepala Madrasah') {
-        const { count: totalMuridAktif } = await supabase.from('master_user').select('id_user', { count: 'exact', head: true }).eq('role', 'Murid').eq('status_aktif', 'Aktif');
-        const { data: todayMurid } = await supabase.from('view_rekap_kehadiran_murid_final').select('status').eq('tanggal', today);
-
-        let ts = 0, ti = 0, ta = 0;
-        (todayMurid || []).forEach(ab => {
-          if (ab.status === 'Sakit') ts++;
-          else if (ab.status === 'Izin') ti++;
-          else if (ab.status === 'Alfa' || ab.status === 'Alpa') ta++;
-        });
-        const th = Math.max(0, (totalMuridAktif || 0) - (ts + ti + ta));
-
+      if (isAdmin || isKepala) {
         const dates = [];
         for (let i = 6; i >= 0; i--) {
           const d = new Date();
@@ -330,37 +393,50 @@ export default function DashboardHome() {
           dates.push(d.toISOString().split('T')[0]);
         }
 
-        const { data: weekAbsen } = await supabase.from('view_rekap_kehadiran_murid_final').select('tanggal, status').in('tanggal', dates);
+        // Ambil data hari ini + 7 hari terakhir dalam 1 query — hindari 2 panggilan terpisah
+        const allDates = [...new Set([today, ...dates])];
+        const [totalMuridAktifRes, weekAbsenRes] = await Promise.all([
+          supabase.from('master_user')
+            .select('id_user', { count: 'exact', head: true })
+            .eq('role', 'Murid').eq('status_aktif', 'Aktif'),
+          supabase.from('view_rekap_kehadiran_murid_final')
+            .select('tanggal, status')
+            .in('tanggal', allDates),
+        ]);
+
+        const totalMuridAktif = totalMuridAktifRes.count || 0;
+        const weekAbsen = weekAbsenRes.data || [];
+
+        // Hitung doughnut (hari ini)
+        let ts = 0, ti = 0, ta = 0;
+        weekAbsen.filter(ab => ab.tanggal === today).forEach(ab => {
+          if (ab.status === 'Sakit') ts++;
+          else if (ab.status === 'Izin') ti++;
+          else if (ab.status === 'Alfa' || ab.status === 'Alpa') ta++;
+        });
+        const th = Math.max(0, totalMuridAktif - (ts + ti + ta));
+
+        // Hitung bar (7 hari) dari data yang sama — tidak perlu query ulang
         const barData = dates.map(d => {
           let notHadir = 0;
-          (weekAbsen || []).forEach(a => {
-            if (a.tanggal === d && ['Sakit', 'Izin', 'Alfa', 'Alpa'].includes(a.status)) {
-              notHadir++;
-            }
+          weekAbsen.forEach(a => {
+            if (a.tanggal === d && ['Sakit', 'Izin', 'Alfa', 'Alpa'].includes(a.status)) notHadir++;
           });
-          return Math.max(0, (totalMuridAktif || 0) - notHadir);
+          return Math.max(0, totalMuridAktif - notHadir);
         });
 
         resChartData = {
           doughnut: {
             labels: ['Hadir', 'Izin', 'Sakit', 'Alpa'],
-            datasets: [{
-              data: [th, ti, ts, ta],
-              backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#6b7280'],
-              borderWidth: 0,
-            }]
+            datasets: [{ data: [th, ti, ts, ta], backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#6b7280'], borderWidth: 0 }]
           },
           bar: {
             labels: dates.map(d => d.slice(5)),
-            datasets: [{
-              label: 'Hadir',
-              data: barData,
-              backgroundColor: '#3b82f6',
-              borderRadius: 4,
-            }]
+            datasets: [{ label: 'Hadir', data: barData, backgroundColor: '#3b82f6', borderRadius: 4 }]
           }
         };
       }
+
       return { stats: resStats, chartData: resChartData };
     }
   });
