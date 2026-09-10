@@ -110,7 +110,7 @@ export async function GET(request) {
           if (grade === 1 || grade === 2) fase = 'A';
           else if (grade === 3 || grade === 4) fase = 'B';
           else if (grade === 5 || grade === 6) fase = 'C';
-          if (fase) formattedRombel = `Fase ${fase} / Kelas ${grade}`;
+          if (fase) formattedRombel = `Fase ${fase} / Kelas ${guru.rombel.trim()}`;
         }
       }
 
@@ -177,8 +177,20 @@ export async function GET(request) {
 
     // Jika data benar-benar kosong di database, tampilkan data SIMULASI agar fitur autofill bisa diuji
     if (!rekapKarakteristik) {
-      rekapKarakteristik = `[DATA SIMULASI - KARENA ASESMEN KELAS ${activeRombel || 'INI'} MASIH KOSONG]
-Berdasarkan data asesmen diagnostik untuk 25 siswa Kelas ${activeRombel || 'Simulasi'}:
+      let jumlahSiswa = 25;
+      if (activeRombel) {
+        const { count } = await supabaseAdmin
+          .from('master_user')
+          .select('*', { count: 'exact', head: true })
+          .eq('role', 'Siswa')
+          .eq('rombel', activeRombel);
+        if (count) jumlahSiswa = count;
+      }
+      
+      let cleanRombel = activeRombel ? activeRombel.replace(/Fase\s+[A-F]\s*\/\s*/i, '') : 'Simulasi';
+      const rombelLabel = cleanRombel.includes('Kelas') ? cleanRombel : `Kelas ${cleanRombel}`;
+      rekapKarakteristik = `[Data Simulasi]
+Berdasarkan data asesmen diagnostik untuk ${jumlahSiswa} siswa ${rombelLabel}:
 
 Profil Non-Kognitif:
 - Kesiapan Sosial Emosional: Antusias (18), Biasa saja (5), Cemas/Takut (2)
