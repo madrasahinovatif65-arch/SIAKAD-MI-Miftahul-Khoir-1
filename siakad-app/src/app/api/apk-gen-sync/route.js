@@ -124,6 +124,57 @@ export async function GET(request) {
       };
     });
 
+    // ============================================================
+    // 6. Fetch Karakteristik Siswa (Asesmen Diagnostik)
+    // ============================================================
+    let rekapKarakteristik = '';
+    const activeRombel = guruRows.find(g => g.rombel && g.rombel !== '-' && g.rombel.trim() !== '')?.rombel;
+    
+    if (activeRombel) {
+      // 6a. Non-Kognitif
+      const { data: nkData, error: nkError } = await supabaseAdmin
+        .from('profil_non_kognitif')
+        .select('sosial_emosional, dukungan_belajar, minat_dominan, catatan_khusus')
+        .eq('rombel', activeRombel)
+        .eq('tahun_ajaran', tahunPelajaran);
+        
+      if (!nkError && nkData && nkData.length > 0) {
+        let total = nkData.length;
+        let counts = { sosial: {}, dukungan: {}, minat: {} };
+        nkData.forEach(d => {
+          if (d.sosial_emosional) counts.sosial[d.sosial_emosional] = (counts.sosial[d.sosial_emosional] || 0) + 1;
+          if (d.dukungan_belajar) counts.dukungan[d.dukungan_belajar] = (counts.dukungan[d.dukungan_belajar] || 0) + 1;
+          if (d.minat_dominan) counts.minat[d.minat_dominan] = (counts.minat[d.minat_dominan] || 0) + 1;
+        });
+
+        rekapKarakteristik = `Berdasarkan data asesmen diagnostik untuk ${total} siswa Kelas ${activeRombel}:\n`;
+        rekapKarakteristik += `Profil Non-Kognitif:\n`;
+        rekapKarakteristik += `- Kesiapan Sosial Emosional: ${Object.entries(counts.sosial).map(([k,v]) => `${k} (${v})`).join(', ')}\n`;
+        rekapKarakteristik += `- Dukungan Belajar di Rumah: ${Object.entries(counts.dukungan).map(([k,v]) => `${k} (${v})`).join(', ')}\n`;
+        rekapKarakteristik += `- Minat Dominan: ${Object.entries(counts.minat).map(([k,v]) => `${k} (${v})`).join(', ')}\n`;
+      }
+
+      // 6b. Kognitif Umum
+      const { data: kogData, error: kogError } = await supabaseAdmin
+        .from('hasil_kognitif_murid')
+        .select('kategori_literasi, kategori_numerasi')
+        .eq('rombel', activeRombel)
+        .eq('tahun_ajaran', tahunPelajaran)
+        .eq('semester', semester);
+
+      if (!kogError && kogData && kogData.length > 0) {
+        let countsKog = { literasi: {}, numerasi: {} };
+        kogData.forEach(d => {
+          if (d.kategori_literasi) countsKog.literasi[d.kategori_literasi] = (countsKog.literasi[d.kategori_literasi] || 0) + 1;
+          if (d.kategori_numerasi) countsKog.numerasi[d.kategori_numerasi] = (countsKog.numerasi[d.kategori_numerasi] || 0) + 1;
+        });
+        
+        rekapKarakteristik += `\nProfil Kognitif (Asesmen Awal):\n`;
+        rekapKarakteristik += `- Kemampuan Literasi: ${Object.entries(countsKog.literasi).map(([k,v]) => `${k} (${v})`).join(', ')}\n`;
+        rekapKarakteristik += `- Kemampuan Numerasi: ${Object.entries(countsKog.numerasi).map(([k,v]) => `${k} (${v})`).join(', ')}`;
+      }
+    }
+
     const responseData = {
       Nama_Sekolah: "MI Miftahul Khoir 1 Karangrejo",
       Nama_Yayasan: "Yayasan NU Miftakhul Khoir Damarjati",
@@ -132,6 +183,7 @@ export async function GET(request) {
       NIP_Kepsek: kepsekData?.id_user || "-",
       Tahun_Pelajaran: tahunPelajaran,
       Semester: semester,
+      siakadKarakteristik: rekapKarakteristik,
       // Hanya berisi data guru yang sedang login (bukan semua guru)
       Guru: formattedGuru,
     };
