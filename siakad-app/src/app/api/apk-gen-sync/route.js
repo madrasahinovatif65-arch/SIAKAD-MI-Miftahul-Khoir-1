@@ -182,7 +182,7 @@ export async function GET(request) {
         const { count } = await supabaseAdmin
           .from('master_user')
           .select('*', { count: 'exact', head: true })
-          .eq('role', 'Siswa')
+          .eq('role', 'Murid')
           .eq('rombel', activeRombel);
         if (count) jumlahSiswa = count;
       }
