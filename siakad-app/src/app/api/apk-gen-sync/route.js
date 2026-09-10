@@ -175,6 +175,21 @@ export async function GET(request) {
       }
     }
 
+    // Jika data benar-benar kosong di database, tampilkan data SIMULASI agar fitur autofill bisa diuji
+    if (!rekapKarakteristik) {
+      rekapKarakteristik = `[DATA SIMULASI - KARENA ASESMEN KELAS ${activeRombel || 'INI'} MASIH KOSONG]
+Berdasarkan data asesmen diagnostik untuk 25 siswa Kelas ${activeRombel || 'Simulasi'}:
+
+Profil Non-Kognitif:
+- Kesiapan Sosial Emosional: Antusias (18), Biasa saja (5), Cemas/Takut (2)
+- Dukungan Belajar di Rumah: Didampingi (15), Mandiri (7), Sering kesulitan (3)
+- Minat Dominan: Teknologi (10), Olahraga (8), Seni (4), Membaca (3)
+
+Profil Kognitif (Asesmen Awal):
+- Kemampuan Literasi: Cakap (14), Berkembang (8), Perlu Bimbingan (3)
+- Kemampuan Numerasi: Cakap (10), Berkembang (11), Perlu Bimbingan (4)`;
+    }
+
     const responseData = {
       Nama_Sekolah: "MI Miftahul Khoir 1 Karangrejo",
       Nama_Yayasan: "Yayasan NU Miftakhul Khoir Damarjati",
