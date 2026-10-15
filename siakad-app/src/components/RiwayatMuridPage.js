@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { formatTimeShort, getTodayDate, getTahunPelajaran } from '@/lib/dateUtils';
@@ -9,6 +9,25 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { id } from 'date-fns/locale/id';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 registerLocale('id', id);
 
@@ -27,6 +46,62 @@ const formatHariTanggal = (dateStr) => {
   } catch (_) {
     return dateStr;
   }
+};
+
+// Format ringkas untuk label sumbu X grafik: "Sen, 13 Okt"
+const formatChartLabel = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    const [y, m, d] = dateStr.split('-');
+    const date = new Date(Number(y), Number(m) - 1, Number(d));
+    return new Intl.DateTimeFormat('id-ID', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    }).format(date);
+  } catch (_) {
+    return dateStr;
+  }
+};
+
+// Konversi string jam '06:45:00' atau '06.45' ke desimal jam (6.75)
+const parseTimeToDecimal = (timeStr) => {
+  if (!timeStr || typeof timeStr !== 'string') return null;
+  const match = timeStr.match(/(\d{1,2})[:.](\d{2})/);
+  if (!match) return null;
+  const h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  if (isNaN(h) || isNaN(m)) return null;
+  return Number((h + m / 60).toFixed(2));
+};
+
+// Plugin Chart.js untuk menggambar garis acuan batas jam masuk sekolah (07:00 WIB)
+const thresholdLinePlugin = {
+  id: 'thresholdLine',
+  afterDraw: (chart) => {
+    const { ctx, chartArea, scales } = chart;
+    if (!chartArea || !scales || !scales.y) return;
+    const { left, right, top, bottom } = chartArea;
+    const yPos = scales.y.getPixelForValue(7.0);
+
+    if (yPos >= top && yPos <= bottom) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = '#f43f5e'; // Rose color
+      ctx.lineWidth = 1.5;
+      ctx.moveTo(left, yPos);
+      ctx.lineTo(right, yPos);
+      ctx.stroke();
+
+      // Label teks di ujung garis
+      ctx.fillStyle = '#f43f5e';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText('07:00 (Batas Masuk)', right - 4, yPos - 4);
+      ctx.restore();
+    }
+  },
 };
 
 export default function RiwayatMuridPage() {
@@ -155,6 +230,170 @@ export default function RiwayatMuridPage() {
 
   const total = data.length;
   const persentase = total > 0 ? Math.round((summary.Hadir / total) * 100) : 0;
+
+  // 3. Olah Data untuk Grafik Batang (Kronologis dari Terlama ke Terbaru)
+  const {
+    chronologicalData,
+    chartConfigData,
+    chartOptions,
+    avgTimeDisplay,
+    tepatWaktuCount,
+    terlambatCount,
+  } = useMemo(() => {
+    const sorted = [...data].sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+
+    let sumDecimal = 0;
+    let countHadirWithTime = 0;
+    let onTime = 0;
+    let late = 0;
+
+    sorted.forEach((item) => {
+      if (item.status === 'Hadir') {
+        const dec = parseTimeToDecimal(item.jam_datang) || 7.0;
+        sumDecimal += dec;
+        countHadirWithTime++;
+        if (dec <= 7.0) {
+          onTime++;
+        } else {
+          late++;
+        }
+      }
+    });
+
+    const avgDec = countHadirWithTime > 0 ? sumDecimal / countHadirWithTime : null;
+    let avgStr = '-';
+    if (avgDec !== null) {
+      const h = Math.floor(avgDec);
+      const m = Math.round((avgDec - h) * 60);
+      avgStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} WIB`;
+    }
+
+    const labels = sorted.map((d) => formatChartLabel(d.tanggal));
+    const values = sorted.map((d) => {
+      if (d.status !== 'Hadir') return 0;
+      const dec = parseTimeToDecimal(d.jam_datang);
+      return dec !== null ? dec : 7.0;
+    });
+
+    const barColors = sorted.map((d) => {
+      if (d.status !== 'Hadir') return 'rgba(148, 163, 184, 0.15)'; // Hari tidak hadir
+      const dec = parseTimeToDecimal(d.jam_datang) || 7.0;
+      return dec <= 7.0 ? '#10b981' : '#f59e0b'; // Emerald = tepat waktu, Amber = lewat jam 7
+    });
+
+    const hoverColors = sorted.map((d) => {
+      if (d.status !== 'Hadir') return 'rgba(148, 163, 184, 0.3)';
+      const dec = parseTimeToDecimal(d.jam_datang) || 7.0;
+      return dec <= 7.0 ? '#059669' : '#d97706';
+    });
+
+    const validDecimals = values.filter((v) => v > 0);
+    const minVal = validDecimals.length > 0 ? Math.min(...validDecimals) : 7.0;
+    const maxVal = validDecimals.length > 0 ? Math.max(...validDecimals) : 7.0;
+
+    const minY = Math.max(5.0, Math.floor(Math.min(minVal, 6.0)));
+    const maxY = Math.min(12.0, Math.ceil(Math.max(maxVal, 8.0)));
+
+    const chartData = {
+      labels,
+      datasets: [
+        {
+          label: 'Jam Kedatangan',
+          data: values,
+          backgroundColor: barColors,
+          hoverBackgroundColor: hoverColors,
+          borderRadius: 6,
+          borderSkipped: false,
+          barPercentage: 0.6,
+          categoryPercentage: 0.8,
+        },
+      ],
+    };
+
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f172a',
+          titleColor: '#ffffff',
+          bodyColor: '#cbd5e1',
+          padding: 12,
+          cornerRadius: 12,
+          callbacks: {
+            title: (items) => {
+              if (!items.length) return '';
+              const idx = items[0].dataIndex;
+              const item = sorted[idx];
+              return formatHariTanggal(item?.tanggal);
+            },
+            label: (context) => {
+              const item = sorted[context.dataIndex];
+              if (!item) return '';
+              if (item.status !== 'Hadir') {
+                return `Status: ${item.status}`;
+              }
+              const dec = context.raw;
+              const h = Math.floor(dec);
+              const m = Math.round((dec - h) * 60);
+              const timeFormatted = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} WIB`;
+              const isLate = dec > 7.0;
+              const statusStr = isLate ? '⚠️ Terlambat' : '✓ Tepat Waktu';
+
+              const lines = [
+                `Jam Datang: ${timeFormatted} (${statusStr})`,
+              ];
+              if (item.jam_pulang) {
+                lines.push(`Jam Pulang: ${formatTimeShort(item.jam_pulang)} WIB`);
+              }
+              if (item.metode) {
+                lines.push(`Metode: ${item.metode === 'NFC' ? 'Tap NFC' : 'Presensi Manual'}`);
+              }
+              return lines;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            color: '#94a3b8',
+            font: { size: 10, weight: '600' },
+            maxRotation: 45,
+            minRotation: 0,
+          },
+        },
+        y: {
+          min: minY,
+          max: maxY,
+          grid: {
+            color: 'rgba(148, 163, 184, 0.1)',
+          },
+          ticks: {
+            stepSize: 0.5,
+            callback: (val) => {
+              const h = Math.floor(val);
+              const m = Math.round((val - h) * 60);
+              return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            },
+            color: '#94a3b8',
+            font: { size: 10, weight: '600' },
+          },
+        },
+      },
+    };
+
+    return {
+      chronologicalData: sorted,
+      chartConfigData: chartData,
+      chartOptions: options,
+      avgTimeDisplay: avgStr,
+      tepatWaktuCount: onTime,
+      terlambatCount: late,
+    };
+  }, [data]);
 
   // Status Badge Styling
   const getStatusBadge = (status) => {
@@ -407,7 +646,83 @@ export default function RiwayatMuridPage() {
         </div>
       </div>
 
-      {/* ── 4. Filter Status Tabs (Dispen Ditiadakan) ─────────────────────── */}
+      {/* ── 4. Grafik Batang Waktu Kehadiran Siswa (Visualisasi Jam Tiba) ──── */}
+      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-lg shadow-sm">
+              📊
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-bold text-slate-800 dark:text-white">
+                Grafik Waktu Kedatangan (Jam Hadir)
+              </h3>
+              <p className="text-xs text-slate-400">
+                Pola jam kehadiran siswa setiap hari selama rentang tanggal terpilih
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Metrics */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold">
+              <span className="text-slate-400 font-normal">Rata-rata:</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">{avgTimeDisplay}</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold border border-emerald-200/60 dark:border-emerald-800/40">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>{tepatWaktuCount} Tepat Waktu</span>
+            </div>
+            {terlambatCount > 0 && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 text-xs font-semibold border border-amber-200/60 dark:border-amber-800/40">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                <span>{terlambatCount} Terlambat</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Legend Petunjuk Garis Batas */}
+        <div className="flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-100 dark:border-white/5 pt-3 flex-wrap gap-2">
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" />
+              <span>Tepat Waktu (&le; 07:00 WIB)</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-sm bg-amber-500 inline-block" />
+              <span>Terlambat (&gt; 07:00 WIB)</span>
+            </span>
+          </div>
+          <span className="text-slate-400 italic">
+            *Garis putus-putus merah: <strong>Batas Masuk 07:00 WIB</strong>
+          </span>
+        </div>
+
+        {/* Canvas Grafik dengan Horizontal Scroll di Layar HP */}
+        {chronologicalData.length === 0 ? (
+          <div className="py-12 text-center text-xs text-slate-400">
+            Belum ada data kehadiran untuk menampilkan grafik.
+          </div>
+        ) : (
+          <div className="overflow-x-auto hide-scrollbar pt-2">
+            <div
+              style={{
+                minWidth: chronologicalData.length > 10 ? `${chronologicalData.length * 42}px` : '100%',
+                height: '240px',
+              }}
+            >
+              <Bar
+                data={chartConfigData}
+                options={chartOptions}
+                plugins={[thresholdLinePlugin]}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── 5. Filter Status Tabs (Dispen Ditiadakan) ─────────────────────── */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
           {[
@@ -446,7 +761,7 @@ export default function RiwayatMuridPage() {
         </span>
       </div>
 
-      {/* ── 5. Daftar Riwayat Kehadiran ───────────────────────────────────── */}
+      {/* ── 6. Daftar Riwayat Kehadiran ───────────────────────────────────── */}
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
@@ -535,7 +850,7 @@ export default function RiwayatMuridPage() {
         </div>
       )}
 
-      {/* ── 6. Injeksi: Ketidakhadiran Mata Pelajaran ───────────────────────── */}
+      {/* ── 7. Injeksi: Ketidakhadiran Mata Pelajaran ───────────────────────── */}
       {(absenMapel.length > 0 || loadingMapel) && (
         <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
