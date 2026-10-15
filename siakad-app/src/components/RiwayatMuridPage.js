@@ -75,7 +75,7 @@ const parseTimeToDecimal = (timeStr) => {
   return Number((h + m / 60).toFixed(2));
 };
 
-// Plugin Chart.js untuk menggambar garis acuan batas jam masuk sekolah (07:00 WIB)
+// Plugin Chart.js untuk menggambar garis batas jam masuk sekolah (07:00 WIB)
 const thresholdLinePlugin = {
   id: 'thresholdLine',
   afterDraw: (chart) => {
@@ -94,7 +94,7 @@ const thresholdLinePlugin = {
       ctx.lineTo(right, yPos);
       ctx.stroke();
 
-      // Label teks di ujung garis
+      // Label teks di ujung garis batas
       ctx.fillStyle = '#f43f5e';
       ctx.font = 'bold 9px sans-serif';
       ctx.textAlign = 'right';
@@ -167,7 +167,7 @@ export default function RiwayatMuridPage() {
         .lte('tanggal', tglAkhir)
         .order('tanggal', { ascending: false });
 
-      // Merge: absensi overrides NFC tapi jam NFC tetap dipertahankan
+      // Merge: absensi overrides NFC tapi jam NFC tetap dipertahankan untuk kebutuhan grafik
       const absenMap = {};
       (absensi || []).forEach((a) => {
         absenMap[a.tanggal] = a;
@@ -181,7 +181,7 @@ export default function RiwayatMuridPage() {
             status: 'Hadir',
             jam_datang: n.jam_datang,
             jam_pulang: n.jam_pulang,
-            catatan: n.jam_datang ? `NFC: ${formatTimeShort(n.jam_datang)}${n.jam_pulang ? ' - ' + formatTimeShort(n.jam_pulang) : ''}` : 'Hadir Mandiri via NFC',
+            catatan: '',
             metode: 'NFC',
           });
         }
@@ -210,7 +210,7 @@ export default function RiwayatMuridPage() {
     async () => {
       const { data } = await supabase
         .from('data_absensi_mapel')
-        .select('status, catatan, jurnal_guru!inner(tanggal, jam_pelajaran, mata_pelajaran, rombel)')
+        .select('status, catatan, jurnal_guru!inner(tanggal, jam_pelajaran, mata_pelajaran, rombel, master_user(nama))')
         .eq('nisn', user.id_user)
         .gte('jurnal_guru.tanggal', tglMulai)
         .lte('jurnal_guru.tanggal', tglAkhir)
@@ -272,7 +272,9 @@ export default function RiwayatMuridPage() {
     const values = sorted.map((d) => {
       if (d.status !== 'Hadir') return 0;
       const dec = parseTimeToDecimal(d.jam_datang);
-      return dec !== null ? dec : 7.0;
+      const actualVal = dec !== null ? dec : 7.0;
+      // Batasi tinggi batang maksimal di 7.25 (pukul 07:15) agar tidak overflow skala grafik
+      return Math.min(actualVal, 7.25);
     });
 
     const barColors = sorted.map((d) => {
@@ -288,11 +290,12 @@ export default function RiwayatMuridPage() {
     });
 
     const validDecimals = values.filter((v) => v > 0);
-    const minVal = validDecimals.length > 0 ? Math.min(...validDecimals) : 7.0;
-    const maxVal = validDecimals.length > 0 ? Math.max(...validDecimals) : 7.0;
+    const minVal = validDecimals.length > 0 ? Math.min(...validDecimals) : 6.0;
 
-    const minY = Math.max(5.0, Math.floor(Math.min(minVal, 6.0)));
-    const maxY = Math.min(12.0, Math.ceil(Math.max(maxVal, 8.0)));
+    // Skala sumbu Y: minimal jam 06:00 (atau lebih awal jika ada siswa tiba < 06:00)
+    // dan maksimal tepat di pukul 07:15 (7.25)
+    const minY = Math.min(6.0, Math.floor(minVal * 4) / 4);
+    const maxY = 7.25; // 07:15 WIB
 
     const chartData = {
       labels,
@@ -334,7 +337,7 @@ export default function RiwayatMuridPage() {
               if (item.status !== 'Hadir') {
                 return `Status: ${item.status}`;
               }
-              const dec = context.raw;
+              const dec = parseTimeToDecimal(item.jam_datang) || 7.0;
               const h = Math.floor(dec);
               const m = Math.round((dec - h) * 60);
               const timeFormatted = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} WIB`;
@@ -346,9 +349,6 @@ export default function RiwayatMuridPage() {
               ];
               if (item.jam_pulang) {
                 lines.push(`Jam Pulang: ${formatTimeShort(item.jam_pulang)} WIB`);
-              }
-              if (item.metode) {
-                lines.push(`Metode: ${item.metode === 'NFC' ? 'Tap NFC' : 'Presensi Manual'}`);
               }
               return lines;
             },
@@ -372,7 +372,7 @@ export default function RiwayatMuridPage() {
             color: 'rgba(148, 163, 184, 0.1)',
           },
           ticks: {
-            stepSize: 0.5,
+            stepSize: 0.25, // Tiap 15 menit: 06:00, 06:15, 06:30, 06:45, 07:00, 07:15
             callback: (val) => {
               const h = Math.floor(val);
               const m = Math.round((val - h) * 60);
@@ -646,7 +646,7 @@ export default function RiwayatMuridPage() {
         </div>
       </div>
 
-      {/* ── 4. Grafik Batang Waktu Kehadiran Siswa (Visualisasi Jam Tiba) ──── */}
+      {/* ── 4. Grafik Batang Waktu Kehadiran Siswa (Skala Maks 07:15) ────────── */}
       <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -658,7 +658,7 @@ export default function RiwayatMuridPage() {
                 Grafik Waktu Kedatangan (Jam Hadir)
               </h3>
               <p className="text-xs text-slate-400">
-                Pola jam kehadiran siswa setiap hari selama rentang tanggal terpilih
+                Pola jam kehadiran siswa setiap hari selama rentang tanggal terpilih (Skala s.d. 07:15 WIB)
               </p>
             </div>
           </div>
@@ -695,7 +695,7 @@ export default function RiwayatMuridPage() {
             </span>
           </div>
           <span className="text-slate-400 italic">
-            *Garis putus-putus merah: <strong>Batas Masuk 07:00 WIB</strong>
+            *Skala sumbu Y: <strong>06:00 s.d. 07:15 WIB</strong> · Garis merah: <strong>07:00 WIB</strong>
           </span>
         </div>
 
@@ -761,7 +761,7 @@ export default function RiwayatMuridPage() {
         </span>
       </div>
 
-      {/* ── 6. Daftar Riwayat Kehadiran ───────────────────────────────────── */}
+      {/* ── 6. Daftar Riwayat Kehadiran (Fokus Catatan Guru & Ketidakhadiran Mapel) ── */}
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
@@ -784,73 +784,141 @@ export default function RiwayatMuridPage() {
         <div className="space-y-3">
           {filteredData.map((row, idx) => {
             const badge = getStatusBadge(row.status);
+            const isManual = row.metode === 'Manual' || (row.pencatat && row.pencatat !== 'System');
+            const namaGuruPencatat = isManual ? (row.pencatat || user?.wali_kelas || 'Wali Kelas') : null;
+            const mapelAbsenHariIni = absenMapel.filter(
+              (m) => m.jurnal_guru?.tanggal === row.tanggal
+            );
+
             return (
               <div
                 key={idx}
-                className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-white/10 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
+                className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-white/10 shadow-sm hover:shadow-md transition-all space-y-3.5 group"
               >
-                {/* Bagian Kiri: Status Icon & Tanggal */}
-                <div className="flex items-start sm:items-center gap-3.5">
-                  <div
-                    className={`w-11 h-11 rounded-2xl flex items-center justify-center text-base font-extrabold shrink-0 border ${badge.bg}`}
-                  >
-                    {badge.icon}
-                  </div>
+                {/* Header Card: Tanggal, Metode/Pencatat, dan Status */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start sm:items-center gap-3.5">
+                    <div
+                      className={`w-11 h-11 rounded-2xl flex items-center justify-center text-base font-extrabold shrink-0 border ${badge.bg}`}
+                    >
+                      {badge.icon}
+                    </div>
 
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-white leading-tight">
-                      {formatHariTanggal(row.tanggal)}
-                    </h4>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-sm font-bold text-slate-800 dark:text-white leading-tight">
+                          {formatHariTanggal(row.tanggal)}
+                        </h4>
 
-                    {/* Waktu Masuk & Pulang */}
-                    <div className="flex items-center gap-2 mt-1.5 flex-wrap text-xs text-slate-500 dark:text-slate-400">
-                      {row.jam_datang ? (
-                        <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md text-slate-700 dark:text-slate-300">
-                          <span>🕒 Datang: {formatTimeShort(row.jam_datang)}</span>
-                          {row.jam_pulang && <span>· Pulang: {formatTimeShort(row.jam_pulang)}</span>}
-                        </span>
-                      ) : (
-                        <span className="text-[11px] text-slate-400">
-                          {row.status === 'Hadir' ? 'Dicatat Wali Kelas' : `Keterangan: ${row.status}`}
-                        </span>
-                      )}
+                        {/* Indikator Metode / Absen Manual Guru */}
+                        {isManual ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50 shadow-xs">
+                            <span>👨‍🏫</span>
+                            <span>Absen Manual: <strong>{namaGuruPencatat}</strong></span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                            <span>📡</span>
+                            <span>Tap Kartu NFC</span>
+                          </span>
+                        )}
+                      </div>
 
-                      {row.catatan && row.catatan !== '-' && (
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 italic">
-                          &ldquo;{row.catatan}&rdquo;
-                        </span>
-                      )}
+                      {/* Ringkasan Sub-keterangan */}
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                        {row.status === 'Hadir'
+                          ? 'Kehadiran harian tercatat di madrasah'
+                          : `Status presensi: ${row.status}`}
+                      </p>
                     </div>
                   </div>
+
+                  {/* Status Badge */}
+                  <div className="self-end sm:self-center">
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${badge.bg}`}
+                    >
+                      {badge.label}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Bagian Kanan: Status & Metode */}
-                <div className="flex items-center gap-2.5 self-end sm:self-center">
-                  {row.metode === 'NFC' ? (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      Tap NFC
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-white/5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                      Presensi Manual
-                    </span>
-                  )}
+                {/* Kotak Catatan Guru (Harian) jika ada */}
+                {row.catatan && row.catatan !== '-' ? (
+                  <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/30 text-xs">
+                    <span className="text-amber-500 text-base shrink-0 mt-0.5">💬</span>
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="text-[11px] font-bold text-amber-900 dark:text-amber-300">
+                        Catatan Guru {namaGuruPencatat ? `(${namaGuruPencatat})` : ''}:
+                      </div>
+                      <div className="text-slate-700 dark:text-slate-200 italic font-medium leading-relaxed">
+                        &ldquo;{row.catatan}&rdquo;
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  row.status !== 'Hadir' && (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 text-xs text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-white/5">
+                      <span>📝</span>
+                      <span>
+                        Tercatat keterangan {row.status} oleh {isManual ? namaGuruPencatat : 'Sistem'}.
+                      </span>
+                    </div>
+                  )
+                )}
 
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${badge.bg}`}
-                  >
-                    {badge.label}
-                  </span>
-                </div>
+                {/* Ketidakhadiran Sesi Mapel pada Hari Ini (jika ada) */}
+                {mapelAbsenHariIni.length > 0 && (
+                  <div className="pt-2.5 border-t border-slate-100 dark:border-white/5 space-y-2">
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                      <span>⚠️</span>
+                      <span>Ketidakhadiran Sesi Mata Pelajaran ({mapelAbsenHariIni.length} Mapel):</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {mapelAbsenHariIni.map((m, mIdx) => {
+                        const mBadge = getStatusBadge(m.status);
+                        const guruMapel = m.jurnal_guru?.master_user?.nama;
+                        return (
+                          <div
+                            key={mIdx}
+                            className="p-2.5 rounded-xl bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/40 text-xs space-y-1.5"
+                          >
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="font-bold text-slate-800 dark:text-white truncate">
+                                {m.jurnal_guru?.mata_pelajaran || 'Mapel'}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${mBadge.bg} shrink-0`}>
+                                {mBadge.label}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                              <span className="font-mono">
+                                {m.jurnal_guru?.jam_pelajaran ? m.jurnal_guru.jam_pelajaran.replace(/\s*\(.*\)/, '') : '-'}
+                              </span>
+                              {guruMapel && (
+                                <span className="text-[10px] text-rose-600 dark:text-rose-400 font-medium truncate max-w-[140px]">
+                                  👨‍🏫 {guruMapel}
+                                </span>
+                              )}
+                            </div>
+                            {m.catatan && (
+                              <div className="text-[11px] italic text-rose-700 dark:text-rose-300 bg-white/70 dark:bg-black/20 px-2 py-1 rounded-md border border-rose-100 dark:border-rose-950/40">
+                                &ldquo;{m.catatan}&rdquo;
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       )}
 
-      {/* ── 7. Injeksi: Ketidakhadiran Mata Pelajaran ───────────────────────── */}
+      {/* ── 7. Injeksi: Rekap Ketidakhadiran Mata Pelajaran ─────────────────── */}
       {(absenMapel.length > 0 || loadingMapel) && (
         <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -860,10 +928,10 @@ export default function RiwayatMuridPage() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-800 dark:text-white">
-                  Ketidakhadiran Sesi Mata Pelajaran
+                  Rekap Ketidakhadiran Sesi Mata Pelajaran
                 </h3>
                 <p className="text-[11px] text-slate-400">
-                  Catatan dari jurnal harian bapak/ibu guru saat Anda tidak berada di kelas
+                  Daftar sesi mata pelajaran di mana siswa tercatat tidak mengikuti kelas
                 </p>
               </div>
             </div>
@@ -901,8 +969,15 @@ export default function RiwayatMuridPage() {
                         <td className="py-3 px-3 text-slate-500 dark:text-slate-400 font-mono">
                           {j?.jam_pelajaran ? j.jam_pelajaran.replace(/\s*\(.*\)/, '') : '-'}
                         </td>
-                        <td className="py-3 px-3 font-bold text-slate-800 dark:text-white">
-                          {j?.mata_pelajaran || '-'}
+                        <td className="py-3 px-3">
+                          <div className="font-bold text-slate-800 dark:text-white">
+                            {j?.mata_pelajaran || '-'}
+                          </div>
+                          {j?.master_user?.nama && (
+                            <div className="text-[10px] text-slate-400 font-normal">
+                              👨‍🏫 {j.master_user.nama}
+                            </div>
+                          )}
                         </td>
                         <td className="py-3 px-3 text-center">
                           <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badge.bg}`}>
