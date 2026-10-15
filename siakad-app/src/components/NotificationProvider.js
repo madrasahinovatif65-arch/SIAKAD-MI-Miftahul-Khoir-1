@@ -28,10 +28,13 @@ export default function NotificationProvider() {
 
     const registerPush = async () => {
       try {
-        // Minta izin notifikasi
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') {
-          console.log('[Push] Notifikasi tidak diizinkan');
+        // Jangan daftarkan jika user mematikan notifikasi secara manual
+        if (typeof window !== 'undefined' && localStorage.getItem('push_notif_disabled') === 'true') {
+          return;
+        }
+
+        // Hanya sinkronkan jika user telah memberikan izin (granted)
+        if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
           return;
         }
 

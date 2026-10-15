@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import useSWR from 'swr';
 import Link from 'next/link';
+import NotificationPermissionCard from '@/components/NotificationPermissionCard';
 
 // --- Helpers ---
 const formatTimeAgo = (dateStr) => {
@@ -170,6 +171,9 @@ export default function NotifikasiPage() {
           )}
         </div>
       </div>
+
+      {/* Trigger Izin Akses Notifikasi Perangkat */}
+      <NotificationPermissionCard />
 
       {/* Filter Tabs */}
       <div className="flex gap-2 flex-wrap">
