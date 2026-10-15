@@ -7,6 +7,7 @@ import useSWR from 'swr';
 import Link from 'next/link';
 import { useGeofenceReminder } from '@/hooks/useGeofenceReminder';
 import AbsenGPSWidget from '@/components/AbsenGPSWidget';
+import DoubleBackToExit from '@/components/DoubleBackToExit';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -491,6 +492,7 @@ export default function DashboardHome() {
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <DoubleBackToExit />
       <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-[2rem] p-6 lg:p-8 border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden">
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
