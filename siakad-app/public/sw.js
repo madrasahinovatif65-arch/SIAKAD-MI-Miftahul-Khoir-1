@@ -1,8 +1,20 @@
-const CACHE_NAME = 'siakad-v4';
+const CACHE_NAME = 'siakad-v5';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
   '/logo.png',
+  '/dashboard',
+  '/dashboard/riwayat-murid',
+  '/dashboard/asesmen-kognitif',
+  '/dashboard/asesmen',
+  '/dashboard/eperpus',
+];
+
+// URL patterns yang TIDAK boleh di-cache (auth, realtime, mutasi)
+const NO_CACHE_PATTERNS = [
+  '/auth/',
+  '/rest/v1/data_absensi?',
+  'supabase.co/realtime',
 ];
 
 // Install: cache core assets
@@ -28,6 +40,9 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
 
   if (request.method !== 'GET') return;
+
+  // Jangan cache URL sensitif (auth, realtime)
+  if (NO_CACHE_PATTERNS.some((p) => request.url.includes(p))) return;
 
   if (request.mode === 'navigate') {
     event.respondWith(

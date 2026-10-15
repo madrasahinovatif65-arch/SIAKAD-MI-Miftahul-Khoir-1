@@ -4,8 +4,9 @@ import { useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { formatTimeShort, getTodayDate, getTahunPelajaran } from '@/lib/dateUtils';
-import useSWR from 'swr';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useMuridOfflineData } from '@/hooks/useMuridOfflineData';
+import OfflineBanner from '@/components/OfflineBanner';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { id } from 'date-fns/locale/id';
@@ -145,9 +146,19 @@ export default function RiwayatMuridPage() {
     }
   };
 
-  // 1. Ambil data absensi harian (data_absensi + view_rekap_absensi_nfc)
-  const { data: swrData, isLoading: loading } = useSWR(
-    user && tglMulai && tglAkhir ? `riwayat_murid_${user.id_user}_${tglMulai}_${tglAkhir}` : null,
+  // 1. Ambil data absensi harian (offline-capable via IndexedDB cache)
+  const absensiCacheKey = user && tglMulai && tglAkhir
+    ? `riwayat_murid_${user.id_user}_${tglMulai}_${tglAkhir}`
+    : null;
+
+  const {
+    data: swrData,
+    isLoading: loading,
+    isOffline,
+    cacheAge,
+    refresh: refreshAbsensi,
+  } = useMuridOfflineData(
+    absensiCacheKey,
     async () => {
       // Ambil dari data_absensi
       const { data: absensi } = await supabase
@@ -158,7 +169,7 @@ export default function RiwayatMuridPage() {
         .lte('tanggal', tglAkhir)
         .order('tanggal', { ascending: false });
 
-      // Ambil dari data_nfc_murid
+      // Ambil dari view_rekap_absensi_nfc
       const { data: nfc } = await supabase
         .from('view_rekap_absensi_nfc')
         .select('*')
@@ -167,11 +178,9 @@ export default function RiwayatMuridPage() {
         .lte('tanggal', tglAkhir)
         .order('tanggal', { ascending: false });
 
-      // Merge: absensi overrides NFC tapi jam NFC tetap dipertahankan untuk kebutuhan grafik
+      // Merge: absensi overrides NFC, jam NFC dipertahankan untuk grafik
       const absenMap = {};
-      (absensi || []).forEach((a) => {
-        absenMap[a.tanggal] = a;
-      });
+      (absensi || []).forEach((a) => { absenMap[a.tanggal] = a; });
 
       const combined = [];
       (nfc || []).forEach((n) => {
@@ -199,14 +208,22 @@ export default function RiwayatMuridPage() {
 
       combined.sort((a, b) => b.tanggal.localeCompare(a.tanggal));
       return combined;
-    }
+    },
+    [] // fallback: array kosong
   );
 
   const data = swrData || [];
 
-  // 2. Ambil data ketidakhadiran per mata pelajaran
-  const { data: absenMapelData, isLoading: loadingMapel } = useSWR(
-    user && tglMulai && tglAkhir ? `absen_mapel_murid_${user.id_user}_${tglMulai}_${tglAkhir}` : null,
+  // 2. Ambil data ketidakhadiran per mata pelajaran (offline-capable)
+  const mapelCacheKey = user && tglMulai && tglAkhir
+    ? `absen_mapel_murid_${user.id_user}_${tglMulai}_${tglAkhir}`
+    : null;
+
+  const {
+    data: absenMapelData,
+    isLoading: loadingMapel,
+  } = useMuridOfflineData(
+    mapelCacheKey,
     async () => {
       const { data } = await supabase
         .from('data_absensi_mapel')
@@ -216,7 +233,8 @@ export default function RiwayatMuridPage() {
         .lte('jurnal_guru.tanggal', tglAkhir)
         .order('jurnal_guru(tanggal)', { ascending: false });
       return (data || []).filter((d) => d.status !== 'Hadir');
-    }
+    },
+    [] // fallback: array kosong
   );
   const absenMapel = absenMapelData || [];
 
@@ -580,6 +598,13 @@ export default function RiwayatMuridPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Offline Banner (muncul otomatis saat tanpa koneksi) ──────────── */}
+      <OfflineBanner
+        isOffline={isOffline}
+        cacheAge={cacheAge}
+        onRefresh={refreshAbsensi}
+      />
 
       {/* ── 3. Ringkasan Statistik (Card Dispen Dihapus) ────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

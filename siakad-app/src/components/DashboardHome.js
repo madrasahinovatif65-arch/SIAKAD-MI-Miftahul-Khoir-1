@@ -6,6 +6,8 @@ import { getTodayDate } from '@/lib/dateUtils';
 import useSWR from 'swr';
 import Link from 'next/link';
 import { useGeofenceReminder } from '@/hooks/useGeofenceReminder';
+import { useIsOffline } from '@/hooks/useMuridOfflineData';
+import OfflineBanner from '@/components/OfflineBanner';
 import AbsenGPSWidget from '@/components/AbsenGPSWidget';
 import DoubleBackToExit from '@/components/DoubleBackToExit';
 import {
@@ -84,6 +86,9 @@ export default function DashboardHome() {
   // 📍 Geofence Reminder: secara otomatis memantau posisi GPS guru
   // dan mengirim pengingat absensi jika berada di area sekolah
   useGeofenceReminder(user);
+
+  // Deteksi offline khusus role Murid untuk tampilkan banner
+  const isMuridOffline = useIsOffline();
 
   const { data } = useSWR(user ? `dashboard-stats-${user.id_user}` : null, async () => {
     const today = getTodayDate();
@@ -525,6 +530,10 @@ export default function DashboardHome() {
 
       <AbsenGPSWidget />
 
+      {/* Offline Banner — hanya tampil untuk Murid saat tidak ada koneksi */}
+      {user.role === 'Murid' && (
+        <OfflineBanner isOffline={isMuridOffline} cacheAge={null} />
+      )}
 
       {/* Quick Menu Section */}
       <div className="md:hidden">
