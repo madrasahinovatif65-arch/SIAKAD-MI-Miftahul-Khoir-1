@@ -436,6 +436,15 @@ export default function RiwayatMuridPage() {
     }
   };
 
+  // Log harian hanya menampilkan: (1) absen manual guru, atau (2) ketidakhadiran (Sakit/Izin/Alfa).
+  // Data Hadir via NFC sudah diwakili oleh grafik batang → tidak ditampilkan di sini.
+  const logHarianData = data.filter((d) => {
+    const isNfcHadir = d.status === 'Hadir' && d.metode !== 'Manual' && (!d.pencatat || d.pencatat === 'System');
+    if (isNfcHadir) return false;
+    if (filterStatus === 'Semua') return true;
+    return d.status === filterStatus;
+  });
+
   const filteredData = data.filter((d) => filterStatus === 'Semua' || d.status === filterStatus);
 
   return (
@@ -757,7 +766,7 @@ export default function RiwayatMuridPage() {
         </div>
 
         <span className="text-xs text-slate-400 font-medium ml-auto">
-          Menampilkan <strong className="text-slate-700 dark:text-slate-200">{filteredData.length}</strong> data
+          <strong className="text-slate-700 dark:text-slate-200">{logHarianData.length}</strong> catatan log
         </span>
       </div>
 
@@ -768,21 +777,25 @@ export default function RiwayatMuridPage() {
             <div key={i} className="h-20 bg-slate-100 dark:bg-slate-800/60 rounded-2xl animate-pulse" />
           ))}
         </div>
-      ) : filteredData.length === 0 ? (
+      ) : logHarianData.length === 0 ? (
         <div className="bg-white/80 dark:bg-slate-900/80 rounded-2xl border border-slate-200/80 dark:border-white/10 p-10 text-center">
           <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 mx-auto flex items-center justify-center text-2xl mb-3">
             📅
           </div>
           <h3 className="text-sm font-bold text-slate-700 dark:text-white">
-            {filterStatus === 'Semua' ? 'Belum Ada Data Absensi' : `Tidak Ada Catatan ${filterStatus}`}
+            {filterStatus === 'Semua'
+              ? 'Tidak Ada Catatan Log'
+              : `Tidak Ada Catatan ${filterStatus}`}
           </h3>
           <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-            Tidak ditemukan riwayat kehadiran untuk rentang tanggal yang dipilih. Ubah filter tanggal di atas untuk melihat periode lainnya.
+            {filterStatus === 'Semua' || filterStatus === 'Hadir'
+              ? 'Semua kehadiran siswa tercatat via kartu NFC dan sudah ditampilkan pada grafik di atas.'
+              : 'Tidak ditemukan catatan untuk periode yang dipilih. Ubah filter tanggal untuk melihat periode lainnya.'}
           </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredData.map((row, idx) => {
+          {logHarianData.map((row, idx) => {
             const badge = getStatusBadge(row.status);
             const isManual = row.metode === 'Manual' || (row.pencatat && row.pencatat !== 'System');
             const namaGuruPencatat = isManual ? (row.pencatat || user?.wali_kelas || 'Wali Kelas') : null;
