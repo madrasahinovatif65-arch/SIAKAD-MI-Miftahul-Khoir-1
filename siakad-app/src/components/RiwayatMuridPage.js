@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import { formatTimeShort, getTodayDate } from '@/lib/dateUtils';
+import { formatTimeShort, getTodayDate, getTahunPelajaran } from '@/lib/dateUtils';
 import useSWR from 'swr';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import DatePicker, { registerLocale } from 'react-datepicker';
@@ -12,60 +12,124 @@ import { id } from 'date-fns/locale/id';
 
 registerLocale('id', id);
 
+// Format tanggal ramah anak & orang tua: "Senin, 13 Oktober 2026"
+const formatHariTanggal = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    const [y, m, d] = dateStr.split('-');
+    const date = new Date(Number(y), Number(m) - 1, Number(d));
+    return new Intl.DateTimeFormat('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }).format(date);
+  } catch (_) {
+    return dateStr;
+  }
+};
+
 export default function RiwayatMuridPage() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
+
+  // Default tanggal: awal bulan berjalan s.d. hari ini
   const [tglMulai, setTglMulai] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
   });
-  const [tglAkhir, setTglAkhir] = useState(() => {
-    return getTodayDate();
-  });
+  const [tglAkhir, setTglAkhir] = useState(() => getTodayDate());
   const [filterStatus, setFilterStatus] = useState('Semua');
-  const { data: swrData, isLoading: loading } = useSWR(user && tglMulai && tglAkhir ? `riwayat_murid_${user.id_user}_${tglMulai}_${tglAkhir}` : null, async () => {
+  const [activePreset, setActivePreset] = useState('bulan_ini');
 
-    // Ambil dari data_absensi
-    const { data: absensi } = await supabase
-      .from('data_absensi')
-      .select('*')
-      .eq('nisn', user.id_user)
-      .gte('tanggal', tglMulai)
-      .lte('tanggal', tglAkhir)
-      .order('tanggal', { ascending: false });
+  // Quick preset filter
+  const applyPreset = (type) => {
+    setActivePreset(type);
+    const today = new Date();
+    const todayStr = getTodayDate();
 
-    // Ambil dari data_nfc_murid
-    const { data: nfc } = await supabase
-      .from('view_rekap_absensi_nfc')
-      .select('*')
-      .eq('id_user', user.id_user)
-      .gte('tanggal', tglMulai)
-      .lte('tanggal', tglAkhir)
-      .order('tanggal', { ascending: false });
+    if (type === 'bulan_ini') {
+      const y = today.getFullYear();
+      const m = String(today.getMonth() + 1).padStart(2, '0');
+      setTglMulai(`${y}-${m}-01`);
+      setTglAkhir(todayStr);
+    } else if (type === '30_hari') {
+      const past = new Date();
+      past.setDate(past.getDate() - 30);
+      const y = past.getFullYear();
+      const m = String(past.getMonth() + 1).padStart(2, '0');
+      const d = String(past.getDate()).padStart(2, '0');
+      setTglMulai(`${y}-${m}-${d}`);
+      setTglAkhir(todayStr);
+    } else if (type === 'semester') {
+      const m = today.getMonth() + 1;
+      const y = today.getFullYear();
+      const start = m >= 7 ? `${y}-07-01` : `${y}-01-01`;
+      setTglMulai(start);
+      setTglAkhir(todayStr);
+    }
+  };
 
-    // Merge: absensi overrides NFC
-    const absenMap = {};
-    (absensi || []).forEach(a => { absenMap[a.tanggal] = a; });
+  // 1. Ambil data absensi harian (data_absensi + view_rekap_absensi_nfc)
+  const { data: swrData, isLoading: loading } = useSWR(
+    user && tglMulai && tglAkhir ? `riwayat_murid_${user.id_user}_${tglMulai}_${tglAkhir}` : null,
+    async () => {
+      // Ambil dari data_absensi
+      const { data: absensi } = await supabase
+        .from('data_absensi')
+        .select('*')
+        .eq('nisn', user.id_user)
+        .gte('tanggal', tglMulai)
+        .lte('tanggal', tglAkhir)
+        .order('tanggal', { ascending: false });
 
-    const combined = [];
-    (nfc || []).forEach(n => {
-      if (!absenMap[n.tanggal]) {
+      // Ambil dari data_nfc_murid
+      const { data: nfc } = await supabase
+        .from('view_rekap_absensi_nfc')
+        .select('*')
+        .eq('id_user', user.id_user)
+        .gte('tanggal', tglMulai)
+        .lte('tanggal', tglAkhir)
+        .order('tanggal', { ascending: false });
+
+      // Merge: absensi overrides NFC tapi jam NFC tetap dipertahankan
+      const absenMap = {};
+      (absensi || []).forEach((a) => {
+        absenMap[a.tanggal] = a;
+      });
+
+      const combined = [];
+      (nfc || []).forEach((n) => {
+        if (!absenMap[n.tanggal]) {
+          combined.push({
+            tanggal: n.tanggal,
+            status: 'Hadir',
+            jam_datang: n.jam_datang,
+            jam_pulang: n.jam_pulang,
+            catatan: n.jam_datang ? `NFC: ${formatTimeShort(n.jam_datang)}${n.jam_pulang ? ' - ' + formatTimeShort(n.jam_pulang) : ''}` : 'Hadir Mandiri via NFC',
+            metode: 'NFC',
+          });
+        }
+      });
+
+      (absensi || []).forEach((a) => {
+        const nfcMatch = (nfc || []).find((n) => n.tanggal === a.tanggal);
         combined.push({
-          tanggal: n.tanggal,
-          status: 'Hadir',
-          catatan: `NFC: ${formatTimeShort(n.jam_datang) || '-'}${n.jam_pulang ? ' - ' + formatTimeShort(n.jam_pulang) : ''}`,
-          metode: 'NFC',
+          ...a,
+          jam_datang: a.jam_datang || nfcMatch?.jam_datang,
+          jam_pulang: a.jam_pulang || nfcMatch?.jam_pulang,
+          metode: a.metode || (nfcMatch ? 'NFC' : 'Manual'),
         });
-      }
-    });
-    (absensi || []).forEach(a => combined.push({ ...a, metode: a.metode || 'Manual' }));
-    combined.sort((a, b) => b.tanggal.localeCompare(a.tanggal));
-    return combined;
-  });
+      });
+
+      combined.sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+      return combined;
+    }
+  );
 
   const data = swrData || [];
 
-  // Injeksi 2: Riwayat Ketidakhadiran Mata Pelajaran
+  // 2. Ambil data ketidakhadiran per mata pelajaran
   const { data: absenMapelData, isLoading: loadingMapel } = useSWR(
     user && tglMulai && tglAkhir ? `absen_mapel_murid_${user.id_user}_${tglMulai}_${tglAkhir}` : null,
     async () => {
@@ -76,49 +140,153 @@ export default function RiwayatMuridPage() {
         .gte('jurnal_guru.tanggal', tglMulai)
         .lte('jurnal_guru.tanggal', tglAkhir)
         .order('jurnal_guru(tanggal)', { ascending: false });
-      return (data || []).filter(d => d.status !== 'Hadir');
+      return (data || []).filter((d) => d.status !== 'Hadir');
     }
   );
   const absenMapel = absenMapelData || [];
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '';
-    const [y, m, d] = dateStr.split('-');
-    return `${d}-${m}-${y}`;
-  };
+  // Hitung ringkasan status murid MI (Hadir, Sakit, Izin, Alfa — Card Dispen Ditiadakan)
+  const summary = { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0 };
+  data.forEach((d) => {
+    if (summary[d.status] !== undefined) {
+      summary[d.status]++;
+    }
+  });
 
-  const statusColors = {
-    'Hadir': 'bg-emerald-500/20 text-emerald-300',
-    'Sakit': 'bg-amber-500/20 text-amber-300',
-    'Izin': 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300',
-    'Alfa': 'bg-red-500/20 text-red-600 dark:text-red-300',
-    'Dispen': 'bg-purple-500/20 text-purple-300',
-  };
-
-  const summary = { Hadir: 0, Sakit: 0, Izin: 0, Alfa: 0, Dispen: 0 };
-  data.forEach(d => { if (summary[d.status] !== undefined) summary[d.status]++; });
   const total = data.length;
   const persentase = total > 0 ? Math.round((summary.Hadir / total) * 100) : 0;
 
+  // Status Badge Styling
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'Hadir':
+        return {
+          bg: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/20',
+          dot: 'bg-emerald-500',
+          icon: '✓',
+          label: 'Hadir',
+        };
+      case 'Sakit':
+        return {
+          bg: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300 border-amber-200 dark:border-amber-500/20',
+          dot: 'bg-amber-500',
+          icon: '🩹',
+          label: 'Sakit',
+        };
+      case 'Izin':
+        return {
+          bg: 'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300 border-sky-200 dark:border-sky-500/20',
+          dot: 'bg-sky-500',
+          icon: '✉️',
+          label: 'Izin',
+        };
+      case 'Alfa':
+        return {
+          bg: 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300 border-rose-200 dark:border-rose-500/20',
+          dot: 'bg-rose-500',
+          icon: '✕',
+          label: 'Alfa',
+        };
+      default:
+        return {
+          bg: 'bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-white/10',
+          dot: 'bg-slate-400',
+          icon: '•',
+          label: status,
+        };
+    }
+  };
+
+  const filteredData = data.filter((d) => filterStatus === 'Semua' || d.status === filterStatus);
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Riwayat Absen Saya</h2>
-          <p className="text-slate-600 dark:text-white/40 text-sm mt-1">{user.nama} · {user.rombel}</p>
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500 max-w-7xl mx-auto">
+      {/* ── 1. Hero / Header Banner Siswa ─────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 via-teal-600 to-teal-700 p-6 sm:p-8 text-white shadow-xl shadow-emerald-950/10">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-white/10 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-60 h-60 bg-teal-900/30 rounded-full blur-2xl translate-y-1/3 -translate-x-1/4 pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-2xl sm:text-3xl font-extrabold shadow-inner shrink-0">
+              {user?.nama ? user.nama.charAt(0).toUpperCase() : '👨‍🎓'}
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white/20 backdrop-blur-md text-emerald-50 border border-white/20">
+                  {user?.rombel || 'Siswa'}
+                </span>
+                {user?.rfid && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-400/20 text-emerald-100 border border-emerald-300/30 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                    Kartu NFC Aktif
+                  </span>
+                )}
+              </div>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight">
+                {user?.nama}
+              </h1>
+              <p className="text-xs sm:text-sm text-emerald-100/80 mt-0.5 font-medium">
+                NISN: <span className="font-mono text-white font-bold">{user?.id_user}</span> · {getTahunPelajaran()}
+              </p>
+            </div>
+          </div>
+
+          <div className="self-start md:self-center bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-[11px] uppercase tracking-wider text-emerald-100/70 font-semibold">
+                Performa Kehadiran
+              </p>
+              <p className="text-2xl sm:text-3xl font-black text-white">
+                {persentase}%
+              </p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-xl shadow-sm">
+              {persentase >= 90 ? '🌟' : persentase >= 75 ? '👍' : '⚠️'}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Filter Tanggal */}
-      <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-4 sm:p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-4 w-full">
-          <div className="flex items-center gap-2 flex-1 sm:flex-none">
+      {/* ── 2. Filter Tanggal & Quick Presets ─────────────────────────────── */}
+      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          {/* Tombol Pintasan Cepat (Presets) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            <span className="text-xs font-semibold text-slate-400 mr-1 hidden sm:inline">Pintasan:</span>
+            {[
+              { key: 'bulan_ini', label: 'Bulan Ini' },
+              { key: '30_hari', label: '30 Hari Terakhir' },
+              { key: 'semester', label: 'Semester Ini' },
+            ].map((preset) => (
+              <button
+                key={preset.key}
+                type="button"
+                onClick={() => applyPreset(preset.key)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                  activePreset === preset.key
+                    ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Date Picker Custom */}
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <div className="relative w-full sm:w-auto">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 z-50 pointer-events-none">DARI:</span>
-              <DatePicker withPortal={isMobile} onFocus={(e) => { if (isMobile) e.target.readOnly = true; }}
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 z-30 pointer-events-none">
+                DARI:
+              </span>
+              <DatePicker
+                withPortal={isMobile}
+                onFocus={(e) => { if (isMobile) e.target.readOnly = true; }}
                 selected={new Date(tglMulai)}
                 onChange={(date) => {
                   if (date) {
+                    setActivePreset('custom');
                     const y = date.getFullYear();
                     const m = String(date.getMonth() + 1).padStart(2, '0');
                     const d = String(date.getDate()).padStart(2, '0');
@@ -129,20 +297,24 @@ export default function RiwayatMuridPage() {
                 locale="id"
                 todayButton="Hari Ini"
                 wrapperClassName="w-full"
-                className="w-full sm:w-40 pl-11 pr-8 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm relative z-40"
+                className="w-full sm:w-40 pl-14 pr-8 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm"
                 portalId="root-portal"
               />
-              <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-40" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
-              </svg>
             </div>
-            <span className="text-slate-300 dark:text-slate-600 font-medium text-sm">-</span>
+
+            <span className="text-slate-300 dark:text-slate-600 font-bold hidden sm:inline">-</span>
+
             <div className="relative w-full sm:w-auto">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 z-50 pointer-events-none">HINGGA:</span>
-              <DatePicker withPortal={isMobile} onFocus={(e) => { if (isMobile) e.target.readOnly = true; }}
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 z-30 pointer-events-none">
+                HINGGA:
+              </span>
+              <DatePicker
+                withPortal={isMobile}
+                onFocus={(e) => { if (isMobile) e.target.readOnly = true; }}
                 selected={new Date(tglAkhir)}
                 onChange={(date) => {
                   if (date) {
+                    setActivePreset('custom');
                     const y = date.getFullYear();
                     const m = String(date.getMonth() + 1).padStart(2, '0');
                     const d = String(date.getDate()).padStart(2, '0');
@@ -153,131 +325,277 @@ export default function RiwayatMuridPage() {
                 locale="id"
                 todayButton="Hari Ini"
                 wrapperClassName="w-full"
-                className="w-full sm:w-40 pl-16 pr-8 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all shadow-sm relative z-40"
+                className="w-full sm:w-40 pl-16 pr-8 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm"
                 portalId="root-portal"
               />
-              <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-40" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
-              </svg>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-gradient-to-br from-emerald-600/20 to-emerald-800/20 border border-slate-300 dark:border-white/5 rounded-2xl p-5">
-          <p className="text-slate-600 dark:text-white/50 text-xs">Kehadiran</p>
-          <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{persentase}%</p>
-          <p className="text-slate-600 dark:text-white/30 text-xs mt-1">{summary.Hadir}/{total} hari</p>
+      {/* ── 3. Ringkasan Statistik (Card Dispen Dihapus) ────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card Kehadiran */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-white/10 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Kehadiran</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-sm font-bold shadow-sm">
+              ✓
+            </div>
+          </div>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-3xl font-extrabold text-slate-800 dark:text-white">{persentase}%</span>
+            <span className="text-xs text-slate-400 font-medium">({summary.Hadir}/{total} hari)</span>
+          </div>
+          <div className="mt-3 w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(100, persentase)}%` }}
+            />
+          </div>
         </div>
-        <div className="bg-gradient-to-br from-amber-600/20 to-amber-800/20 border border-slate-300 dark:border-white/5 rounded-2xl p-5">
-          <p className="text-slate-600 dark:text-white/50 text-xs">Sakit</p>
-          <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{summary.Sakit}</p>
+
+        {/* Card Sakit */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-white/10 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Sakit</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm font-bold shadow-sm">
+              🩹
+            </div>
+          </div>
+          <div className="mt-3 flex items-baseline gap-1.5">
+            <span className="text-3xl font-extrabold text-slate-800 dark:text-white">{summary.Sakit}</span>
+            <span className="text-xs text-slate-400 font-medium">Hari</span>
+          </div>
+          <p className="mt-2 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+            {summary.Sakit > 0 ? 'Keterangan surat/wali murid' : 'Kondisi sehat walafiat'}
+          </p>
         </div>
-        <div className="bg-gradient-to-br from-blue-600/20 to-blue-800/20 border border-slate-300 dark:border-white/5 rounded-2xl p-5">
-          <p className="text-slate-600 dark:text-white/50 text-xs">Izin</p>
-          <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{summary.Izin}</p>
+
+        {/* Card Izin */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-white/10 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Izin</span>
+            <div className="w-8 h-8 rounded-xl bg-sky-100 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 flex items-center justify-center text-sm font-bold shadow-sm">
+              ✉️
+            </div>
+          </div>
+          <div className="mt-3 flex items-baseline gap-1.5">
+            <span className="text-3xl font-extrabold text-slate-800 dark:text-white">{summary.Izin}</span>
+            <span className="text-xs text-slate-400 font-medium">Hari</span>
+          </div>
+          <p className="mt-2 text-[11px] text-sky-600 dark:text-sky-400 font-medium">
+            {summary.Izin > 0 ? 'Keperluan keluarga/resmi' : 'Tidak ada catatan izin'}
+          </p>
         </div>
-        <div className="bg-gradient-to-br from-red-600/20 to-red-800/20 border border-slate-300 dark:border-white/5 rounded-2xl p-5">
-          <p className="text-slate-600 dark:text-white/50 text-xs">Alfa</p>
-          <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{summary.Alfa}</p>
+
+        {/* Card Alfa */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-white/10 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Tanpa Keterangan (Alfa)</span>
+            <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center text-sm font-bold shadow-sm">
+              ✕
+            </div>
+          </div>
+          <div className="mt-3 flex items-baseline gap-1.5">
+            <span className="text-3xl font-extrabold text-slate-800 dark:text-white">{summary.Alfa}</span>
+            <span className="text-xs text-slate-400 font-medium">Hari</span>
+          </div>
+          <p className="mt-2 text-[11px] text-rose-600 dark:text-rose-400 font-medium">
+            {summary.Alfa === 0 ? '✨ Disiplin sangat baik (0 Alfa)' : 'Harap klarifikasi ke wali kelas'}
+          </p>
         </div>
       </div>
 
-      {/* Filter Status */}
-      {data.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
-          {['Semua', 'Hadir', 'Sakit', 'Izin', 'Alfa', 'Dispen'].map(s => (
+      {/* ── 4. Filter Status Tabs (Dispen Ditiadakan) ─────────────────────── */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+          {[
+            { key: 'Semua', count: total },
+            { key: 'Hadir', count: summary.Hadir },
+            { key: 'Sakit', count: summary.Sakit },
+            { key: 'Izin', count: summary.Izin },
+            { key: 'Alfa', count: summary.Alfa },
+          ].map((tab) => (
             <button
-              key={s}
-              onClick={() => setFilterStatus(s)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                filterStatus === s 
-                  ? (s === 'Semua' ? 'bg-emerald-600 text-slate-900 dark:text-white' : statusColors[s].replace('bg-opacity-20', 'bg-opacity-100').replace('text-', 'text-slate-900 dark:text-white bg-').split(' ')[0] + ' text-slate-900 dark:text-white')
-                  : 'bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-white/10 text-slate-600 dark:text-white/60 hover:bg-white dark:bg-white/10'
+              key={tab.key}
+              type="button"
+              onClick={() => setFilterStatus(tab.key)}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                filterStatus === tab.key
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md'
+                  : 'bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
             >
-              {s}
+              <span>{tab.key}</span>
+              <span
+                className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${
+                  filterStatus === tab.key
+                    ? 'bg-white/20 dark:bg-slate-900/20 text-white dark:text-slate-900'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                {tab.count}
+              </span>
             </button>
           ))}
         </div>
+
+        <span className="text-xs text-slate-400 font-medium ml-auto">
+          Menampilkan <strong className="text-slate-700 dark:text-slate-200">{filteredData.length}</strong> data
+        </span>
+      </div>
+
+      {/* ── 5. Daftar Riwayat Kehadiran ───────────────────────────────────── */}
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-20 bg-slate-100 dark:bg-slate-800/60 rounded-2xl animate-pulse" />
+          ))}
+        </div>
+      ) : filteredData.length === 0 ? (
+        <div className="bg-white/80 dark:bg-slate-900/80 rounded-2xl border border-slate-200/80 dark:border-white/10 p-10 text-center">
+          <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 mx-auto flex items-center justify-center text-2xl mb-3">
+            📅
+          </div>
+          <h3 className="text-sm font-bold text-slate-700 dark:text-white">
+            {filterStatus === 'Semua' ? 'Belum Ada Data Absensi' : `Tidak Ada Catatan ${filterStatus}`}
+          </h3>
+          <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+            Tidak ditemukan riwayat kehadiran untuk rentang tanggal yang dipilih. Ubah filter tanggal di atas untuk melihat periode lainnya.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredData.map((row, idx) => {
+            const badge = getStatusBadge(row.status);
+            return (
+              <div
+                key={idx}
+                className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-white/10 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
+              >
+                {/* Bagian Kiri: Status Icon & Tanggal */}
+                <div className="flex items-start sm:items-center gap-3.5">
+                  <div
+                    className={`w-11 h-11 rounded-2xl flex items-center justify-center text-base font-extrabold shrink-0 border ${badge.bg}`}
+                  >
+                    {badge.icon}
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-white leading-tight">
+                      {formatHariTanggal(row.tanggal)}
+                    </h4>
+
+                    {/* Waktu Masuk & Pulang */}
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap text-xs text-slate-500 dark:text-slate-400">
+                      {row.jam_datang ? (
+                        <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md text-slate-700 dark:text-slate-300">
+                          <span>🕒 Datang: {formatTimeShort(row.jam_datang)}</span>
+                          {row.jam_pulang && <span>· Pulang: {formatTimeShort(row.jam_pulang)}</span>}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-slate-400">
+                          {row.status === 'Hadir' ? 'Dicatat Wali Kelas' : `Keterangan: ${row.status}`}
+                        </span>
+                      )}
+
+                      {row.catatan && row.catatan !== '-' && (
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 italic">
+                          &ldquo;{row.catatan}&rdquo;
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bagian Kanan: Status & Metode */}
+                <div className="flex items-center gap-2.5 self-end sm:self-center">
+                  {row.metode === 'NFC' ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      Tap NFC
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-white/5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                      Presensi Manual
+                    </span>
+                  )}
+
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${badge.bg}`}
+                  >
+                    {badge.label}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
 
-      {/* Table */}
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-        </div>
-      ) : data.length === 0 ? (
-        <div className="text-center py-12 text-slate-600 dark:text-white/30 text-sm">Tidak ada data untuk rentang tanggal ini</div>
-      ) : (
-        <div className="space-y-2">
-          {data
-            .filter(d => filterStatus === 'Semua' || d.status === filterStatus)
-            .map((row, idx) => (
-            <div key={idx} className="bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-white/5 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-4">
-                <span className="text-slate-600 dark:text-white/60 font-mono text-xs w-24 shrink-0">{formatDate(row.tanggal)}</span>
-                <span className={`px-2 py-1 rounded-md text-xs font-medium ${statusColors[row.status] || 'text-slate-600 dark:text-white/30'}`}>
-                  {row.status}
-                </span>
+      {/* ── 6. Injeksi: Ketidakhadiran Mata Pelajaran ───────────────────────── */}
+      {(absenMapel.length > 0 || loadingMapel) && (
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold text-sm">
+                📚
               </div>
-              <div className="flex items-center gap-3 self-end sm:self-auto">
-                {row.metode === 'NFC' ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-                    NFC
-                  </span>
-                ) : (
-                  <span className="text-slate-400 dark:text-white/20 text-xs">Manual</span>
-                )}
-                <span className="text-slate-600 dark:text-white/40 text-xs max-w-[150px] sm:max-w-40 truncate" title={row.catatan || '-'}>{row.catatan || '-'}</span>
+              <div>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-white">
+                  Ketidakhadiran Sesi Mata Pelajaran
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Catatan dari jurnal harian bapak/ibu guru saat Anda tidak berada di kelas
+                </p>
               </div>
             </div>
-          ))}
-          {data.filter(d => filterStatus === 'Semua' || d.status === filterStatus).length === 0 && (
-            <div className="text-center py-8 text-slate-600 dark:text-white/30 text-sm">Tidak ada absensi dengan status {filterStatus}</div>
-          )}
-        </div>
-      )}
-      {/* === INJEKSI 2: Riwayat Ketidakhadiran Mata Pelajaran === */}
-      {(absenMapel.length > 0 || loadingMapel) && (
-        <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl p-4 sm:p-6 shadow-sm space-y-4">
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
-            <h3 className="text-sm font-bold text-slate-800 dark:text-white">Ketidakhadiran Mata Pelajaran</h3>
-            <span className="ml-auto text-xs text-slate-400">{absenMapel.length} catatan</span>
+
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40">
+              {absenMapel.length} Catatan
+            </span>
           </div>
+
           {loadingMapel ? (
-            <div className="flex justify-center py-6"><div className="w-6 h-6 border-4 border-rose-500/30 border-t-rose-500 rounded-full animate-spin" /></div>
+            <div className="flex justify-center py-6">
+              <div className="w-6 h-6 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+            </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[480px]">
+              <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-slate-100 dark:border-white/10">
-                    <th className="pb-2 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Tanggal</th>
-                    <th className="pb-2 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Jam</th>
-                    <th className="pb-2 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Mata Pelajaran</th>
-                    <th className="pb-2 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                  <tr className="border-b border-slate-100 dark:border-white/5 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                    <th className="py-2.5 px-3">Tanggal</th>
+                    <th className="py-2.5 px-3">Jam Ke</th>
+                    <th className="py-2.5 px-3">Mata Pelajaran</th>
+                    <th className="py-2.5 px-3 text-center">Status</th>
+                    <th className="py-2.5 px-3">Catatan Guru</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50 dark:divide-white/5">
-                  {absenMapel.map((a, i) => {
-                    const jurnal = a.jurnal_guru;
-                    const statusColors = {
-                      Sakit: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400',
-                      Izin: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400',
-                      Alfa: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400',
-                      Dispen: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400',
-                    };
+                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                  {absenMapel.map((item, idx) => {
+                    const j = item.jurnal_guru;
+                    const badge = getStatusBadge(item.status);
                     return (
-                      <tr key={i}>
-                        <td className="py-2.5 pr-3 text-slate-700 dark:text-slate-300 font-mono text-xs">{jurnal ? formatDate(jurnal.tanggal) : '-'}</td>
-                        <td className="py-2.5 pr-3 text-slate-500 dark:text-slate-400 text-xs">{jurnal ? (jurnal.jam_pelajaran || '-').replace(/\s*\(.*\)/, '') : '-'}</td>
-                        <td className="py-2.5 pr-3 text-slate-700 dark:text-white font-medium text-xs">{jurnal?.mata_pelajaran || '-'}</td>
-                        <td className="py-2.5 text-center">
-                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColors[a.status] || 'text-slate-500'}`}>{a.status}</span>
+                      <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 px-3 font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                          {j ? formatHariTanggal(j.tanggal) : '-'}
+                        </td>
+                        <td className="py-3 px-3 text-slate-500 dark:text-slate-400 font-mono">
+                          {j?.jam_pelajaran ? j.jam_pelajaran.replace(/\s*\(.*\)/, '') : '-'}
+                        </td>
+                        <td className="py-3 px-3 font-bold text-slate-800 dark:text-white">
+                          {j?.mata_pelajaran || '-'}
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badge.bg}`}>
+                            {badge.label}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-slate-500 dark:text-slate-400 italic">
+                          {item.catatan || '-'}
                         </td>
                       </tr>
                     );
