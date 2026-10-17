@@ -66,7 +66,6 @@ const PINTU_BELAJAR = [
     tags: ['🧠 Asah Logika', '🧩 Kuis Interaktif', '⚡ Langsung di Aplikasi'],
     url: '/api/proxy-iqgenio',
     externalUrl: 'https://iqgenio.com/',
-    translateUrl: 'https://iqgenio-com.translate.goog/?_x_tr_sl=auto&_x_tr_tl=id',
     iframeOk: true, // Berhasil dimuat langsung di iframe via proxy SIAKAD!
     icon: (
       <svg className="w-9 h-9" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -115,18 +114,6 @@ export default function EPerpusPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {activeEntry.translateUrl && (
-              <a
-                href={activeEntry.translateUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/50 rounded-lg text-xs sm:text-sm font-semibold border border-purple-200 dark:border-purple-800 transition-colors"
-                title="Buka Terjemahan Tab Baru"
-              >
-                <span>🇮🇩</span>
-                <span className="hidden sm:inline">Tab Terjemahan</span>
-              </a>
-            )}
             <a
               href={activeEntry.externalUrl || activeEntry.url}
               target="_blank"
