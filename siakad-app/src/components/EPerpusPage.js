@@ -330,11 +330,11 @@ export default function EPerpusPage() {
           ))}
         </div>
 
-        {/* Tips membaca */}
+        {/* Tips membaca & belajar */}
         <div className="p-3.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/30 text-xs text-emerald-800 dark:text-emerald-300 flex items-start gap-2.5">
           <span className="text-base flex-shrink-0">✨</span>
           <p className="leading-relaxed">
-            <strong>Tips untuk Murid:</strong> Mulailah dengan membaca 1 judul cerita di <strong>Perpustakaan Cerita</strong> setiap hari untuk melatih kemampuan literasimu, lalu buka <strong>Katalog Buku Pelajaran</strong> bila ada materi tugas sekolah yang ingin kamu pelajari lebih dalam!
+            <strong>Tips untuk Murid:</strong> Mulailah dengan membaca 1 judul cerita di <strong>Perpustakaan Cerita</strong> untuk melatih literasimu, buka <strong>Katalog Buku Pelajaran</strong> saat ingin mendalami materi tugas sekolah, serta luangkan waktu bermain di <strong>Asah Otak & Logika</strong> untuk melatih ketangkasan berpikir dan kecerdasanmu!
           </p>
         </div>
       </div>
