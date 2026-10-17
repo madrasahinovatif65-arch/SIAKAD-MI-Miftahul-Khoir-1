@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-// Daftar pintu masuk Taman Ilmu — pilot project (2 sumber resmi)
+// Daftar pintu masuk Taman Ilmu — (3 sumber belajar)
 const PINTU_BELAJAR = [
   {
     id: 'letsread',
@@ -58,6 +58,34 @@ const PINTU_BELAJAR = [
       'Membuka situs resmi Kementerian di tab baru untuk membaca atau mengunduh PDF',
     ],
   },
+  {
+    id: 'iqgenio',
+    label: 'Asah Otak & Logika',
+    sublabel: 'IQGenio Kids & Logic',
+    desc: 'Platform latihan tes logika, teka-teki visual, dan kuis kecerdasan interaktif untuk melatih ketangkasan daya pikir siswa.',
+    tags: ['🧠 Asah Logika', '🧩 Kuis Interaktif', '🇮🇩 Tombol Terjemahan'],
+    url: 'https://iqgenio.com/',
+    translateUrl: 'https://iqgenio-com.translate.goog/?_x_tr_sl=auto&_x_tr_tl=id',
+    iframeOk: false, // SAMEORIGIN — proteksi keamanan situs
+    icon: (
+      <svg className="w-9 h-9" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.516 0c.85.493 1.508 1.333 1.508 2.316V18" />
+      </svg>
+    ),
+    badge: '🧠 Logika & Kecerdasan',
+    badgeColor: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+    gradient: 'from-purple-500 to-indigo-600',
+    ring: 'ring-purple-500',
+    iconBg: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
+    border: 'hover:border-purple-400',
+    guideTitle: 'Kapan Memilih Menu Ini?',
+    guideContent: 'Pilih menu ini saat kamu ingin menguji ketajaman logika, menyelesaikan teka-teki visual, melatih fokus, dan bermain tes kecerdasan.',
+    guideFeatures: [
+      'Dilengkapi tombol terjemahan instan ke Bahasa Indonesia',
+      'Kuis logika visual seru untuk merangsang rasa ingin tahu siswa',
+      'Pilihan membuka versi terjemahan otomatis atau website aslinya',
+    ],
+  },
 ];
 
 export default function EPerpusPage() {
@@ -85,17 +113,31 @@ export default function EPerpusPage() {
               <span className="text-xs text-slate-400 dark:text-slate-500">— {activeEntry.sublabel}</span>
             </div>
           </div>
-          <a
-            href={activeEntry.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg text-sm font-medium border border-emerald-200 dark:border-emerald-800 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-            </svg>
-            <span className="hidden sm:inline">Buka Tab Baru</span>
-          </a>
+          <div className="flex items-center gap-2">
+            {activeEntry.translateUrl && (
+              <a
+                href={activeEntry.translateUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/50 rounded-lg text-xs sm:text-sm font-semibold border border-purple-200 dark:border-purple-800 transition-colors"
+                title="Buka Terjemahan Bahasa Indonesia"
+              >
+                <span>🇮🇩</span>
+                <span className="hidden sm:inline">Terjemahan ID</span>
+              </a>
+            )}
+            <a
+              href={activeEntry.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg text-sm font-medium border border-emerald-200 dark:border-emerald-800 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+              </svg>
+              <span className="hidden sm:inline">{activeEntry.translateUrl ? 'Website Asli' : 'Buka Tab Baru'}</span>
+            </a>
+          </div>
         </div>
 
         {/* Iframe / Fallback */}
@@ -109,30 +151,62 @@ export default function EPerpusPage() {
             />
           ) : (
             /* Fallback untuk situs yang memblokir iframe (SAMEORIGIN) */
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 p-8 text-center">
-              <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${activeEntry.gradient} flex items-center justify-center text-white shadow-lg`}>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 p-6 text-center overflow-y-auto">
+              <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${activeEntry.gradient} flex items-center justify-center text-white shadow-lg flex-shrink-0`}>
                 {activeEntry.icon}
               </div>
-              <div>
+              <div className="max-w-md">
                 <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">{activeEntry.label}</h3>
-                <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm">
-                  Situs <strong className="text-slate-700 dark:text-slate-200">{activeEntry.sublabel}</strong> tidak dapat ditampilkan di dalam aplikasi karena kebijakan keamanan situs tersebut.
+                <p className="text-slate-500 dark:text-slate-400 text-sm">
+                  Situs <strong className="text-slate-700 dark:text-slate-200">{activeEntry.sublabel}</strong> memiliki proteksi keamanan sehingga tidak dapat dibuka langsung di dalam bingkai aplikasi ini.
                 </p>
-                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 max-w-sm">
-                  Klik tombol di bawah untuk membukanya di tab peramban baru.
+                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+                  Silakan pilih tombol di bawah untuk membukanya di peramban:
                 </p>
               </div>
-              <a
-                href={activeEntry.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r ${activeEntry.gradient} text-white font-semibold rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all`}
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                </svg>
-                Buka {activeEntry.label}
-              </a>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                {activeEntry.translateUrl && (
+                  <a
+                    href={activeEntry.translateUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2.5 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all text-sm"
+                  >
+                    <span>🇮🇩</span>
+                    <span>Buka Versi Bahasa Indonesia</span>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                    </svg>
+                  </a>
+                )}
+                <a
+                  href={activeEntry.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={activeEntry.translateUrl 
+                    ? "inline-flex items-center gap-2 px-5 py-3 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl border border-slate-300 dark:border-white/10 shadow-sm transition-all text-sm"
+                    : `inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r ${activeEntry.gradient} text-white font-semibold rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all text-sm`
+                  }
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                  </svg>
+                  {activeEntry.translateUrl ? 'Buka Website Asli' : `Buka ${activeEntry.label}`}
+                </a>
+              </div>
+
+              {/* Tips jika menu terjemahan terhambat */}
+              {activeEntry.translateUrl && (
+                <div className="max-w-md p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-xl text-left text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
+                  <span className="text-base flex-shrink-0">💡</span>
+                  <p className="leading-relaxed">
+                    <strong>Catatan:</strong> Jika tombol menu atau kuis di versi terjemahan tidak merespons (karena proteksi skrip keamanan web tersebut), gunakan tombol <strong>Buka Website Asli</strong> lalu aktifkan fitur <em>"Terjemahkan"</em> melalui tombol titik tiga di peramban Anda.
+                  </p>
+                </div>
+              )}
+
               <span className="text-xs text-slate-400 dark:text-slate-600">{activeEntry.url}</span>
             </div>
           )}
@@ -141,7 +215,7 @@ export default function EPerpusPage() {
     );
   }
 
-  // Tampilan utama: 2 tombol pilihan + Panduan Referensi Murid
+  // Tampilan utama: 3 tombol pilihan + Panduan Referensi Murid
   return (
     <div className="h-full flex flex-col space-y-6">
       {/* Hero Section */}
@@ -153,13 +227,13 @@ export default function EPerpusPage() {
             🌱 Taman Ilmu
           </h2>
           <p className="text-emerald-50 text-sm sm:text-base leading-relaxed opacity-90">
-            Selamat datang! Pilih pintu belajarmu hari ini — baca buku cerita seru atau cari buku pelajaran resmi madrasahmu.
+            Selamat datang! Pilih pintu belajarmu hari ini — baca buku cerita seru, cari buku pelajaran resmi madrasah, atau asah logika berpikirmu.
           </p>
         </div>
       </div>
 
-      {/* 2 Kartu Pintu Masuk */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* 3 Kartu Pintu Masuk */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {PINTU_BELAJAR.map((entry) => (
           <button
             key={entry.id}
@@ -197,7 +271,7 @@ export default function EPerpusPage() {
 
             {/* CTA Footer */}
             <div className={`mt-auto pt-2 flex items-center gap-2 text-sm font-semibold bg-gradient-to-r ${entry.gradient} bg-clip-text text-transparent`}>
-              {entry.iframeOk ? 'Buka di dalam aplikasi' : 'Buka di tab peramban baru'}
+              {entry.iframeOk ? 'Buka di dalam aplikasi' : entry.translateUrl ? 'Buka (Tersedia Terjemahan)' : 'Buka di tab peramban baru'}
               <svg className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
               </svg>
@@ -225,7 +299,7 @@ export default function EPerpusPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
           {PINTU_BELAJAR.map((item) => (
             <div
               key={item.id}
