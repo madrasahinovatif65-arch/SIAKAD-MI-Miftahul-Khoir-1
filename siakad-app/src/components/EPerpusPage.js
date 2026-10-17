@@ -95,18 +95,18 @@ export default function EPerpusPage() {
   // Jika sudah ada pilihan aktif dan iframeOk, tampilkan viewer
   if (activeEntry) {
     return (
-      <div className="h-full flex flex-col animate-in fade-in duration-300" style={{ minHeight: '80vh' }}>
-        {/* Topbar Viewer */}
-        <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 px-4 py-3 flex items-center justify-between gap-3 flex-shrink-0">
+      <div className="fixed inset-0 z-50 bg-white dark:bg-slate-950 flex flex-col animate-in fade-in duration-300">
+        {/* Topbar Viewer Khusus (Header SIAKAD disembunyikan agar layar baca penuh) */}
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-4 py-2.5 flex items-center justify-between gap-3 flex-shrink-0 z-10 shadow-sm">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setActiveEntry(null)}
-              className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 transition-colors"
+              className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
-              Kembali
+              <span>Kembali</span>
             </button>
             <div className="hidden sm:flex items-center gap-2">
               <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${activeEntry.badgeColor}`}>{activeEntry.badge}</span>
@@ -119,7 +119,8 @@ export default function EPerpusPage() {
               href={activeEntry.externalUrl || activeEntry.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg text-sm font-medium border border-emerald-200 dark:border-emerald-800 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg text-xs sm:text-sm font-medium border border-emerald-200 dark:border-emerald-800 transition-colors"
+              title="Buka situs di jendela/tab peramban baru"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
@@ -129,8 +130,8 @@ export default function EPerpusPage() {
           </div>
         </div>
 
-        {/* Iframe / Fallback */}
-        <div className="flex-1 relative bg-slate-100 dark:bg-slate-950" style={{ minHeight: '600px' }}>
+        {/* Iframe Penuh Layar */}
+        <div className="flex-1 w-full h-full relative bg-slate-100 dark:bg-slate-950">
           {activeEntry.iframeOk ? (
             <iframe
               src={activeEntry.url}
