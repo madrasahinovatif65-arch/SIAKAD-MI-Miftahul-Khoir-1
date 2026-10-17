@@ -98,8 +98,12 @@ export default function EPerpusPage() {
     setMounted(true);
   }, []);
 
-  // Jika sudah ada pilihan aktif dan iframeOk, render langsung di atas seluruh antarmuka melalui Portal
-  if (activeEntry && mounted) {
+  // Jika sudah ada pilihan aktif, render via Portal di atas seluruh antarmuka
+  // (mounted guard mencegah SSR error, activeEntry saja cukup untuk kondisi klik)
+  if (activeEntry) {
+    // Saat mounted belum siap (SSR), jangan render apapun — cegah blank hitam
+    if (!mounted) return null;
+
     return createPortal(
       <div className="fixed inset-0 z-[99999] w-screen h-screen bg-white dark:bg-slate-950 flex flex-col overflow-hidden">
         {/* Topbar Viewer Khusus (Menutupi Header SIAKAD agar layar baca penuh dan tombol kembali selalu terlihat) */}
@@ -207,7 +211,8 @@ export default function EPerpusPage() {
             </div>
           )}
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
