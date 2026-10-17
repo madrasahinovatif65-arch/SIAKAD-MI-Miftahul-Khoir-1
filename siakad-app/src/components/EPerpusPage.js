@@ -63,10 +63,11 @@ const PINTU_BELAJAR = [
     label: 'Asah Otak & Logika',
     sublabel: 'IQGenio Kids & Logic',
     desc: 'Platform latihan tes logika, teka-teki visual, dan kuis kecerdasan interaktif untuk melatih ketangkasan daya pikir siswa.',
-    tags: ['🧠 Asah Logika', '🧩 Kuis Interaktif', '🇮🇩 Tombol Terjemahan'],
-    url: 'https://iqgenio.com/',
+    tags: ['🧠 Asah Logika', '🧩 Kuis Interaktif', '⚡ Langsung di Aplikasi'],
+    url: '/api/proxy-iqgenio',
+    externalUrl: 'https://iqgenio.com/',
     translateUrl: 'https://iqgenio-com.translate.goog/?_x_tr_sl=auto&_x_tr_tl=id',
-    iframeOk: false, // SAMEORIGIN — proteksi keamanan situs
+    iframeOk: true, // Berhasil dimuat langsung di iframe via proxy SIAKAD!
     icon: (
       <svg className="w-9 h-9" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.516 0c.85.493 1.508 1.333 1.508 2.316V18" />
@@ -81,9 +82,9 @@ const PINTU_BELAJAR = [
     guideTitle: 'Kapan Memilih Menu Ini?',
     guideContent: 'Pilih menu ini saat kamu ingin menguji ketajaman logika, menyelesaikan teka-teki visual, melatih fokus, dan bermain tes kecerdasan.',
     guideFeatures: [
-      'Dilengkapi tombol terjemahan instan ke Bahasa Indonesia',
+      'Bisa dimainkan langsung di dalam layar aplikasi SIAKAD',
+      'Dilengkapi widget terjemahan instan ke Bahasa Indonesia',
       'Kuis logika visual seru untuk merangsang rasa ingin tahu siswa',
-      'Pilihan membuka versi terjemahan otomatis atau website aslinya',
     ],
   },
 ];
@@ -120,14 +121,14 @@ export default function EPerpusPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/50 rounded-lg text-xs sm:text-sm font-semibold border border-purple-200 dark:border-purple-800 transition-colors"
-                title="Buka Terjemahan Bahasa Indonesia"
+                title="Buka Terjemahan Tab Baru"
               >
                 <span>🇮🇩</span>
-                <span className="hidden sm:inline">Terjemahan ID</span>
+                <span className="hidden sm:inline">Tab Terjemahan</span>
               </a>
             )}
             <a
-              href={activeEntry.url}
+              href={activeEntry.externalUrl || activeEntry.url}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg text-sm font-medium border border-emerald-200 dark:border-emerald-800 transition-colors"
@@ -135,7 +136,7 @@ export default function EPerpusPage() {
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
               </svg>
-              <span className="hidden sm:inline">{activeEntry.translateUrl ? 'Website Asli' : 'Buka Tab Baru'}</span>
+              <span className="hidden sm:inline">Buka Tab Baru</span>
             </a>
           </div>
         </div>
