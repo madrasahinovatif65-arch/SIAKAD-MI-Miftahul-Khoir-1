@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 // Daftar pintu masuk Taman Ilmu — (3 sumber belajar)
 const PINTU_BELAJAR = [
@@ -91,22 +92,27 @@ const PINTU_BELAJAR = [
 
 export default function EPerpusPage() {
   const [activeEntry, setActiveEntry] = useState(null); // objek dari PINTU_BELAJAR
+  const [mounted, setMounted] = useState(false);
 
-  // Jika sudah ada pilihan aktif dan iframeOk, tampilkan viewer
-  if (activeEntry) {
-    return (
-      <div className="fixed inset-0 z-50 bg-white dark:bg-slate-950 flex flex-col animate-in fade-in duration-300">
-        {/* Topbar Viewer Khusus (Header SIAKAD disembunyikan agar layar baca penuh) */}
-        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-4 py-2.5 flex items-center justify-between gap-3 flex-shrink-0 z-10 shadow-sm">
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Jika sudah ada pilihan aktif dan iframeOk, render langsung di atas seluruh antarmuka melalui Portal
+  if (activeEntry && mounted) {
+    return createPortal(
+      <div className="fixed inset-0 z-[99999] w-screen h-screen bg-white dark:bg-slate-950 flex flex-col overflow-hidden">
+        {/* Topbar Viewer Khusus (Menutupi Header SIAKAD agar layar baca penuh dan tombol kembali selalu terlihat) */}
+        <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 sm:py-3 flex items-center justify-between gap-3 flex-shrink-0 z-50 shadow-md">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setActiveEntry(null)}
-              className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 transition-colors"
+              className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 transition-colors shadow-sm cursor-pointer"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
-              <span>Kembali</span>
+              <span>Kembali ke Taman Ilmu</span>
             </button>
             <div className="hidden sm:flex items-center gap-2">
               <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${activeEntry.badgeColor}`}>{activeEntry.badge}</span>
@@ -119,7 +125,7 @@ export default function EPerpusPage() {
               href={activeEntry.externalUrl || activeEntry.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg text-xs sm:text-sm font-medium border border-emerald-200 dark:border-emerald-800 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg text-xs sm:text-sm font-medium border border-emerald-200 dark:border-emerald-800 transition-colors shadow-sm"
               title="Buka situs di jendela/tab peramban baru"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
