@@ -37,10 +37,11 @@ const PINTU_BELAJAR = [
     label: 'Katalog Buku Pelajaran',
     sublabel: 'Kemendikdasmen RI (SIBI)',
     desc: 'Katalog buku teks Kurikulum Merdeka resmi dari Kementerian untuk semua mata pelajaran jenjang madrasah/sekolah dasar.',
-    tags: ['📚 Buku Teks Utama', '📐 Kurikulum Merdeka', '⚡ Langsung di Aplikasi'],
-    url: '/api/proxy-buku-kemendik',
+    tags: ['📚 Buku Teks Utama', '📐 Kurikulum Merdeka', '🌐 Buka di Tab Baru'],
+    url: 'https://buku.kemendikdasmen.go.id/katalog',
     externalUrl: 'https://buku.kemendikdasmen.go.id/katalog',
-    iframeOk: true, // Berhasil dimuat langsung di iframe via proxy SIAKAD!
+    openInNewTab: true,
+    iframeOk: false,
     icon: (
       <svg className="w-9 h-9" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 3.741-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
@@ -57,7 +58,7 @@ const PINTU_BELAJAR = [
     guideFeatures: [
       'Buku teks standar nasional yang digunakan bapak/ibu guru di kelas',
       'Tersedia buku siswa dan referensi lengkap per mata pelajaran',
-      'Bisa dibaca langsung di dalam aplikasi SIAKAD dengan opsi unduh PDF',
+      'Bisa langsung dibaca dan diunduh (PDF) resmi di portal Kemendikdasmen',
     ],
   },
   {
@@ -235,53 +236,81 @@ export default function EPerpusPage() {
 
       {/* 3 Kartu Pintu Masuk */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        {PINTU_BELAJAR.map((entry) => (
-          <button
-            key={entry.id}
-            onClick={() => setActiveEntry(entry)}
-            className={`group relative bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border-2 border-slate-100 dark:border-white/5 ${entry.border} hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-left flex flex-col gap-4 focus:outline-none focus:ring-2 ${entry.ring} focus:ring-offset-2`}
-          >
-            {/* Badge */}
-            <span className={`self-start text-xs font-bold px-3 py-1 rounded-full ${entry.badgeColor}`}>
-              {entry.badge}
-            </span>
+        {PINTU_BELAJAR.map((entry) => {
+          const cardContent = (
+            <>
+              {/* Badge */}
+              <span className={`self-start text-xs font-bold px-3 py-1 rounded-full ${entry.badgeColor}`}>
+                {entry.badge}
+              </span>
 
-            {/* Icon + Teks */}
-            <div className="flex items-start gap-4">
-              <div className={`flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center ${entry.iconBg} group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
-                {entry.icon}
+              {/* Icon + Teks */}
+              <div className="flex items-start gap-4">
+                <div className={`flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center ${entry.iconBg} group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
+                  {entry.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white leading-tight">{entry.label}</h3>
+                  <p className="text-xs font-medium text-slate-400 dark:text-slate-500 mb-2">{entry.sublabel}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{entry.desc}</p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white leading-tight">{entry.label}</h3>
-                <p className="text-xs font-medium text-slate-400 dark:text-slate-500 mb-2">{entry.sublabel}</p>
-                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{entry.desc}</p>
+
+              {/* Tag Fitur */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {entry.tags.map((tag, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300"
+                  >
+                    {tag}
+                  </span>
+                ))}
               </div>
-            </div>
 
-            {/* Tag Fitur */}
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {entry.tags.map((tag, idx) => (
-                <span
-                  key={idx}
-                  className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
+              {/* CTA Footer */}
+              <div className={`mt-auto pt-2 flex items-center gap-2 text-sm font-semibold bg-gradient-to-r ${entry.gradient} bg-clip-text text-transparent`}>
+                {entry.openInNewTab ? 'Buka di Tab Peramban Baru' : entry.iframeOk ? 'Buka di dalam aplikasi' : 'Buka di tab peramban baru'}
+                <svg className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  {entry.openInNewTab ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                  )}
+                </svg>
+              </div>
 
-            {/* CTA Footer */}
-            <div className={`mt-auto pt-2 flex items-center gap-2 text-sm font-semibold bg-gradient-to-r ${entry.gradient} bg-clip-text text-transparent`}>
-              {entry.iframeOk ? 'Buka di dalam aplikasi' : entry.translateUrl ? 'Buka (Tersedia Terjemahan)' : 'Buka di tab peramban baru'}
-              <svg className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-              </svg>
-            </div>
+              {/* Glow overlay saat hover */}
+              <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${entry.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300 pointer-events-none`} />
+            </>
+          );
 
-            {/* Glow overlay saat hover */}
-            <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${entry.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300 pointer-events-none`} />
-          </button>
-        ))}
+          const cardClass = `group relative bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border-2 border-slate-100 dark:border-white/5 ${entry.border} hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-left flex flex-col gap-4 focus:outline-none focus:ring-2 ${entry.ring} focus:ring-offset-2`;
+
+          if (entry.openInNewTab) {
+            return (
+              <a
+                key={entry.id}
+                href={entry.externalUrl || entry.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cardClass}
+              >
+                {cardContent}
+              </a>
+            );
+          }
+
+          return (
+            <button
+              key={entry.id}
+              onClick={() => setActiveEntry(entry)}
+              className={cardClass}
+            >
+              {cardContent}
+            </button>
+          );
+        })}
       </div>
 
       {/* Box Deskripsi & Referensi Panduan Murid */}
