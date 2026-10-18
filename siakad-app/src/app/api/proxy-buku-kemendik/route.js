@@ -24,29 +24,47 @@ export async function GET(request) {
 
     let html = await response.text();
 
-    // Suntikkan base href dan navigasi interceptor
+    // SIBI adalah React SPA (Create React App + React Router).
+    // Jika dimuat di dalam iframe melalui URL /api/proxy-buku-kemendik, React Router
+    // akan mengecek window.location.pathname dan menampilkan halaman 404 (Oops!) karena
+    // rute '/api/proxy-buku-kemendik' tidak terdaftar di router SIBI.
+    // Solusi: Sebelum bundle JS SIBI dieksekusi, jalankan window.history.replaceState
+    // agar pathname diubah menjadi '/katalog' (atau cleanPath), sehingga React Router
+    // langsung memuat katalog buku dengan benar tanpa memicu reload.
     const injectionScript = `
       <base href="https://buku.kemendikdasmen.go.id/">
       <script type="text/javascript">
-        // Intercept navigasi link agar tetap berada di dalam proxy SIAKAD
+        // 1. Sinkronkan pathname untuk React Router SIBI sebelum bundle utama dieksekusi
+        try {
+          var expectedPath = ${JSON.stringify(cleanPath)};
+          if (window.location.pathname !== expectedPath) {
+            window.history.replaceState(null, '', expectedPath);
+          }
+        } catch(e) {
+          console.warn('Gagal set history state:', e);
+        }
+
+        // 2. Pastikan file unduhan buku / PDF dan link eksternal dibuka di tab baru
         document.addEventListener('click', function(e) {
           var a = e.target.closest('a');
           if (a && a.href) {
             try {
               var url = new URL(a.href, window.location.href);
-              // Jika link masih dalam domain buku.kemendikdasmen.go.id
-              if (url.hostname === 'buku.kemendikdasmen.go.id') {
-                // Kecualikan link download file PDF langsung agar tetap bisa diunduh normal
-                if (url.pathname.endsWith('.pdf') || url.pathname.includes('/download/')) {
-                  return;
-                }
-                e.preventDefault();
-                window.location.href = '/api/proxy-buku-kemendik?path=' + encodeURIComponent(url.pathname + url.search);
+              if (url.pathname.endsWith('.pdf') || url.pathname.includes('/download/')) {
+                a.setAttribute('target', '_blank');
+              } else if (url.origin !== window.location.origin && url.origin !== 'https://buku.kemendikdasmen.go.id') {
+                a.setAttribute('target', '_blank');
               }
             } catch(err) {}
           }
-        }, true);
+        }, false);
       </script>
+      <style>
+        /* Optimasi tampilan iframe agar rapi */
+        body {
+          overflow-x: hidden !important;
+        }
+      </style>
     `;
 
     if (html.includes('<head>')) {
