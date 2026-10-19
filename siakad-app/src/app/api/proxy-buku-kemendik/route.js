@@ -2,11 +2,8 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const subPath = searchParams.get('path') || '/katalog';
-
-    const cleanPath = subPath.startsWith('/') ? subPath : `/${subPath}`;
-    const targetUrl = `https://buku.kemendikdasmen.go.id${cleanPath}`;
+    // Selalu fetch dari /katalog karena itu adalah halaman utama yang kita butuhkan
+    const targetUrl = 'https://buku.kemendikdasmen.go.id/katalog';
 
     // Ambil konten HTML dari portal SIBI Kemendikdasmen
     const response = await fetch(targetUrl, {
@@ -36,7 +33,7 @@ export async function GET(request) {
       <script>
         // CRITICAL: Force pathname change IMMEDIATELY before any other script runs
         (function() {
-          var targetPath = ${JSON.stringify(cleanPath)};
+          var targetPath = "/katalog";
           
           // Method 1: Immediate replaceState
           try {
