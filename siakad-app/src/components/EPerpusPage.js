@@ -170,23 +170,6 @@ export default function EPerpusPage() {
           </div>
         </div>
 
-        {/* Banner Instruksi Khusus untuk Rodocodo */}
-        {activeEntry.id === 'rodocodo' && (
-          <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/20 border-b border-orange-200 dark:border-orange-800/40 px-4 py-3 flex items-start gap-3 flex-shrink-0">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold">
-              💡
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs sm:text-sm font-semibold text-orange-900 dark:text-orange-300 mb-1">
-                Petunjuk Cepat: Cara Memulai Game
-              </p>
-              <p className="text-xs text-orange-800 dark:text-orange-400 leading-relaxed">
-                Game akan dimuat langsung di layar ini. Jika loading lambat atau ada masalah, klik tombol <strong>"Buka Tab Baru"</strong> di atas untuk pengalaman lebih optimal.
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* Iframe Penuh Layar */}
         <div className="flex-1 w-full h-full relative bg-slate-100 dark:bg-slate-950">
           {activeEntry.iframeOk ? (
