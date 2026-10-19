@@ -95,9 +95,10 @@ const PINTU_BELAJAR = [
     sublabel: 'Rodocodo Code Hour',
     desc: 'Game coding interaktif gratis untuk anak usia 4-11 tahun. Belajar pemrograman komputer dengan cara yang menyenangkan tanpa perlu login.',
     tags: ['🎮 Game Coding', '💻 Pemrograman Anak', '⚡ Langsung di Aplikasi'],
-    url: '/api/proxy-rodocodo',
-    externalUrl: 'https://www.rodocodo.com/free-coding-game-for-kids/',
+    url: 'https://game.rodocodo.com/hour-of-code/',
+    externalUrl: 'https://game.rodocodo.com/hour-of-code/',
     iframeOk: true,
+    openInNewTab: false,
     icon: (
       <svg className="w-9 h-9" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
@@ -180,7 +181,7 @@ export default function EPerpusPage() {
                 Petunjuk Cepat: Cara Memulai Game
               </p>
               <p className="text-xs text-orange-800 dark:text-orange-400 leading-relaxed">
-                <strong>Gulir ke bawah</strong> di area game untuk menemukan tombol <strong className="px-1.5 py-0.5 bg-orange-200 dark:bg-orange-900/40 rounded">Play</strong>, lalu klik untuk mulai bermain. Atau klik tombol <strong>"Buka Tab Baru"</strong> di atas untuk akses lebih mudah.
+                Game akan dimuat langsung di layar ini. Jika loading lambat atau ada masalah, klik tombol <strong>"Buka Tab Baru"</strong> di atas untuk pengalaman lebih optimal.
               </p>
             </div>
           </div>
