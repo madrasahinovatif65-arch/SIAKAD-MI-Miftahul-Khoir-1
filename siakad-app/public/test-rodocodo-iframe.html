@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Rodocodo Iframe Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .test-container { margin: 20px 0; padding: 15px; border: 2px solid #ddd; border-radius: 8px; }
+    iframe { width: 100%; height: 500px; border: 1px solid #ccc; margin-top: 10px; }
+    .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Diagnosis Rodocodo Iframe Loading</h1>
+  
+  <div class="test-container">
+    <h2>Test 1: Direct Iframe (tanpa proxy)</h2>
+    <p>Test apakah Rodocodo mengizinkan iframe dari domain lain</p>
+    <div id="status1" class="status">⏳ Loading...</div>
+    <iframe id="iframe1" src="https://www.rodocodo.com/free-coding-game-for-kids/"></iframe>
+  </div>
+
+  <div class="test-container">
+    <h2>Test 2: Via Proxy SIAKAD</h2>
+    <p>Test apakah proxy SIAKAD bisa bypass iframe blocking</p>
+    <div id="status2" class="status">⏳ Loading...</div>
+    <iframe id="iframe2" src="/api/proxy-rodocodo"></iframe>
+  </div>
+
+  <div class="test-container">
+    <h2>📊 Hasil Diagnosis</h2>
+    <div id="results"></div>
+  </div>
+
+  <script>
+    const iframe1 = document.getElementById('iframe1');
+    const iframe2 = document.getElementById('iframe2');
+    const status1 = document.getElementById('status1');
+    const status2 = document.getElementById('status2');
+    const results = document.getElementById('results');
+
+    let test1Success = false;
+    let test2Success = false;
+
+    // Test 1: Direct iframe
+    iframe1.onload = () => {
+      try {
+        // Try to access iframe content (will fail if blocked)
+        const iframeDoc = iframe1.contentDocument || iframe1.contentWindow.document;
+        if (iframeDoc) {
+          test1Success = true;
+          status1.className = 'status success';
+          status1.textContent = '✅ Direct iframe berhasil dimuat!';
+        }
+      } catch (e) {
+        status1.className = 'status error';
+        status1.textContent = '❌ Direct iframe dimuat tapi blocked (X-Frame-Options): ' + e.message;
+      }
+      updateResults();
+    };
+
+    iframe1.onerror = () => {
+      status1.className = 'status error';
+      status1.textContent = '❌ Direct iframe gagal dimuat (network error)';
+      updateResults();
+    };
+
+    // Test 2: Via proxy
+    iframe2.onload = () => {
+      try {
+        const iframeDoc = iframe2.contentDocument || iframe2.contentWindow.document;
+        if (iframeDoc) {
+          test2Success = true;
+          status2.className = 'status success';
+          status2.textContent = '✅ Proxy iframe berhasil dimuat!';
+        }
+      } catch (e) {
+        status2.className = 'status error';
+        status2.textContent = '❌ Proxy iframe dimuat tapi blocked: ' + e.message;
+      }
+      updateResults();
+    };
+
+    iframe2.onerror = () => {
+      status2.className = 'status error';
+      status2.textContent = '❌ Proxy iframe gagal dimuat (fetch error 403/500)';
+      updateResults();
+    };
+
+    function updateResults() {
+      let recommendation = '';
+      
+      if (test1Success) {
+        recommendation = '🎉 <strong>Rodocodo bisa dimuat langsung!</strong><br>Gunakan direct URL tanpa proxy: <code>https://www.rodocodo.com/free-coding-game-for-kids/</code>';
+      } else if (test2Success) {
+        recommendation = '🎉 <strong>Proxy berhasil bypass blocking!</strong><br>Gunakan proxy endpoint: <code>/api/proxy-rodocodo</code>';
+      } else {
+        recommendation = '⚠️ <strong>Rodocodo memblokir iframe sepenuhnya.</strong><br><br><strong>Solusi:</strong><br>1. Ubah menjadi "Open in New Tab" (openInNewTab: true)<br>2. Atau buat tombol CTA yang langsung buka di browser<br>3. Banner instruksi sudah tepat untuk guide user';
+      }
+      
+      results.innerHTML = recommendation;
+    }
+
+    // Timeout fallback after 10 seconds
+    setTimeout(() => {
+      if (status1.textContent.includes('Loading')) {
+        status1.className = 'status error';
+        status1.textContent = '⏱️ Timeout - kemungkinan blocked by X-Frame-Options';
+      }
+      if (status2.textContent.includes('Loading')) {
+        status2.className = 'status error';
+        status2.textContent = '⏱️ Timeout - check proxy endpoint';
+      }
+      updateResults();
+    }, 10000);
+  </script>
+</body>
+</html>
