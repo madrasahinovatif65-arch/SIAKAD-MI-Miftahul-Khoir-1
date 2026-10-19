@@ -89,6 +89,34 @@ const PINTU_BELAJAR = [
       'Kuis logika visual seru untuk merangsang rasa ingin tahu siswa',
     ],
   },
+  {
+    id: 'rodocodo',
+    label: 'Belajar Coding Dasar',
+    sublabel: 'Rodocodo Code Hour',
+    desc: 'Game coding interaktif gratis untuk anak usia 4-11 tahun. Belajar pemrograman komputer dengan cara yang menyenangkan tanpa perlu login.',
+    tags: ['🎮 Game Coding', '💻 Pemrograman Anak', '⚡ Langsung di Aplikasi'],
+    url: '/api/proxy-rodocodo',
+    externalUrl: 'https://www.rodocodo.com/free-coding-game-for-kids/',
+    iframeOk: true,
+    icon: (
+      <svg className="w-9 h-9" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
+      </svg>
+    ),
+    badge: '🎮 Game Coding Interaktif',
+    badgeColor: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
+    gradient: 'from-orange-500 to-amber-500',
+    ring: 'ring-orange-500',
+    iconBg: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400',
+    border: 'hover:border-orange-400',
+    guideTitle: 'Kapan Memilih Menu Ini?',
+    guideContent: 'Pilih menu ini saat kamu ingin belajar dasar-dasar pemrograman komputer (coding) dengan cara bermain game yang seru dan mudah dipahami untuk semua usia.',
+    guideFeatures: [
+      'Cocok untuk anak 4-11 tahun, bahkan yang belum lancar membaca',
+      'Belajar computational thinking tanpa terasa lewat game puzzle',
+      'Ada sertifikat digital yang bisa dicetak setelah menyelesaikan level',
+    ],
+  },
 ];
 
 export default function EPerpusPage() {
