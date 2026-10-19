@@ -33,18 +33,37 @@ export async function GET(request) {
     // langsung memuat katalog buku dengan benar tanpa memicu reload.
     const injectionScript = `
       <base href="https://buku.kemendikdasmen.go.id/">
-      <script type="text/javascript">
-        // 1. Sinkronkan pathname untuk React Router SIBI sebelum bundle utama dieksekusi
-        try {
-          var expectedPath = ${JSON.stringify(cleanPath)};
-          if (window.location.pathname !== expectedPath) {
-            window.history.replaceState(null, '', expectedPath);
-          }
-        } catch(e) {
-          console.warn('Gagal set history state:', e);
-        }
-
-        // 2. Pastikan file unduhan buku / PDF dan link eksternal dibuka di tab baru
+      <script>
+        // CRITICAL: Force pathname change IMMEDIATELY before any other script runs
+        (function() {
+          var targetPath = ${JSON.stringify(cleanPath)};
+          
+          // Method 1: Immediate replaceState
+          try {
+            if (window.location.pathname !== targetPath) {
+              window.history.replaceState(null, '', targetPath);
+            }
+          } catch(e) {}
+          
+          // Method 2: Override location.pathname getter (fallback for React Router)
+          try {
+            Object.defineProperty(window.location, 'pathname', {
+              get: function() { return targetPath; },
+              configurable: true
+            });
+          } catch(e) {}
+          
+          // Method 3: Repeat on DOMContentLoaded
+          document.addEventListener('DOMContentLoaded', function() {
+            try {
+              if (window.location.pathname !== targetPath) {
+                window.history.replaceState(null, '', targetPath);
+              }
+            } catch(e) {}
+          });
+        })();
+        
+        // Handle PDF downloads and external links
         document.addEventListener('click', function(e) {
           var a = e.target.closest('a');
           if (a && a.href) {
@@ -60,10 +79,7 @@ export async function GET(request) {
         }, false);
       </script>
       <style>
-        /* Optimasi tampilan iframe agar rapi */
-        body {
-          overflow-x: hidden !important;
-        }
+        body { overflow-x: hidden !important; }
       </style>
     `;
 
