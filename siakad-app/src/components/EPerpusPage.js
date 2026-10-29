@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -170,16 +170,16 @@ export default function EPerpusPage() {
           </div>
         </div>
 
-        {/* Banner anjuran landscape untuk game di HP */}
-        {activeEntry.id === 'rodocodo' && (
+        {/* Banner anjuran landscape untuk game coding & logika di HP */}
+        {(activeEntry.id === 'rodocodo' || activeEntry.id === 'iqgenio') && (
           <div
             id="landscape-hint-bar"
-            className="md:hidden flex items-center justify-between gap-2 bg-orange-500 text-white text-xs font-semibold px-4 py-2 flex-shrink-0"
+            className={"md:hidden flex items-center justify-between gap-2 text-white text-xs font-semibold px-4 py-2 flex-shrink-0 " + (activeEntry.id === 'rodocodo' ? 'bg-orange-500' : 'bg-purple-600')}
           >
             <span>&#x1F4F1; Putar layar ke <strong>Horizontal (Landscape)</strong> untuk tampilan terbaik</span>
             <button
               onClick={(e) => e.currentTarget.parentElement.style.display = 'none'}
-              className="flex-shrink-0 bg-orange-400 hover:bg-orange-300 rounded-full w-5 h-5 flex items-center justify-center text-[10px] cursor-pointer border-0"
+              className="flex-shrink-0 bg-white/30 hover:bg-white/50 rounded-full w-5 h-5 flex items-center justify-center text-[10px] cursor-pointer border-0"
             >&#x2715;</button>
           </div>
         )}

@@ -25,12 +25,42 @@ export async function GET(request) {
 
     let html = await response.text();
 
-    // Suntikkan base href agar semua aset gambar, css, font, audio ter-resolve ke domain IQGenio
-    const baseTag = `<base href="https://iqgenio.com/">`;
-
-    // Suntikkan script Google Translate Widget & navigasi interceptor
+    // Suntikkan script Google Translate Widget, navigasi interceptor, dan override mobile detection
     const injectionScript = `
       <base href="https://iqgenio.com/">
+      <meta name="viewport" content="width=1024, initial-scale=0.5, maximum-scale=3.0, user-scalable=yes">
+      <script>
+        // Override deteksi perangkat mobile oleh JavaScript IQGenio
+        (function() {
+          try {
+            Object.defineProperty(navigator, 'userAgent', {
+              get: function() { return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'; },
+              configurable: true
+            });
+            Object.defineProperty(navigator, 'maxTouchPoints', { get: function() { return 0; }, configurable: true });
+            Object.defineProperty(navigator, 'platform', { get: function() { return 'Win32'; }, configurable: true });
+          } catch(e) {}
+        })();
+      </script>
+      <style>
+        html, body { min-width: 1024px !important; overflow-x: auto !important; }
+        #siakad_landscape_hint {
+          display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 2147483647;
+          background: linear-gradient(135deg, #7c3aed, #4338ca);
+          color: white; font-family: system-ui, sans-serif; font-size: 13px;
+          font-weight: 600; padding: 8px 16px; text-align: center;
+          align-items: center; justify-content: center; gap: 8px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        @media (max-width: 768px) and (orientation: portrait) {
+          #siakad_landscape_hint { display: flex !important; }
+        }
+      </style>
+      <div id="siakad_landscape_hint">
+        <span>&#x1F4F1; Putar layar ke <strong>Horizontal (Landscape)</strong> untuk tampilan terbaik</span>
+        <button onclick="this.parentElement.style.display='none'"
+          style="background:rgba(255,255,255,0.3);border:none;color:white;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;margin-left:8px;">&#x2715;</button>
+      </div>
       <style>
         /* 1. Sembunyikan TOTAL banner Google Translate bagian atas (seperti di screenshot) */
         .goog-te-banner-frame,
