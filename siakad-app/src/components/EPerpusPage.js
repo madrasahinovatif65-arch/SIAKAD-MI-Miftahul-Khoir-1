@@ -95,7 +95,7 @@ const PINTU_BELAJAR = [
     sublabel: 'Rodocodo Code Hour',
     desc: 'Game coding interaktif gratis untuk anak usia 4-11 tahun. Belajar pemrograman komputer dengan cara yang menyenangkan tanpa perlu login.',
     tags: ['🎮 Game Coding', '💻 Pemrograman Anak', '⚡ Langsung di Aplikasi'],
-    url: 'https://game.rodocodo.com/hour-of-code/',
+    url: '/api/proxy-game-rodocodo',
     externalUrl: 'https://game.rodocodo.com/hour-of-code/',
     iframeOk: true,
     openInNewTab: false,
@@ -170,6 +170,20 @@ export default function EPerpusPage() {
           </div>
         </div>
 
+        {/* Banner anjuran landscape untuk game di HP */}
+        {activeEntry.id === 'rodocodo' && (
+          <div
+            id="landscape-hint-bar"
+            className="md:hidden flex items-center justify-between gap-2 bg-orange-500 text-white text-xs font-semibold px-4 py-2 flex-shrink-0"
+          >
+            <span>&#x1F4F1; Putar layar ke <strong>Horizontal (Landscape)</strong> untuk tampilan terbaik</span>
+            <button
+              onClick={(e) => e.currentTarget.parentElement.style.display = 'none'}
+              className="flex-shrink-0 bg-orange-400 hover:bg-orange-300 rounded-full w-5 h-5 flex items-center justify-center text-[10px] cursor-pointer border-0"
+            >&#x2715;</button>
+          </div>
+        )}
+
         {/* Iframe Penuh Layar */}
         <div className="flex-1 w-full h-full relative bg-slate-100 dark:bg-slate-950">
           {activeEntry.iframeOk ? (
@@ -177,7 +191,8 @@ export default function EPerpusPage() {
               src={activeEntry.url}
               className="absolute inset-0 w-full h-full border-0"
               title={activeEntry.label}
-              allow="fullscreen"
+              allow="fullscreen; accelerometer; autoplay; gyroscope"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"
             />
           ) : (
             /* Fallback untuk situs yang memblokir iframe (SAMEORIGIN) */
