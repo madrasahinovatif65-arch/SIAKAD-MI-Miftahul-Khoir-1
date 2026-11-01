@@ -95,8 +95,8 @@ const PINTU_BELAJAR = [
     sublabel: 'Rodocodo Code Hour',
     desc: 'Game coding interaktif gratis untuk anak usia 4-11 tahun. Belajar pemrograman komputer dengan cara yang menyenangkan tanpa perlu login.',
     tags: ['🎮 Game Coding', '💻 Pemrograman Anak', '⚡ Langsung di Aplikasi'],
-    url: '/api/proxy-game-rodocodo',
-    externalUrl: 'https://game.rodocodo.com/hour-of-code/',
+    url: 'https://game.rodocodo.com/hour-of-code/index.html',
+    externalUrl: 'https://game.rodocodo.com/hour-of-code/index.html',
     iframeOk: true,
     openInNewTab: false,
     icon: (
