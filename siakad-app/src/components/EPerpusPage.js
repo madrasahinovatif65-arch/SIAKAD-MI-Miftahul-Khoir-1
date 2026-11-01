@@ -135,7 +135,7 @@ export default function EPerpusPage() {
     if (!mounted) return null;
 
     return createPortal(
-      <div className="fixed inset-0 z-[99999] w-screen h-screen bg-white dark:bg-slate-950 flex flex-col overflow-hidden">
+      <div className="fixed inset-0 z-[99999] w-full h-[100dvh] bg-white dark:bg-slate-950 flex flex-col overflow-hidden">
         {/* Topbar Viewer Khusus (Menutupi Header SIAKAD agar layar baca penuh dan tombol kembali selalu terlihat) */}
         <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 sm:py-3 flex items-center justify-between gap-3 flex-shrink-0 z-50 shadow-md">
           <div className="flex items-center gap-3">
@@ -185,14 +185,13 @@ export default function EPerpusPage() {
         )}
 
         {/* Iframe Penuh Layar */}
-        <div className="flex-1 w-full h-full relative bg-slate-100 dark:bg-slate-950">
+        <div className="flex-1 min-h-0 w-full relative bg-slate-100 dark:bg-slate-950">
           {activeEntry.iframeOk ? (
             <iframe
               src={activeEntry.url}
               className="absolute inset-0 w-full h-full border-0"
               title={activeEntry.label}
-              allow="fullscreen; accelerometer; autoplay; gyroscope"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"
+              allow="fullscreen; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             />
           ) : (
             /* Fallback untuk situs yang memblokir iframe (SAMEORIGIN) */

@@ -1,15 +1,25 @@
 import { NextResponse } from 'next/server';
 
+/**
+ * Proxy untuk IQGenio (https://iqgenio.com/)
+ *
+ * Mengapa proxy ini diperlukan:
+ * Server asli IQGenio mengirimkan header "X-Frame-Options: SAMEORIGIN" yang
+ * secara otomatis memblokir situs tersebut jika dimuat langsung di dalam iframe domain lain.
+ *
+ * Solusi:
+ * Proxy ini mengambil HTML dari server IQGenio, menghapus header proteksi iframe,
+ * menyuntikkan <base href="https://iqgenio.com/"> agar aset (JS, CSS, gambar)
+ * dimuat dengan tepat, serta menambahkan widget terjemahan Bahasa Indonesia.
+ */
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const subPath = searchParams.get('path') || '';
 
-    // Pastikan subPath aman dan diawali dengan slash jika ada
     const cleanPath = subPath ? (subPath.startsWith('/') ? subPath : `/${subPath}`) : '';
     const targetUrl = `https://iqgenio.com${cleanPath}`;
 
-    // Ambil konten HTML mentah dari IQGenio
     const response = await fetch(targetUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -25,44 +35,15 @@ export async function GET(request) {
 
     let html = await response.text();
 
-    // Suntikkan script Google Translate Widget, navigasi interceptor, dan override mobile detection
+    // Hapus <base href> yang mungkin ada
+    html = html.replace(/<base\s[^>]*>/gi, '');
+
+    // Suntikkan base href & widget terjemahan mengambang
     const injectionScript = `
       <base href="https://iqgenio.com/">
-      <meta name="viewport" content="width=1024, initial-scale=0.5, maximum-scale=3.0, user-scalable=yes">
-      <script>
-        // Override deteksi perangkat mobile oleh JavaScript IQGenio
-        (function() {
-          try {
-            Object.defineProperty(navigator, 'userAgent', {
-              get: function() { return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'; },
-              configurable: true
-            });
-            Object.defineProperty(navigator, 'maxTouchPoints', { get: function() { return 0; }, configurable: true });
-            Object.defineProperty(navigator, 'platform', { get: function() { return 'Win32'; }, configurable: true });
-          } catch(e) {}
-        })();
-      </script>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
       <style>
-        html, body { min-width: 1024px !important; overflow-x: auto !important; }
-        #siakad_landscape_hint {
-          display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 2147483647;
-          background: linear-gradient(135deg, #7c3aed, #4338ca);
-          color: white; font-family: system-ui, sans-serif; font-size: 13px;
-          font-weight: 600; padding: 8px 16px; text-align: center;
-          align-items: center; justify-content: center; gap: 8px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-        @media (max-width: 768px) and (orientation: portrait) {
-          #siakad_landscape_hint { display: flex !important; }
-        }
-      </style>
-      <div id="siakad_landscape_hint">
-        <span>&#x1F4F1; Putar layar ke <strong>Horizontal (Landscape)</strong> untuk tampilan terbaik</span>
-        <button onclick="this.parentElement.style.display='none'"
-          style="background:rgba(255,255,255,0.3);border:none;color:white;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;margin-left:8px;">&#x2715;</button>
-      </div>
-      <style>
-        /* 1. Sembunyikan TOTAL banner Google Translate bagian atas (seperti di screenshot) */
+        /* Sembunyikan banner Google Translate atas agar tidak menutupi header */
         .goog-te-banner-frame,
         iframe.goog-te-banner-frame,
         .skiptranslate > iframe,
@@ -76,19 +57,17 @@ export async function GET(request) {
           pointer-events: none !important;
         }
 
-        /* 2. Pastikan posisi body tidak tergeser ke bawah oleh Google */
         html, body {
           top: 0px !important;
           position: static !important;
         }
 
-        /* 3. Hilangkan efek highlight teks kuning Google Translate */
         .goog-text-highlight {
           background: transparent !important;
           box-shadow: none !important;
         }
 
-        /* 4. Widget Terjemahan Mengapung dengan fitur Auto-Hide */
+        /* Tombol Translate Mengambang */
         #siakad_translate_container {
           position: fixed;
           bottom: 16px;
@@ -97,7 +76,7 @@ export async function GET(request) {
           display: flex;
           align-items: center;
           gap: 6px;
-          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          transition: all 0.3s ease;
         }
 
         #siakad_translate_box {
@@ -111,16 +90,10 @@ export async function GET(request) {
           gap: 8px;
           font-family: system-ui, -apple-system, sans-serif;
           font-size: 13px;
-          transition: opacity 0.3s ease, transform 0.3s ease;
         }
 
-        /* State ketika diminimize / auto-hide */
         #siakad_translate_container.is-minimized #siakad_translate_box {
-          opacity: 0;
-          transform: scale(0.8) translateX(20px);
-          pointer-events: none;
-          position: absolute;
-          right: 48px;
+          display: none;
         }
 
         #siakad_toggle_btn {
@@ -137,17 +110,10 @@ export async function GET(request) {
           cursor: pointer;
           font-size: 16px;
           user-select: none;
-          transition: transform 0.2s ease, background-color 0.2s ease;
           flex-shrink: 0;
-        }
-
-        #siakad_toggle_btn:hover {
-          transform: scale(1.08);
-          background: #3730a3;
         }
       </style>
 
-      <!-- Widget Terjemahan dengan Auto-Hide & Toggle -->
       <div id="siakad_translate_container">
         <div id="siakad_translate_box">
           <span style="font-weight: 600; color: #4338ca; font-size: 12px;">🇮🇩 Bahasa:</span>
@@ -159,7 +125,6 @@ export async function GET(request) {
       </div>
 
       <script type="text/javascript">
-        // Set cookie translate ke Bahasa Indonesia secara default
         try {
           var date = new Date();
           date.setTime(date.getTime() + (30 * 24 * 60 * 60 * 1000));
@@ -168,15 +133,16 @@ export async function GET(request) {
         } catch(e) {}
 
         function googleTranslateElementInit() {
-          new google.translate.TranslateElement({
-            pageLanguage: 'en',
-            includedLanguages: 'id,en',
-            layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-            autoDisplay: false
-          }, 'google_translate_element');
+          try {
+            new google.translate.TranslateElement({
+              pageLanguage: 'en',
+              includedLanguages: 'id,en',
+              layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+              autoDisplay: false
+            }, 'google_translate_element');
+          } catch(e) {}
         }
 
-        // Fungsi toggle & auto-hide
         var container = document.getElementById('siakad_translate_container');
         function toggleTranslateWidget() {
           if (container) {
@@ -184,16 +150,14 @@ export async function GET(request) {
           }
         }
 
-        // Auto-hide otomatis setelah 5 detik agar tidak menutupi layar kuis
         setTimeout(function() {
           if (container) {
             container.classList.add('is-minimized');
           }
-        }, 5000);
+        }, 6000);
 
-        // Pengawas (Observer) ketat untuk membasmi banner atas Google Translate jika muncul
         function hideGoogleTopBanner() {
-          if (document.body.style.top && document.body.style.top !== '0px') {
+          if (document.body && document.body.style.top && document.body.style.top !== '0px') {
             document.body.style.top = '0px';
           }
           var banners = document.querySelectorAll('.goog-te-banner-frame, iframe.skiptranslate');
@@ -203,11 +167,10 @@ export async function GET(request) {
             b.style.height = '0px';
           });
         }
+        var bannerInterval = setInterval(hideGoogleTopBanner, 300);
+        setTimeout(function() { clearInterval(bannerInterval); }, 12000);
 
-        var bannerInterval = setInterval(hideGoogleTopBanner, 200);
-        setTimeout(function() { clearInterval(bannerInterval); }, 15000);
-
-        // Tangkap klik link navigasi agar tetap melalui proxy SIAKAD
+        // Pastikan klik navigasi internal tetap dalam proxy
         document.addEventListener('click', function(e) {
           var a = e.target.closest('a');
           if (a && a.href) {
@@ -224,25 +187,22 @@ export async function GET(request) {
       <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
     `;
 
-    // Sisipkan tepat setelah tag <head>
-    if (html.includes('<head>')) {
-      html = html.replace('<head>', `<head>${injectionScript}`);
-    } else {
-      html = `${injectionScript}${html}`;
-    }
+      if (/<head>/i.test(html)) {
+        html = html.replace(/<head>/i, `<head>${injectionScript}`);
+      } else {
+        html = `${injectionScript}${html}`;
+      }
 
-    // Kembalikan response HTML dengan menghapus X-Frame-Options dan CSP
-    return new NextResponse(html, {
-      status: 200,
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        // Izinkan halaman ini dimuat di iframe dalam origin aplikasi kita
-        'X-Frame-Options': 'SAMEORIGIN',
-      },
-    });
-  } catch (error) {
-    console.error('Error proxying iqgenio:', error);
-    return new NextResponse('Terjadi kesalahan saat memuat IQGenio melalui proxy.', { status: 500 });
+      const responseHeaders = new Headers();
+      responseHeaders.set('Content-Type', 'text/html; charset=utf-8');
+      responseHeaders.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+
+      return new NextResponse(html, {
+        status: 200,
+        headers: responseHeaders,
+      });
+    } catch (error) {
+      console.error('Error proxying iqgenio:', error);
+      return new NextResponse('Terjadi kesalahan saat memuat IQGenio melalui proxy.', { status: 500 });
+    }
   }
-}
